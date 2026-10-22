@@ -1,0 +1,28 @@
+name: Validate and package client handoff
+on:
+  push:
+    branches: [main, loud-cana-client-handoff]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  handoff:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm test
+      - run: npm run release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: loud-cana-client-handoff
+          path: |
+            release/loud-cana-client.zip
+            release/loud-cana-client.zip.sha256
+            release/loud-cana-preview.html
+          retention-days: 14
