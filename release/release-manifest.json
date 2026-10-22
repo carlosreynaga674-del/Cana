@@ -1,7 +1,7 @@
 {
   "application": "Loud + Cana",
   "version": "1.0.0",
-  "createdAt": "2026-10-22T13:48:42.473Z",
+  "createdAt": "2026-10-22T13:51:40.620Z",
   "region": "Gauteng, South Africa",
   "currency": "ZAR",
   "runtime": "Node.js 24",
@@ -16,8 +16,8 @@
   "files": [
     {
       "filename": "DEPLOYMENT.md",
-      "bytes": 7335,
-      "sha256": "9bc45785216b255c3ecd906b47b095779bb133c0fa3ceeb4ee776e140118f922"
+      "bytes": 7817,
+      "sha256": "1cf01f7c723caa0d6491b478ad8d92b86aa1c6a82f1b4140f8a1a834e34a69e9"
     },
     {
       "filename": "loud-cana-preview.html",
@@ -51,8 +51,8 @@
     },
     {
       "filename": "source/docs/DEPLOYMENT.md",
-      "bytes": 7335,
-      "sha256": "9bc45785216b255c3ecd906b47b095779bb133c0fa3ceeb4ee776e140118f922"
+      "bytes": 7817,
+      "sha256": "1cf01f7c723caa0d6491b478ad8d92b86aa1c6a82f1b4140f8a1a834e34a69e9"
     },
     {
       "filename": "source/docs/HANDOFF.md",
@@ -111,8 +111,8 @@
     },
     {
       "filename": "source/README.md",
-      "bytes": 3236,
-      "sha256": "9f1b8354fd4739fbb842a28f0bbd7eed8f825dcf558b942c5681bd4e65570b98"
+      "bytes": 3439,
+      "sha256": "28959e5cbaf525232ea51f0cd646182649e285db670c8feebcc0ef4ce52c0753"
     },
     {
       "filename": "source/render.yaml",

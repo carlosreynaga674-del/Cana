@@ -34,7 +34,9 @@ For frontend development, leave the Node service running and run `npm run dev` i
 
 `render.yaml` prepares a Node service with persistent SQLite storage. It uses a paid plan with a persistent disk; review the hosting cost before creating the service. The repository owner must connect the repository to their Render account and securely configure the actual store details. No public deployment is implied by the presence of this file.
 
-The **Publish client preview** GitHub Actions workflow publishes the self-contained demo to GitHub Pages after the owner selects **Settings → Pages → GitHub Actions** and runs the workflow from the deployed branch. This is a demonstration site; it does not accept real requests. **Validate and package client handoff** checks the app and saves downloadable build artifacts.
+For the quickest public demo, select **Settings → Pages → Deploy from a branch → loud-cana-preview → / (root)** and save. That branch contains the self-contained demo. GitHub displays the actual URL once deployed. Pushing the branch alone does not publish the site.
+
+The **Publish client preview** GitHub Actions workflow is an alternative after the workflow is available on the default branch and Pages is configured for GitHub Actions. The demo does not accept real requests. **Validate and package client handoff** checks the app and saves downloadable build artifacts.
 
 ## Validation
 

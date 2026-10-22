@@ -44,6 +44,8 @@ The server exposes its current `demo`/`live` mode and missing setup requirements
 
 ## Static public demo
 
+The prepared repository also has a **`loud-cana-preview`** branch containing the tested single-file site at its root. For the quickest public demo, open the repository's **Settings → Pages**, choose **Deploy from a branch**, select **`loud-cana-preview`** and **`/ (root)`**, then save. GitHub displays the actual site URL after deployment. The API connection in this environment could not enable Pages automatically; the branch alone does not establish that Pages is published.
+
 Publish the **contents** of `static-site/`. Its `index.html` is the self-contained offline preview, so it works at an origin root or a repository subpath such as `/Cana/` without additional base-path configuration. It can demonstrate browsing, cart, and demo checkout without a Node service. For GitHub Pages, use the provided repository deployment workflow when present, or upload the built directory through your normal Pages process.
 
 A static site has no persistent server orders, staff authentication service, or dispatch integration. Do not present its local demo confirmations as actual accepted orders.
