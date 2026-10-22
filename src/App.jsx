@@ -10,6 +10,10 @@ import {
   ChevronRight,
   Clock3,
   Heart,
+  Users,
+  UserRound,
+  Camera,
+  MessageCircle,
   Leaf,
   MapPin,
   Menu,
@@ -82,7 +86,9 @@ function Logo({ footer = false }) {
       className={`logo ${footer ? "footer-logo" : ""}`}
       aria-label="Loud and Cana home"
     >
-      LOUD<span>+</span>CANA<span className="logo-period">®</span>
+      <span className="brand-loud">LOUD</span>
+      <span className="brand-cana">+CANA</span>
+      <Leaf className="brand-leaf" size={18} />
     </a>
   );
 }
@@ -218,7 +224,9 @@ function ProductCard({ product, favorite, onFavorite, onSelect, onAdd }) {
             onClick={() => onAdd(product)}
             aria-label={`Add ${product.name} to bag`}
           >
-            <Plus size={21} />
+            <ShoppingBag size={14} />
+            <span>Add to selection</span>
+            <Plus size={16} />
           </button>
         </div>
       </div>
@@ -362,6 +370,67 @@ function Storefront() {
   const [locationInput, setLocationInput] = useState("");
   const [locationError, setLocationError] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
+  const [catalogOpen, setCatalogOpen] = useState(false);
+  const [galleryIndex, setGalleryIndex] = useState(0);
+  const gallery = [
+    {
+      src: "/images/reference-space-1.webp",
+      title: "The welcome",
+      text: "A bold first impression. A space with its own identity.",
+    },
+    {
+      src: "/images/reference-space-2.webp",
+      title: "The collection",
+      text: "Considered displays. Room to explore every detail.",
+    },
+    {
+      src: "/images/reference-space-3.webp",
+      title: "The good-vibes corner",
+      text: "A relaxed space for conversation and connection.",
+    },
+  ];
+  const categoryCards = [
+    {
+      name: "Flower",
+      image: "/images/reference-flower.webp",
+      description: "Explore the strains",
+    },
+    {
+      name: "Pre-rolls",
+      image: "/images/reference-preroll.webp",
+      description: "Ready-rolled formats",
+    },
+    {
+      name: "Edibles",
+      image: "/images/reference-gummies.webp",
+      description: "Find your flavour",
+    },
+    {
+      name: "Vapes",
+      image: "/images/reference-vape.webp",
+      description: "A contemporary format",
+    },
+    {
+      name: "Accessories",
+      image: "/images/reference-accessory.webp",
+      description: "Complete your setup",
+    },
+  ];
+  const featuredProducts = [
+    "sunset-sherbet",
+    "daydream",
+    "peach-state",
+    "golden-hour",
+    "signature-grinder",
+  ]
+    .map((id) => products.find((product) => product.id === id))
+    .filter(Boolean);
+  const goToSection = (id) => {
+    setMenuOpen(false);
+    document
+      .getElementById(id)
+      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
   const toastTimer = useRef(null);
   const mode = location.mode;
   const totals = calculateTotals(cart, mode, promo);
@@ -376,14 +445,17 @@ function Storefront() {
     setPendingAdd(null);
   };
   const browse = (nextCategory = "All good things") => {
+    setCatalogOpen(true);
     setCategory(nextCategory);
     setCollection("All collections");
     setShowFavorites(false);
     setQuery("");
     setMenuOpen(false);
-    document
-      .querySelector("#shop")
-      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    requestAnimationFrame(() =>
+      document
+        .querySelector("#shop")
+        ?.scrollIntoView({ behavior: "smooth", block: "start" }),
+    );
   };
 
   function addToCart(product, quantity = 1, sizeIndex = 0) {
@@ -605,7 +677,7 @@ function Storefront() {
     setLocation((prev) => ({ ...prev, postcode: locationInput.trim() }));
     setLocationError("");
     setModal(null);
-    notify("Your delivery area is updated");
+    notify("Your postal-code preference is saved");
   }
 
   const filteredProducts = products
@@ -628,102 +700,72 @@ function Storefront() {
 
   return (
     <>
-      <div className="announcement">
-        <span>THE PRIVATE COLLECTION</span>
-        <p>
-          GAUTENG, SOUTH AFRICA <span className="announcement-dot">·</span> A
-          CONSIDERED CANNABIS EXPERIENCE
-        </p>
-        <span>FOR ADULTS 21+</span>
-      </div>
       <header className="site-header">
-        <div className="header-inner">
+        <div className="header-inner container">
           <Logo />
-          <button
-            className="location-button"
-            onClick={() => {
-              setLocationInput(location.postcode);
-              setLocationError("");
-              setModal("location");
-            }}
-          >
-            <MapPin size={18} />
-            <span>
-              <small>
-                {live
-                  ? mode === "pickup"
-                    ? "PICKUP"
-                    : "DELIVERY AREA"
-                  : "OUR COLLECTION"}
-              </small>
-              <strong>
-                {location.postcode || "Gauteng, South Africa"}{" "}
-                <ChevronDown size={13} />
-              </strong>
-            </span>
-          </button>
           <nav
-            className={menuOpen ? "mobile-open" : ""}
+            className={`nav-links ${menuOpen ? "mobile-open" : ""}`}
             aria-label="Main navigation"
           >
-            <button className="active" onClick={() => browse()}>
-              The collection <ChevronDown size={13} />
-            </button>
             <button
+              className="active"
               onClick={() => {
                 setMenuOpen(false);
-                setModal("story");
+                window.scrollTo({ top: 0, behavior: "smooth" });
               }}
             >
-              Our philosophy
+              Home
             </button>
+            <button onClick={() => browse()}>Shop</button>
+            <button onClick={() => goToSection("our-space")}>Our Space</button>
+            <button onClick={() => goToSection("about")}>About</button>
+            <button onClick={() => goToSection("membership")}>
+              Membership
+            </button>
+            <button onClick={() => goToSection("contact")}>Contact</button>
+          </nav>
+          <div className="header-actions">
             <button
+              className="icon-button"
+              aria-label="Search the shop"
               onClick={() => {
-                setMenuOpen(false);
-                setModal("guide");
+                browse();
+                setTimeout(
+                  () =>
+                    document
+                      .querySelector('[aria-label="Search products"]')
+                      ?.focus(),
+                  250,
+                );
               }}
             >
-              The journal <ArrowUpRight size={13} />
+              <Search size={21} />
             </button>
             <button
-              className="mobile-nav-only"
+              className="location-button icon-button"
+              aria-label="Choose your Gauteng postal code"
               onClick={() => {
-                setMenuOpen(false);
-                live || orders.length ? openTracking() : setModal("help");
-              }}
-            >
-              {live || orders.length ? "Track order" : "Client services"}{" "}
-              <Truck size={16} />
-            </button>
-            <button
-              className="mobile-nav-only"
-              onClick={() => {
-                setMenuOpen(false);
                 setLocationInput(location.postcode);
                 setLocationError("");
                 setModal("location");
               }}
             >
-              Your neighborhood <MapPin size={16} />
+              <MapPin size={20} />
+              <span>{location.postcode}</span>
             </button>
-          </nav>
-          <div className="header-actions">
             <button
-              className="track-button"
-              onClick={() =>
-                live || orders.length ? openTracking() : setModal("help")
-              }
+              className="icon-button account-button"
+              aria-label="Membership information"
+              onClick={() => goToSection("membership")}
             >
-              {live || orders.length ? "Track order" : "Client services"}{" "}
-              <ArrowUpRight size={15} />
+              <UserRound size={21} />
             </button>
             <button
               className="bag-button"
               onClick={() => setModal("cart")}
               aria-label={`Open bag, ${totals.itemCount} items`}
             >
-              <ShoppingBag size={18} />
-              <span>{live ? "Bag" : "Your selection"}</span>
+              <ShoppingBag size={21} />
               <span className="bag-count">{totals.itemCount}</span>
             </button>
             <button
@@ -739,49 +781,48 @@ function Storefront() {
       </header>
 
       <main>
-        <section className="luxury-hero container">
-          <div className="luxury-hero-copy">
-            <span className="eyebrow luxury-kicker">
-              THE LOUD + CANA COLLECTION
-            </span>
-            <span className="hero-edition">VOL. 01 / GAUTENG</span>
-            <h1>
-              An elevated
-              <br />
-              state of <em>mind.</em>
-            </h1>
-            <p>
-              A considered collection for the art of everyday living. Explore
-              distinctive flower, refined formats, and your next personal
-              ritual.
-            </p>
-            <div className="luxury-hero-actions">
-              <button className="button dark" onClick={() => browse()}>
-                Discover the collection <ArrowUpRight size={18} />
-              </button>
-              <button className="text-link" onClick={() => setModal("story")}>
-                Our philosophy <ArrowRight size={15} />
-              </button>
-            </div>
-            <div className="luxury-hero-notes">
-              <span>24 CONSIDERED SELECTIONS</span>
-              <span>MADE FOR YOUR MOMENT</span>
-            </div>
-          </div>
-          <div className="luxury-hero-visual">
+        <section className="reference-hero" id="home">
+          <div className="hero-background">
             <img
-              src="/images/luxury-hero.webp"
-              alt="Loud and Cana amber glass reserve jar with a brass lid on deep green marble, lit by warm afternoon light"
+              src="/images/reference-hero.webp"
+              alt="Loud + Cana store concept with black display cabinets, lime signage and warm lighting"
               fetchPriority="high"
             />
-            <div className="luxury-photo-caption">
-              <span>THE PRIVATE COLLECTION</span>
-              <span>LOUD + CANA · 2026</span>
+          </div>
+          <div className="container">
+            <div className="hero-copy">
+              <span className="eyebrow">
+                PREMIUM CANNABIS · LIFESTYLE · CULTURE
+              </span>
+              <h1>
+                <span className="hero-loud">LOUD</span>{" "}
+                <span className="hero-cana">+CANA</span>
+              </h1>
+              <h2 className="hero-tagline">
+                More than just cannabis.
+                <br />
+                It’s a lifestyle.
+              </h2>
+              <p className="hero-subtitle">
+                Quality. Culture. Community.
+                <br />
+                Welcome to the world of Loud + Cana.
+              </p>
+              <div className="hero-actions">
+                <button className="button lime" onClick={() => browse()}>
+                  Shop the collection <ArrowRight size={17} />
+                </button>
+                <button
+                  className="button outline"
+                  onClick={() => goToSection("membership")}
+                >
+                  Join the community <ArrowRight size={17} />
+                </button>
+              </div>
             </div>
-            <div className="luxury-photo-seal">
-              <span>L+C</span>
-              <small>A CONSIDERED RITUAL</small>
-            </div>
+            <span className="hero-age">
+              21+<small>ADULTS ONLY</small>
+            </span>
           </div>
         </section>
         <section
@@ -790,37 +831,182 @@ function Storefront() {
         >
           <div>
             <span className="benefit-icon">
-              <Leaf size={21} />
+              <Leaf size={31} />
             </span>
             <div>
-              <strong>A considered collection</strong>
-              <p>Signature, Reserve & Ritual.</p>
+              <strong>A considered selection</strong>
+              <p>Find your own kind of good.</p>
             </div>
           </div>
           <div>
             <span className="benefit-icon">
-              <MapPin size={21} />
+              <ShieldCheck size={31} />
             </span>
             <div>
-              <strong>Rooted in Gauteng</strong>
-              <p>A South African perspective.</p>
+              <strong>Safe & discreet</strong>
+              <p>Your privacy matters.</p>
             </div>
           </div>
           <div>
             <span className="benefit-icon">
-              <ShieldCheck size={21} />
+              <Users size={31} />
             </span>
             <div>
-              <strong>For adults 21+</strong>
-              <p>A thoughtful approach to every choice.</p>
+              <strong>Community driven</strong>
+              <p>Real people. Shared culture.</p>
+            </div>
+          </div>
+          <div>
+            <span className="benefit-icon">
+              <MapPin size={31} />
+            </span>
+            <div>
+              <strong>Rooted in South Africa</strong>
+              <p>A distinctly local perspective.</p>
             </div>
           </div>
         </section>
-        <section className="shop-section container" id="shop">
+        <section className="category-section">
+          <div className="container">
+            <div className="section-heading">
+              <div>
+                <span className="eyebrow">SHOP BY CATEGORY</span>
+                <h2>
+                  Find Your Perfect <span className="lime-text">Vibe</span>
+                </h2>
+              </div>
+              <button className="text-link" onClick={() => browse()}>
+                View all products <ArrowRight size={17} />
+              </button>
+            </div>
+            <div className="category-grid">
+              {categoryCards.map((card) => (
+                <button
+                  className="category-card"
+                  key={card.name}
+                  onClick={() => browse(card.name)}
+                >
+                  <img
+                    src={card.image}
+                    alt={`${card.name} collection presentation`}
+                    loading="lazy"
+                  />
+                  <span className="category-card-copy">
+                    <strong>{card.name}</strong>
+                    <small>{card.description}</small>
+                    <ArrowRight size={18} />
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </section>
+        <section className="space-section" id="our-space">
+          <div className="container space-layout">
+            <div className="space-copy">
+              <span className="eyebrow">OUR SPACE</span>
+              <h2>
+                Step Inside
+                <br />
+                <span className="lime-text">Loud +Cana</span>
+              </h2>
+              <p>
+                Modern. Relaxed. Welcoming. Explore the vision: bold interiors,
+                thoughtful details, and room for good conversation.
+              </p>
+              <button
+                className="button outline"
+                onClick={() => {
+                  setGalleryIndex(0);
+                  setModal("gallery");
+                }}
+              >
+                View gallery <ArrowRight size={16} />
+              </button>
+              <small className="concept-caption">
+                STORE DESIGN CONCEPT · VISUAL INSPIRATION
+              </small>
+            </div>
+            <div className="space-gallery">
+              {gallery.map((image, index) => (
+                <button
+                  key={image.src}
+                  className="space-image"
+                  onClick={() => {
+                    setGalleryIndex(index);
+                    setModal("gallery");
+                  }}
+                  aria-label={`View gallery: ${image.title}`}
+                >
+                  <img
+                    src={image.src}
+                    alt={`${image.title} — Loud + Cana store design concept`}
+                    loading="lazy"
+                  />
+                  <span>
+                    {image.title} <ArrowUpRight size={15} />
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </section>
+        <section className="featured-section">
+          <div className="container">
+            <div className="section-heading">
+              <div>
+                <span className="eyebrow">FEATURED PRODUCTS</span>
+                <h2>Top Picks</h2>
+              </div>
+              <button className="text-link" onClick={() => browse()}>
+                View all products <ArrowRight size={17} />
+              </button>
+            </div>
+            <div className="featured-grid">
+              {featuredProducts.map((product) => (
+                <article className="featured-card" key={product.id}>
+                  <button
+                    className="featured-art"
+                    onClick={() => selectProduct(product)}
+                    aria-label={`Explore featured ${product.name}`}
+                  >
+                    <ProductArt product={product} />
+                  </button>
+                  <div className="featured-info">
+                    <h3>{product.name}</h3>
+                    <small>
+                      {product.category} · {product.size}
+                    </small>
+                    <strong>{formatMoney(product.price)}</strong>
+                    <button
+                      className="button lime"
+                      onClick={() => addToCart(product)}
+                      aria-label={`Add featured ${product.name} to selection`}
+                    >
+                      <ShoppingBag size={13} />
+                      Add to selection
+                    </button>
+                  </div>
+                </article>
+              ))}
+            </div>
+            {!live && (
+              <p className="featured-disclosure">
+                Proposed collection · Indicative prices · Availability subject
+                to store confirmation
+              </p>
+            )}
+          </div>
+        </section>
+        <section
+          className="shop-section container"
+          id="shop"
+          hidden={!catalogOpen}
+        >
           <div className="section-heading">
             <div>
-              <span className="eyebrow">DISTINCTIVE BY DESIGN</span>
-              <h2>The considered collection.</h2>
+              <span className="eyebrow">THE FULL LINEUP</span>
+              <h2>Find Your Next Favourite.</h2>
               <p className="collection-intro">
                 Find a format that feels like you.
               </p>
@@ -942,137 +1128,285 @@ function Storefront() {
           )}
         </section>
 
-        {!live && (
+        {!live && catalogOpen && (
           <p className="catalog-disclosure container">
             THE COLLECTION · Product selection, pricing, potency, and
             availability require store confirmation. Online ordering is not yet
             open.
           </p>
         )}
-        <section className="luxury-statement">
-          <span>CONSIDERED SELECTIONS</span>
-          <span>·</span>
-          <em>The art of a personal ritual.</em>
-          <span>·</span>
-          <span>GAUTENG, SOUTH AFRICA</span>
-        </section>
-        <section className="luxury-editorial container">
-          <div className="editorial-image">
-            <img
-              src="/images/luxury-editorial.webp"
-              alt="Loud and Cana botanical still life with sculptural ceramics and ivory travertine"
-              loading="lazy"
-            />
-            <span>A CONSIDERED PERSPECTIVE</span>
-          </div>
-          <div className="editorial-copy">
-            <span className="eyebrow">THE LOUD + CANA PHILOSOPHY</span>
-            <h2>
-              A considered approach
-              <br />
-              to a <em>modern ritual.</em>
-            </h2>
-            <p>
-              We believe the most memorable moments begin with intention. A
-              detail noticed. A format chosen. Time made for yourself.
-            </p>
-            <p>
-              Loud + Cana brings a design-led perspective to cannabis, with an
-              approachable collection and a distinctive South African point of
-              view.
-            </p>
-            <button className="text-link" onClick={() => setModal("story")}>
-              Discover our philosophy <ArrowUpRight size={16} />
-            </button>
-          </div>
-        </section>
-        <section className="luxury-journal container">
-          <div className="section-heading">
-            <div>
-              <span className="eyebrow">A LITTLE PERSPECTIVE</span>
-              <h2>The journal.</h2>
+        <section className="about-section" id="about">
+          <div className="container about-layout">
+            <div className="about-photo">
+              <img
+                src="/images/reference-flower.webp"
+                alt="Botanical detail from the Loud + Cana visual collection"
+                loading="lazy"
+              />
             </div>
-            <button className="text-link" onClick={() => setModal("guide")}>
-              Explore the guide <ArrowUpRight size={16} />
-            </button>
-          </div>
-          <div className="journal-grid">
-            {[
-              {
-                number: "01",
-                category: "THE ESSENTIALS",
-                title: "Find your format.",
-                text: "From classic flower to contemporary formats, understand the collection before choosing.",
-              },
-              {
-                number: "02",
-                category: "THE SENSORY EDIT",
-                title: "Aroma is personal.",
-                text: "Citrus, earth, florals, or spice. Discover the notes that draw you in.",
-              },
-              {
-                number: "03",
-                category: "A THOUGHTFUL START",
-                title: "Make an informed choice.",
-                text: "Read the label, understand potency, and take time to learn what feels right for you.",
-              },
-            ].map((article) => (
+            <div className="about-copy">
+              <span className="eyebrow">ABOUT LOUD +CANA</span>
+              <h2>More Than Cannabis.</h2>
+              <p>
+                LOUD +CANA is built around a simple idea: culture, community,
+                and the freedom to be yourself.
+              </p>
+              <p>
+                Discover a collection with personality, explore different
+                formats, and make informed choices at your own pace.
+              </p>
               <button
-                className="journal-card"
-                key={article.number}
-                onClick={() => setModal("guide")}
+                className="button outline"
+                onClick={() => setModal("story")}
               >
-                <span className="journal-number">{article.number}</span>
-                <span className="eyebrow">{article.category}</span>
-                <h3>{article.title}</h3>
-                <p>{article.text}</p>
-                <span className="journal-read">
-                  READ THE GUIDE <ArrowUpRight size={16} />
-                </span>
+                Our story <ArrowRight size={16} />
               </button>
-            ))}
+            </div>
+            <div className="good-vibes" aria-label="Good vibes only">
+              Good
+              <br />
+              Vibes
+              <br />
+              <span>Only.</span>
+              <Sparkles size={35} />
+            </div>
+          </div>
+        </section>
+        <section className="community-section" id="membership">
+          <div className="container community-layout">
+            <div className="community-copy">
+              <span className="eyebrow">JOIN OUR COMMUNITY</span>
+              <h2>
+                Your People.
+                <br />
+                <span className="lime-text">Your Kind of Good.</span>
+              </h2>
+              <p>
+                A shared appreciation for cannabis culture, considered choices,
+                and good conversation.
+              </p>
+              <button
+                className="button outline"
+                onClick={() => setModal("membership")}
+              >
+                Discover membership <ArrowRight size={16} />
+              </button>
+            </div>
+            <div className="community-card">
+              <Users size={36} />
+              <h3>
+                Culture. Connection.
+                <br />
+                Community.
+              </h3>
+              <p>
+                Membership details and community events will be announced here.
+              </p>
+              <button className="text-link" onClick={() => setModal("guide")}>
+                Explore the essentials <ArrowUpRight size={16} />
+              </button>
+            </div>
+            <div className="community-card">
+              <MessageCircle size={36} />
+              <h3>Let’s Talk.</h3>
+              <p>
+                {store.contactEmail
+                  ? "Questions about the collection? Get in touch with the store."
+                  : "Gauteng, South Africa. Store contact details will be published when confirmed."}
+              </p>
+              {store.contactEmail ? (
+                <a
+                  className="button outline"
+                  href={`mailto:${store.contactEmail}`}
+                >
+                  Email the store <ArrowUpRight size={16} />
+                </a>
+              ) : (
+                <button className="text-link" onClick={() => setModal("help")}>
+                  Visit the help centre <ArrowUpRight size={16} />
+                </button>
+              )}
+            </div>
           </div>
         </section>
       </main>
 
-      <footer>
+      <footer id="contact">
         <div className="footer-main container">
-          <div>
+          <div className="footer-brand">
             <Logo footer />
-            <p>A considered collection. A personal ritual.</p>
+            <p>
+              Quality. Culture. Community.
+              <br />
+              Gauteng, South Africa.
+            </p>
           </div>
-          <div className="footer-links">
-            <button onClick={() => browse()}>The collection</button>
-            <button onClick={() => setModal("story")}>Our philosophy</button>
-            <button onClick={() => setModal("help")}>Client services</button>
+          <div className="footer-column footer-links">
+            <h3>Quick Links</h3>
+            <button
+              onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+            >
+              Home
+            </button>
+            <button onClick={() => browse()}>Shop</button>
+            <button onClick={() => goToSection("our-space")}>Our Space</button>
+            <button onClick={() => goToSection("about")}>About</button>
+            <button onClick={() => goToSection("membership")}>
+              Membership
+            </button>
             {!offlinePreview && (
               <a href="/staff">
                 Staff access <ArrowUpRight size={12} />
               </a>
             )}
           </div>
-          <div className="footer-age">
-            21<span>+</span>
-            <small>
-              THE PRIVATE
-              <br />
-              COLLECTION
-            </small>
+          <div className="footer-column">
+            <h3>Find Your Vibe</h3>
+            <div className="footer-detail">
+              <MapPin size={23} />
+              <p>
+                Gauteng
+                <br />
+                South Africa
+                <br />
+                <small>Store address to be announced.</small>
+              </p>
+            </div>
+            <a
+              className="button outline"
+              href="https://www.google.com/maps/search/Gauteng+South+Africa"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Explore Gauteng <ArrowUpRight size={15} />
+            </a>
+          </div>
+          <div className="footer-column">
+            <h3>Contact Us</h3>
+            <div className="footer-detail">
+              <MessageCircle size={23} />
+              <p>
+                {store.contactEmail ? (
+                  <a href={`mailto:${store.contactEmail}`}>
+                    {store.contactEmail}
+                  </a>
+                ) : (
+                  "Public contact details coming soon."
+                )}
+              </p>
+            </div>
+            <button className="text-link" onClick={() => setModal("help")}>
+              Customer help <ArrowRight size={15} />
+            </button>
+            <button
+              className="text-link"
+              onClick={() =>
+                live || orders.length ? openTracking() : setModal("help")
+              }
+            >
+              {live || orders.length
+                ? "Track your order"
+                : "Ordering information"}{" "}
+              <ArrowRight size={15} />
+            </button>
+          </div>
+          <div className="footer-column">
+            <h3>Stay In The Know</h3>
+            <p>
+              Discover new formats, learn the essentials, and find your
+              favourites.
+            </p>
+            <button className="button lime" onClick={() => setModal("guide")}>
+              Explore the guide <ArrowRight size={16} />
+            </button>
           </div>
         </div>
         <div className="footer-bottom container">
+          <span className="responsible-age">21+</span>
+          <p>For adults 21 years and older. Please consume responsibly.</p>
+          <button onClick={() => setModal("privacy")}>Terms & Privacy</button>
+          <button onClick={() => setModal("guide")}>Responsible Use</button>
           <span>
-            © {new Date().getFullYear()} Loud + Cana. All rights reserved.
+            © {new Date().getFullYear()} Loud +Cana. All rights reserved.
           </span>
-          <p>
-            Adults 21+ only. Keep out of reach of children. Gauteng, South
-            Africa.
-          </p>
-          <button onClick={() => setModal("privacy")}>
-            Privacy & terms <ArrowUpRight size={12} />
-          </button>
         </div>
       </footer>
+
+      {modal === "gallery" && (
+        <Modal
+          onClose={closeModal}
+          title="Loud + Cana store gallery"
+          className="gallery-modal-backdrop"
+        >
+          <div className="gallery-lightbox">
+            <span className="eyebrow">THE LOUD +CANA VISION</span>
+            <h2>{gallery[galleryIndex].title}</h2>
+            <img
+              src={gallery[galleryIndex].src}
+              alt={`${gallery[galleryIndex].title} — store design concept`}
+            />
+            <div className="gallery-controls">
+              <button
+                className="icon-button"
+                aria-label="Previous gallery image"
+                onClick={() =>
+                  setGalleryIndex(
+                    (galleryIndex + gallery.length - 1) % gallery.length,
+                  )
+                }
+              >
+                <ArrowLeft />
+              </button>
+              <p>
+                {gallery[galleryIndex].text}
+                <small>
+                  Store design concept · {galleryIndex + 1} / {gallery.length}
+                </small>
+              </p>
+              <button
+                className="icon-button"
+                aria-label="Next gallery image"
+                onClick={() =>
+                  setGalleryIndex((galleryIndex + 1) % gallery.length)
+                }
+              >
+                <ArrowRight />
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+      {modal === "membership" && (
+        <Modal onClose={closeModal} title="Loud + Cana membership">
+          <div className="simple-dialog">
+            <Users size={38} />
+            <span className="eyebrow">GOOD PEOPLE. GOOD CULTURE.</span>
+            <h2>
+              A community
+              <br />
+              with character.
+            </h2>
+            <p>
+              Membership and events are being shaped around the Loud +Cana
+              community. Enrolment is not open yet; confirmed details will be
+              published here.
+            </p>
+            <p>
+              In the meantime, explore the collection and tap the heart on
+              products to keep your favourites on this device.
+            </p>
+            <button
+              className="button lime"
+              onClick={() => {
+                closeModal();
+                browse();
+              }}
+            >
+              Find your favourites <Heart size={17} />
+            </button>
+          </div>
+        </Modal>
+      )}
 
       {toast && (
         <div className="toast" role="status">
@@ -1106,21 +1440,33 @@ function Storefront() {
                 >
                   {selectedProduct.type}
                 </span>
-                <span>Potency confirmed on label</span>
+                <span>
+                  {selectedProduct.category === "Accessories"
+                    ? "Non-consumable accessory"
+                    : "Confirm potency on label"}
+                </span>
                 <span>{selectedProduct.effect}</span>
               </div>
               <p>{selectedProduct.description}</p>
               <div className="detail-note">
                 <Leaf size={18} />
                 <div>
-                  <strong>The aromatic profile</strong>
+                  <strong>
+                    {selectedProduct.category === "Accessories"
+                      ? "Design details"
+                      : "The aromatic profile"}
+                  </strong>
                   <span>{selectedProduct.flavor}</span>
                 </div>
               </div>
               <div className="detail-note">
                 <Sparkles size={18} />
                 <div>
-                  <strong>The mood</strong>
+                  <strong>
+                    {selectedProduct.category === "Accessories"
+                      ? "In your setup"
+                      : "The mood"}
+                  </strong>
                   <span>{selectedProduct.mood}</span>
                 </div>
               </div>
@@ -1849,7 +2195,9 @@ function Storefront() {
                   <div>
                     <strong>Any welcome offers?</strong>
                     <p>
-                      Enter LOUD15 in your bag for 15% off the product subtotal.
+                      {live
+                        ? "Enter LOUD15 in your bag for 15% off the product subtotal."
+                        : "Confirmed offers will be published when online ordering opens."}
                     </p>
                   </div>
                 </div>

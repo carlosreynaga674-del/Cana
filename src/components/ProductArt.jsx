@@ -8,11 +8,11 @@ export default function ProductArt({ product, className = "" }) {
     >
       <img
         src={
-          product.visual === "vape"
-            ? "/images/luxury-vape.webp"
-            : `/images/product-${product.visual}.webp`
+          product.visual === "drink"
+            ? "/images/product-drink.webp"
+            : `/images/reference-${product.visual}.webp`
         }
-        alt={`${product.name} ${product.category.toLowerCase()} packaging`}
+        alt={`${product.name} — illustrative ${product.category.toLowerCase()} presentation`}
         loading="lazy"
       />
       {

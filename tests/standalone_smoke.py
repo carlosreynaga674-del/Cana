@@ -12,9 +12,20 @@ PREVIEW = Path(__file__).resolve().parents[1] / "release" / "loud-cana-preview.h
 
 
 def exercise(app):
-    expect(app.locator(".product-card")).to_have_count(24)
+    expect(app.locator(".reference-hero")).to_be_visible()
+    expect(app.locator(".featured-card")).to_have_count(5)
+    expect(app.locator("#shop")).to_be_hidden()
+    app.get_by_role("button", name="View gallery", exact=True).click()
+    gallery = app.get_by_role("dialog", name="Loud + Cana store gallery")
+    expect(gallery.get_by_role("heading")).to_have_text("The welcome")
+    gallery.get_by_role("button", name="Next gallery image").click()
+    expect(gallery.get_by_role("heading")).to_have_text("The collection")
+    app.get_by_role("button", name="Close dialog", exact=True).click()
+    app.get_by_role("navigation", name="Main navigation").get_by_role("button", name="Shop", exact=True).click()
+    expect(app.locator("#shop")).to_be_visible()
+    expect(app.locator(".product-card")).to_have_count(28)
     expect(app.get_by_text("CLIENT PREVIEW", exact=True)).to_have_count(0)
-    app.get_by_role("button", name="Flower", exact=True).click()
+    app.get_by_role("group", name="Product categories").get_by_role("button", name="Flower", exact=True).click()
     expect(app.locator(".product-card")).to_have_count(6)
     app.get_by_role("group", name="Product categories").get_by_role("button").first.click()
     app.get_by_label("Search products").fill("Peach State")
@@ -68,7 +79,7 @@ def run():
             expect(app.locator("img")).not_to_have_count(0)
             images_ok = app.locator("img").evaluate_all("async images => { await Promise.all(images.map(img => img.decode())); return images.every(img => img.complete && img.naturalWidth > 0); }")
             assert images_ok, f"{kind}: catalog images did not load"
-            print(f"PASS {kind}: 24 products, filters/search, product details, age confirmation, selection, honest ordering state and local images", flush=True)
+            print(f"PASS {kind}: 28 products and reference gallery, filters/search, product details, age confirmation, selection, honest ordering state and local images", flush=True)
             context.close()
         browser.close()
     assert not errors, errors

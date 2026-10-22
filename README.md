@@ -1,6 +1,6 @@
 # Loud + Cana
 
-A luxury cannabis collection website and gated order-request service for **Gauteng, South Africa**. The public site has 24 catalog selections, editorial photography, rand pricing, collection filters, saved favourites, product details, and a persistent personal selection. The full Node service includes private tracking, a staff dashboard, and SQLite storage.
+A black-and-neon-lime cannabis lifestyle website and gated order-request service for **Gauteng, South Africa**. The public site has 28 proposed catalog selections, store concept photography, rand pricing, collection filters, saved favourites, product details, and a persistent personal selection. The full Node service includes private tracking, a staff dashboard, and SQLite storage.
 
 The public site operates as an informational catalog, with no simulated checkout or fabricated order confirmations. Real requests remain disabled until actual business details, lawful commercial sales authorization, catalog approval, and secure staff access are supplied. No online payment, automatic identity verification, or driver dispatch is connected.
 
@@ -36,9 +36,9 @@ For frontend development, leave the Node service running and run `npm run dev` i
 
 [Deploy the prepared full service to Render](https://render.com/deploy?repo=https://github.com/carlosreynaga674-del/Cana/tree/loud-cana-client-handoff). This opens Render’s official deployment flow for this branch. The account owner must sign in and approve the persistent-disk service cost. No hosting account credentials were supplied to the agent.
 
-`render.yaml` prepares a Node service with persistent SQLite storage. It uses a paid plan with a persistent disk; review the hosting cost before creating the service. The repository owner must connect the repository to their Render account and securely configure the actual store details. No public deployment is implied by the presence of this file.
+`render.yaml` prepares a Node service with persistent SQLite storage. It uses a paid plan with a persistent disk; review the hosting cost before creating the service. The repository owner must connect the repository to their Render account and securely configure the actual store details. No Render deployment is implied by the presence of this file. The full application uses same-origin API requests: give clients the deployed Render URL or a custom domain attached to that service. The static Pages export does not connect to a separate order API.
 
-For static catalog hosting, select **Settings → Pages → Deploy from a branch → loud-cana-preview → / (root)** and save. That branch contains the self-contained catalog. GitHub displays the actual URL once deployed. Pushing the branch alone does not publish the site.
+GitHub Pages is already configured at **Settings → Pages → Deploy from a branch → loud-cana-preview → / (root)**. That branch contains the self-contained catalog; subsequent pushes trigger its public deployment.
 
 The **Publish client preview** GitHub Actions workflow is an alternative after the workflow is available on the default branch and Pages is configured for GitHub Actions. The catalog does not accept order requests. **Validate and package client handoff** checks the app and saves downloadable build artifacts.
 
@@ -54,4 +54,4 @@ python3 tests/live_browser_smoke.py
 
 Browser checks require Python Playwright and Chromium. The final integration suite creates an isolated local test server and temporary database with fictitious store configuration; it does not enable the running store or send a real order. Unit/API tests cover authoritative pricing, validation, private tracking, staff authentication, status transitions, idempotency, persistence, and safe restoration of browser state.
 
-When legitimately activated, the backend calculates R49 delivery, waived at an R750 product subtotal; pickup is free. `LOUD15` applies 15% off the product subtotal. Current products and potency values are sample content; approve and replace them before any lawful live launch.
+When legitimately activated, the backend calculates R49 delivery, waived at an R750 product subtotal; pickup is free. `LOUD15` applies 15% off the product subtotal. Catalog entries and prices are proposed content, and potency is unverified. Approve and replace them with the actual product information before enabling real requests.

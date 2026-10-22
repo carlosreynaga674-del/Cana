@@ -9,7 +9,7 @@ import re
 from playwright.sync_api import sync_playwright, expect
 
 BASE_URL = os.environ.get("CANA_BASE_URL", "http://127.0.0.1:3000")
-PRODUCT_COUNT = 24
+PRODUCT_COUNT = 28
 
 
 def expect_money(locator, cents):
@@ -20,6 +20,11 @@ def expect_money(locator, cents):
 
 def close_dialog(page):
     page.get_by_role("dialog").get_by_role("button", name="Close dialog").click()
+
+
+def open_shop(page):
+    page.get_by_role("navigation", name="Main navigation").get_by_role("button", name="Shop", exact=True).click()
+    expect(page.locator("#shop")).to_be_visible()
 
 
 def all_products(page):
@@ -43,14 +48,34 @@ def run():
         page.on("pageerror", lambda error: errors.append(str(error)))
         page.on("request", lambda request: order_submissions.append(request.url) if request.method == "POST" and "/api/orders" in request.url else None)
         page.goto(BASE_URL, wait_until="networkidle")
+        expect(page.locator(".reference-hero")).to_be_visible()
+        expect(page.locator(".hero-loud")).to_have_text("LOUD")
+        expect(page.locator(".hero-cana")).to_have_text("+CANA")
+        expect(page.locator(".category-card")).to_have_count(5)
+        expect(page.locator(".featured-card")).to_have_count(5)
+        expect(page.locator("#shop")).to_be_hidden()
+        page.get_by_role("button", name="View gallery", exact=True).click()
+        gallery = page.get_by_role("dialog", name="Loud + Cana store gallery")
+        expect(gallery.get_by_role("heading")).to_have_text("The welcome")
+        gallery.get_by_role("button", name="Next gallery image").click()
+        expect(gallery.get_by_role("heading")).to_have_text("The collection")
+        gallery.get_by_role("button", name="Previous gallery image").click()
+        expect(gallery.get_by_role("heading")).to_have_text("The welcome")
+        close_dialog(page)
+        page.get_by_role("button", name="Discover membership", exact=True).click()
+        expect(page.get_by_role("dialog", name="Loud + Cana membership")).to_contain_text("Enrolment is not open yet")
+        close_dialog(page)
+        page.screenshot(path="/tmp/lc-reference-desktop.png", full_page=True)
+        print("PASS reference-themed landing page, five categories/top picks, gallery navigation and honest membership information", flush=True)
+        open_shop(page)
         expect(page.locator(".product-card")).to_have_count(PRODUCT_COUNT)
         expect(page.get_by_text("CLIENT PREVIEW", exact=True)).to_have_count(0)
-        for category, count in [("Flower", 6), ("Pre-rolls", 5), ("Edibles", 5), ("Vapes", 4), ("Drinks", 4)]:
+        for category, count in [("Flower", 6), ("Pre-rolls", 5), ("Edibles", 5), ("Vapes", 4), ("Drinks", 4), ("Accessories", 4)]:
             page.get_by_role("group", name="Product categories").get_by_role("button", name=category, exact=True).click()
             expect(page.locator(".product-card")).to_have_count(count)
         all_products(page)
         page.get_by_label("Filter by collection").select_option("Reserve")
-        expect(page.locator(".product-card")).to_have_count(9)
+        expect(page.locator(".product-card")).to_have_count(10)
         page.get_by_label("Filter by collection").select_option("All collections")
         expect(page.locator(".product-card")).to_have_count(PRODUCT_COUNT)
         page.get_by_label("Search products").fill("nothing-like-this")
@@ -60,7 +85,7 @@ def run():
         expect(page.locator(".product-card")).to_have_count(2)
         page.get_by_label("Search products").fill("")
         page.get_by_label("Sort products").select_option("price-low")
-        expect(page.locator(".product-name").first).to_have_text("Sunday Citrus")
+        expect(page.locator(".product-name").first).to_have_text("Unbleached Papers")
         page.get_by_label("Sort products").select_option("price-high")
         expect(page.locator(".product-name").first).to_have_text("Midnight Reserve")
         page.get_by_label("Sort products").select_option("featured")
@@ -68,8 +93,9 @@ def run():
         page.locator(".saved-filter").click()
         expect(page.locator(".product-card")).to_have_count(1)
         page.reload(wait_until="networkidle")
+        open_shop(page)
         expect(page.get_by_role("button", name="Unsave Sunset Sherbet", exact=True)).to_have_attribute("aria-pressed", "true")
-        print("PASS 24-item catalog, all categories, search, price sorting and persisted saved selection", flush=True)
+        print("PASS 28-item catalog, all categories, search, price sorting and persisted saved selection", flush=True)
 
         page.locator(".location-button").click()
         page.get_by_role("button", name="Save my neighborhood").click()
@@ -119,9 +145,14 @@ def run():
         assert not page.evaluate("document.documentElement.scrollWidth > innerWidth"), "Mobile page overflows horizontally"
         page.get_by_role("button", name="Toggle navigation").click()
         expect(page.get_by_role("navigation", name="Main navigation")).to_be_visible()
-        page.get_by_role("navigation").get_by_role("button", name=re.compile("story|philosophy", re.I)).click()
+        page.get_by_role("navigation", name="Main navigation").get_by_role("button", name="About", exact=True).click()
+        expect(page.locator("#about")).to_be_in_viewport()
+        expect(page.get_by_role("button", name="Toggle navigation")).to_have_attribute("aria-expanded", "false")
+        page.get_by_role("button", name="Our story", exact=True).click()
         expect(page.get_by_role("dialog")).to_be_visible()
         close_dialog(page)
+        page.get_by_role("button", name="Toggle navigation").click()
+        open_shop(page)
         expect(page.get_by_role("button", name="Toggle navigation")).to_have_attribute("aria-expanded", "false")
         page.get_by_role("group", name="Product categories").get_by_role("button", name="Vapes", exact=True).click()
         expect(page.locator(".product-card")).to_have_count(4)
@@ -138,7 +169,7 @@ def run():
         expect(page.locator(".empty-bag")).to_be_visible()
         close_dialog(page)
         page.get_by_label("Search products").fill("")
-        page.screenshot(path="/tmp/lc-luxury-mobile.png",full_page=True)
+        page.screenshot(path="/tmp/lc-reference-mobile.png",full_page=True)
         print("PASS mobile navigation, categories/search, selection quantity/remove, no misleading checkout and no horizontal overflow", flush=True)
         mobile.close()
 
@@ -155,6 +186,7 @@ def run():
             localStorage.setItem('lc-age-confirmed', JSON.stringify('false'));
         }""")
         page.reload(wait_until="networkidle")
+        open_shop(page)
         expect(page.locator(".product-card")).to_have_count(PRODUCT_COUNT)
         expect(page.locator(".bag-count")).to_have_text("1")
         page.get_by_role("button", name="Open bag, 1 items").click()
