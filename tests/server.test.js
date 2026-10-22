@@ -129,10 +129,10 @@ test("configured store exposes sanitized configuration and authoritative catalog
   assert.equal(config.currency, "ZAR");
   const response = await request("/api/products");
   assert.equal(response.status, 200);
-  const { products } = await response.json();
-  assert.equal(products.length, 8);
+  const { products: catalogProducts } = await response.json();
+  assert.equal(catalogProducts.length, products.length);
   assert.equal(
-    products.find((p) => p.id === "sunset-sherbet").price,
+    catalogProducts.find((p) => p.id === "sunset-sherbet").price,
     (await import("../src/lib/products.js")).products.find(
       (p) => p.id === "sunset-sherbet",
     ).price,

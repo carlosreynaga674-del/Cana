@@ -1,15 +1,19 @@
 # Deploy Loud + Cana
 
-Use the full Node service for persistent order requests and the `/staff` dashboard. Use static hosting only for a client-review demo. This guide prepares a deployment; it does not claim the app has been published or that the business is authorized for commercial cannabis sales.
+Use the full Node service for persistent order requests and the `/staff` dashboard. Use static hosting for the public collection website. The collection website is already published on GitHub Pages. This guide covers the separate Node service; a Render deployment and commercial sales authorization are not implied.
 
 ## Render: full application
 
-1. Put the complete `source/` contents in the intended GitHub repository and branch. Do not commit real `.env` files, passwords, or `.local/` databases.
-2. In Render, create a Node **Web Service** from that repository. Use `render.yaml` as a Blueprint if desired, or configure manually. If the code is in a subfolder, set Render's root directory to that folder.
-3. Use **Node.js 24**, build command `npm ci && npm run build`, and start command `npm start`. Set the health-check path to `/api/health`.
-4. Use a plan supporting a **persistent disk** (for example, Render Starter with a disk). Mount the disk at `/var/data`, and set `DATABASE_PATH=/var/data/orders.sqlite`. An ephemeral filesystem is unsuitable for client orders: deploys or restarts can remove an unmounted SQLite database.
-5. Add configuration in Render's environment settings. Enter the staff password as a secret. Start in demo mode, deploy, and use the actual Render URL returned by the service.
-6. Set `PUBLIC_ORIGIN` to the exact HTTPS origin of the deployed site, without a trailing slash or path, especially when using a custom domain. Render's `RENDER_EXTERNAL_URL` is used automatically when no explicit origin is configured.
+[Open the official Deploy to Render flow for the prepared branch](https://render.com/deploy?repo=https://github.com/carlosreynaga674-del/Cana/tree/loud-cana-client-handoff). The blueprint creates a catalog-only service with live-intake flags disabled and an automatically generated staff password. It does not require fictitious licensing or store data. Review the paid persistent-disk service and sign in using the owner’s account.
+
+1. Open the deployment link above, sign in to the client’s Render account, and connect GitHub if prompted. Select **`carlosreynaga674-del/Cana`**, branch **`loud-cana-client-handoff`**. The app is at the repository root; leave Root Directory blank. No code upload is needed for this repository.
+2. Review the Blueprint and its **paid Starter service plus persistent disk**, then deploy. It already specifies Node 24, build command `npm ci --no-audit --no-fund && npm run build`, start command `npm start`, health check `/api/health`, and a 1 GB disk at `/var/data`.
+3. Wait until Render reports a successful deployment. Open the service’s actual `https://…onrender.com` URL and `/api/health`. Keep the three intake flags `false` while the business information is pending. The site can be published in catalog mode immediately.
+4. In **Environment**, retrieve the generated `ADMIN_PASSWORD` securely or set a new unique secret of at least 16 characters. Use that secret at **`/staff`**; never copy it into client-side code or the handoff ZIP.
+5. Supply the genuine values in the table below. After the owner approves the real catalog and commercial sales authorization and completes the acceptance checks, enable the three intake flags and redeploy. Check `/api/config` for `mode: "live"` and no missing requirements.
+6. Give the client the Render URL, or add their domain in Render’s **Settings → Custom Domains** and follow the displayed DNS records. Set `PUBLIC_ORIGIN` to that exact HTTPS origin, without a trailing slash or path. Render’s `RENDER_EXTERNAL_URL` supplies the default when no custom origin is configured.
+
+The frontend and API run on the same Render origin. The self-contained GitHub Pages export deliberately operates without API requests; there is no supported environment setting that connects it to a separate Render backend. Use the full Render service URL as the ordering website. Keep `/var/data/orders.sqlite` on the persistent disk: an ephemeral filesystem is unsuitable for customer requests.
 
 ## Required configuration
 
@@ -27,7 +31,7 @@ Use the full Node service for persistent order requests and the `/staff` dashboa
 | `CONTACT_EMAIL`                       | Monitored customer-support email address.                                                                                                |
 | `CATALOG_APPROVED`                    | `true` only after the business approves all actual product information and prices.                                                       |
 | `LEGAL_SALES_AUTHORIZATION_CONFIRMED` | `true` only after the owner confirms lawful commercial sales and delivery authorization for the products and operating region.           |
-| `LIVE_ORDERS_ENABLED`                 | Keep `false` during client review; enable only after all launch requirements and the operational checks below are complete.              |
+| `LIVE_ORDERS_ENABLED`                 | Keep `false` while service details are pending; enable only after all launch requirements and the operational checks below are complete. |
 
 The server exposes its current `demo`/`live` mode and missing setup requirements through `/api/config`. All launch requirements must be met before it accepts real order requests. Setting an individual flag does not replace the underlying business authorization, catalog approval, or operational process.
 
@@ -42,13 +46,15 @@ The server exposes its current `demo`/`live` mode and missing setup requirements
 - Confirm the business's ID/age verification, support, cancellation, payment, and fulfillment processes. This build does not collect online payments or automatically verify identity or dispatch drivers.
 - Replace sample copy/catalog data, confirm rand pricing and four-digit postal coverage, and complete the business's required privacy/terms review before launch.
 
-## Static public demo
+## Static public catalog
 
-The prepared repository also has a **`loud-cana-preview`** branch containing the tested single-file site at its root. For the quickest public demo, open the repository's **Settings → Pages**, choose **Deploy from a branch**, select **`loud-cana-preview`** and **`/ (root)`**, then save. GitHub displays the actual site URL after deployment. The API connection in this environment could not enable Pages automatically; the branch alone does not establish that Pages is published.
+The collection website is published at **https://carlosreynaga674-del.github.io/Cana/**. GitHub reports a successful build from `loud-cana-preview`, and the served HTML was verified against the tested standalone export. Real order intake remains disabled on this static catalog.
 
-Publish the **contents** of `static-site/`. Its `index.html` is the self-contained offline preview, so it works at an origin root or a repository subpath such as `/Cana/` without additional base-path configuration. It can demonstrate browsing, cart, and demo checkout without a Node service. For GitHub Pages, use the provided repository deployment workflow when present, or upload the built directory through your normal Pages process.
+The **`loud-cana-preview`** branch contains the self-contained public website at its root. Pages is already configured to deploy from this branch. To review the configuration, open the repository’s **Settings → Pages → Deploy from a branch → loud-cana-preview → / (root)**. Pushing an updated branch triggers the next deployment.
 
-A static site has no persistent server orders, staff authentication service, or dispatch integration. Do not present its local demo confirmations as actual accepted orders.
+For another static host, publish the **contents** of `static-site/`. Its self-contained `index.html` works at an origin root or a repository subpath such as `/Cana/` without extra base-path configuration. It supports browsing, filters, saved picks, the gallery, and a personal selection. It does not submit orders or produce simulated confirmations.
+
+The reference-style design uses black, neon lime, bold lettering, and illustrative store imagery. The proposed 28-entry catalog includes accessories; actual products, prices, potency, and inventory still require business approval. A static site has no persistent server orders, staff authentication service, payment processor, or dispatch integration.
 
 ## Operating notes
 

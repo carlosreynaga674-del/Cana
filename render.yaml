@@ -2,6 +2,7 @@ services:
   - type: web
     name: loud-cana
     runtime: node
+    branch: loud-cana-client-handoff
     plan: starter
     region: frankfurt
     buildCommand: npm ci --no-audit --no-fund && npm run build
@@ -29,12 +30,4 @@ services:
       - key: CATALOG_APPROVED
         value: "false"
       - key: ADMIN_PASSWORD
-        sync: false
-      - key: PICKUP_ADDRESS
-        sync: false
-      - key: CONTACT_EMAIL
-        sync: false
-      - key: DELIVERY_ZIPS
-        sync: false
-      - key: STORE_LICENSE_NUMBER
-        sync: false
+        generateValue: true

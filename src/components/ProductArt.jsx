@@ -7,11 +7,15 @@ export default function ProductArt({ product, className = "" }) {
       style={{ "--art-bg": product.color }}
     >
       <img
-        src={`/images/product-${product.visual}.webp`}
-        alt={`${product.name} ${product.category.toLowerCase()} packaging`}
+        src={
+          product.visual === "drink"
+            ? "/images/product-drink.webp"
+            : `/images/reference-${product.visual}.webp`
+        }
+        alt={`${product.name} — illustrative ${product.category.toLowerCase()} presentation`}
         loading="lazy"
       />
-      {product.visual !== "vape" && (
+      {
         <div
           className={`photo-package-label label-${product.visual}`}
           aria-hidden="true"
@@ -27,7 +31,7 @@ export default function ProductArt({ product, className = "" }) {
             · {product.size.toUpperCase()}
           </small>
         </div>
-      )}
+      }
     </div>
   );
 }

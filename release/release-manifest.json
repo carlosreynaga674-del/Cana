@@ -1,13 +1,13 @@
 {
   "application": "Loud + Cana",
   "version": "1.0.0",
-  "createdAt": "2026-10-22T13:51:40.620Z",
+  "createdAt": "2026-10-22T18:01:41.694Z",
   "region": "Gauteng, South Africa",
   "currency": "ZAR",
   "runtime": "Node.js 24",
   "contents": {
-    "loud-cana-preview.html": "Self-contained offline client review demo; no live orders or payments.",
-    "static-site/": "Production frontend files; static hosting supports demo mode only.",
+    "loud-cana-preview.html": "Self-contained luxury catalog; no simulated checkout or live order submission.",
+    "static-site/": "Production catalog website; static hosting cannot run the order service.",
     "source/": "Full application source and same-origin Node/SQLite service; dependencies excluded."
   },
   "publication": "Not published by this package. Configure and deploy to obtain an actual public URL.",
@@ -16,13 +16,13 @@
   "files": [
     {
       "filename": "DEPLOYMENT.md",
-      "bytes": 7817,
-      "sha256": "1cf01f7c723caa0d6491b478ad8d92b86aa1c6a82f1b4140f8a1a834e34a69e9"
+      "bytes": 9356,
+      "sha256": "792b63bbdc452a858415540f3bf29fd13b15610922b4ed695db7ce31aeca67f2"
     },
     {
       "filename": "loud-cana-preview.html",
-      "bytes": 1084117,
-      "sha256": "7ad253e13991b594f417d1aa6c3083374b7a56ec750eb20e2c7e9ec8e1c58d3c"
+      "bytes": 3517844,
+      "sha256": "0810a6686c5fc7f4af41bfbcbe5e41ac2c845ba4f02f0236cf6862eede125817"
     },
     {
       "filename": "source/.env.example",
@@ -51,38 +51,53 @@
     },
     {
       "filename": "source/docs/DEPLOYMENT.md",
-      "bytes": 7817,
-      "sha256": "1cf01f7c723caa0d6491b478ad8d92b86aa1c6a82f1b4140f8a1a834e34a69e9"
+      "bytes": 9356,
+      "sha256": "792b63bbdc452a858415540f3bf29fd13b15610922b4ed695db7ce31aeca67f2"
     },
     {
       "filename": "source/docs/HANDOFF.md",
-      "bytes": 4329,
-      "sha256": "3ba2673a2ff409374d7abb6b1094b471db1a6b83bd9d90f6a8cd974e12522440"
+      "bytes": 5510,
+      "sha256": "316c5607e6b391a585637f7d468512a820a10b78a63856e8e2c3fd89a0a9975e"
     },
     {
       "filename": "source/index.html",
-      "bytes": 601,
-      "sha256": "525517b7d6c32b58fc054d352ac4f8ea272868a0c72564afc155a47e5f078d52"
+      "bytes": 1424,
+      "sha256": "c35a02fea8bf4eeac0e2cb3124db9843192c242c549f2892c1aa4300bfe02710"
     },
     {
       "filename": "source/package-lock.json",
-      "bytes": 37369,
-      "sha256": "0dfbe94c314b32efcb25afbde62dfc9d0ff6e473cbbf35e062bc07082888b149"
+      "bytes": 38312,
+      "sha256": "520cc3d01ba3addc051f9f30f54a7ea188c7fca5a330f0eecbb49aa2a16d5d4d"
     },
     {
       "filename": "source/package.json",
-      "bytes": 753,
-      "sha256": "7228c88ff7c8f3a53f078d5678ed3183623d6e511b60510f8ef38bf39d21a961"
+      "bytes": 847,
+      "sha256": "a6073c662a936fa454ed62d1773c16fad1af62f6208e5d7976a113bd22bf796e"
     },
     {
       "filename": "source/public/favicon.svg",
-      "bytes": 185,
-      "sha256": "afd5cc338ab0adcf65cd70a4abe44475ddb0f0c96ca71a17cff0921d66a122ef"
+      "bytes": 264,
+      "sha256": "c36b00704fda3d62d2eeec6f254419b0cff8cd70141b44a492d8300c86dde456"
     },
     {
       "filename": "source/public/images/hero.webp",
       "bytes": 121266,
       "sha256": "546584ee661f3e3894f18ce7077ff1484290772a66c400df888ac322e3ad81fc"
+    },
+    {
+      "filename": "source/public/images/luxury-editorial.webp",
+      "bytes": 227580,
+      "sha256": "fa6888abcf70768e800a5149f2c7a0f9624ea3aefd1b5f3dfca93b1454dea4ca"
+    },
+    {
+      "filename": "source/public/images/luxury-hero.webp",
+      "bytes": 275012,
+      "sha256": "739ca01ec2f0a18ca5995013566ba3683e5b74a872e372b785d591f5da1427a4"
+    },
+    {
+      "filename": "source/public/images/luxury-vape.webp",
+      "bytes": 95302,
+      "sha256": "8f115c54247d4be6eb42cca8c7ab24aa68f20e43048a064a6e6fc30622c1dc72"
     },
     {
       "filename": "source/public/images/product-drink.webp",
@@ -110,14 +125,64 @@
       "sha256": "9192ac6f099435cd2024d344a1ab560c4917247158d9f00d651fc22ef62987a6"
     },
     {
+      "filename": "source/public/images/reference-accessory.webp",
+      "bytes": 60020,
+      "sha256": "5878f28a88895c2f89bf389241270c2920f12b15a080e8c5c371b66077509fba"
+    },
+    {
+      "filename": "source/public/images/reference-flower.webp",
+      "bytes": 93992,
+      "sha256": "fa3c3073d26189c380e21643335bbaa87302c5bac07e0d6a641b6e3e545b716e"
+    },
+    {
+      "filename": "source/public/images/reference-gummies.webp",
+      "bytes": 64200,
+      "sha256": "943cd72823073eb0037be181ec9ef62018e85808f8548ad20555351f4c4251c0"
+    },
+    {
+      "filename": "source/public/images/reference-hero.webp",
+      "bytes": 201374,
+      "sha256": "7f9c9c3ed9030f9b00edbaf59b59889be215f16461c11ac847576b65884b8b81"
+    },
+    {
+      "filename": "source/public/images/reference-preroll.webp",
+      "bytes": 58338,
+      "sha256": "29c6ad2823d2a2631c6e8af8a30d26c1c66e359d9d2d9336548542574a9dde30"
+    },
+    {
+      "filename": "source/public/images/reference-space-1.webp",
+      "bytes": 208304,
+      "sha256": "eed839cd94742cc1718a830e0f875683e610371875ca0851604be7e679cce261"
+    },
+    {
+      "filename": "source/public/images/reference-space-2.webp",
+      "bytes": 215010,
+      "sha256": "9a906575520931616e85156deed4a487cc33555d10e4846e3c6086e00dd320fe"
+    },
+    {
+      "filename": "source/public/images/reference-space-3.webp",
+      "bytes": 174752,
+      "sha256": "4111cf6d3d3a2bb070a0005c0b019d3b0d799186b29982db1ebb8870e5621e19"
+    },
+    {
+      "filename": "source/public/images/reference-vape.webp",
+      "bytes": 43928,
+      "sha256": "908d7c652c21a3adac0d71a68156093caf1d293b27d0045a0d900d44d6796b00"
+    },
+    {
+      "filename": "source/public/social-cover.webp",
+      "bytes": 201374,
+      "sha256": "7f9c9c3ed9030f9b00edbaf59b59889be215f16461c11ac847576b65884b8b81"
+    },
+    {
       "filename": "source/README.md",
-      "bytes": 3439,
-      "sha256": "28959e5cbaf525232ea51f0cd646182649e285db670c8feebcc0ef4ce52c0753"
+      "bytes": 4491,
+      "sha256": "29e242411f541dcdfab6f31711b986780008aa66b7307667cab067c12069f177"
     },
     {
       "filename": "source/render.yaml",
-      "bytes": 1026,
-      "sha256": "c4f2bdb7cab7f6d3a8facf1b7a12e7516ec549247302ebcbb66939f710b0702c"
+      "bytes": 875,
+      "sha256": "fa95bc96ea2c29f5102818736b88c4817daa3913173a8b45815deb6caeddd5a1"
     },
     {
       "filename": "source/scripts/build-standalone.mjs",
@@ -126,8 +191,8 @@
     },
     {
       "filename": "source/scripts/package-release.mjs",
-      "bytes": 6896,
-      "sha256": "f0ec3061be7db1b83ec448754cd35525ac602138045be95ecab24bb719c8798f"
+      "bytes": 6913,
+      "sha256": "f17cb151b4ddd51f8c8ebdae7105289c8fb71fb63566854b10bcc865d043d834"
     },
     {
       "filename": "source/server/app.mjs",
@@ -141,8 +206,8 @@
     },
     {
       "filename": "source/src/App.jsx",
-      "bytes": 63384,
-      "sha256": "1b1e44e7dfd1f7ff9d64a9899ce1ceba328877ecca41f816629cdb38634bee2e"
+      "bytes": 78007,
+      "sha256": "1d913d5d40cc700c157ee2f794d9fd1938b13672357fbeea5fc9feb486394a53"
     },
     {
       "filename": "source/src/components/OrderTracking.jsx",
@@ -151,8 +216,8 @@
     },
     {
       "filename": "source/src/components/ProductArt.jsx",
-      "bytes": 1021,
-      "sha256": "70a9b4a744d43d7cc814ac0eef1f55518d301e3af9f2ea6571459890350fbe17"
+      "bytes": 1116,
+      "sha256": "5edcfe34e72fb3936e228d04b636fd24a88c6e64f55aa1bbc8ff18a165284b8c"
     },
     {
       "filename": "source/src/components/StaffDashboard.jsx",
@@ -171,8 +236,8 @@
     },
     {
       "filename": "source/src/lib/products.js",
-      "bytes": 4529,
-      "sha256": "3a60905b58fb7b8b15fbe7afa356463a993f88338cadbd0424bed5a039f66957"
+      "bytes": 17442,
+      "sha256": "d1a02a22752440840a6022d1817a4a4dd27e8441d71fc83feb09c86f4490958b"
     },
     {
       "filename": "source/src/lib/storage.js",
@@ -180,9 +245,19 @@
       "sha256": "6e80a9280e6e1af62d351ec2da09601effaa476e3f5801f645bde672810be0c1"
     },
     {
+      "filename": "source/src/luxury.css",
+      "bytes": 33487,
+      "sha256": "a7f2a720d52dbcc35853adf70066ebbd1c32925f6a58d4495cb5f4525080a10e"
+    },
+    {
       "filename": "source/src/main.jsx",
-      "bytes": 316,
-      "sha256": "82c299b55c014c73d30597862ddaec7cee264266fe0e42cd37fc662fda6bd400"
+      "bytes": 395,
+      "sha256": "60a5f278f3f1b07c1f9c121f8711eadbf2e0d4d01566b90b07c61bb3d043ddf4"
+    },
+    {
+      "filename": "source/src/reference.css",
+      "bytes": 39007,
+      "sha256": "da29a9d460a7e7a7a4b88bda70dbe0a078d9277ba60f8cbe5df21aad360730e5"
     },
     {
       "filename": "source/src/staff.css",
@@ -196,8 +271,8 @@
     },
     {
       "filename": "source/tests/browser_smoke.py",
-      "bytes": 14368,
-      "sha256": "d1af47301b792a3553d2533e9b84d520b557b89c7cfe41f60288c4def5a9005f"
+      "bytes": 13093,
+      "sha256": "c194a7b9b71197c7b676d98552864fec9b990be92a7e2e976a6bb4c9c197b189"
     },
     {
       "filename": "source/tests/fixtures/live-server.mjs",
@@ -206,8 +281,8 @@
     },
     {
       "filename": "source/tests/live_browser_smoke.py",
-      "bytes": 9720,
-      "sha256": "07589b5b0db7b6ef15ac91dd4b07d15d0d810da167411fdc57dd41b40d2a79fd"
+      "bytes": 9909,
+      "sha256": "832e59fddef485421761d847ed33ed245905ed53599421f071e7ad4290cde826"
     },
     {
       "filename": "source/tests/order.test.js",
@@ -216,13 +291,13 @@
     },
     {
       "filename": "source/tests/server.test.js",
-      "bytes": 15998,
-      "sha256": "df66b18d6b64b603c392e83ded74ed7d6374538e86c476535b29379dbacd0c68"
+      "bytes": 16043,
+      "sha256": "177e693cbacce55f11b6faa2363497bb15ba5fb76fdffb1f301a71ac68e3086b"
     },
     {
       "filename": "source/tests/standalone_smoke.py",
-      "bytes": 4166,
-      "sha256": "c71942a722e8fdaec22f74ee1d945282375e484cc3dcb02d1bcc04b436337deb"
+      "bytes": 5593,
+      "sha256": "3b96e46ec770e113f626fa93ae3164a203e6dc2c624936e513a30ae2d002ff90"
     },
     {
       "filename": "source/tests/storage.test.js",
@@ -236,8 +311,8 @@
     },
     {
       "filename": "START-HERE.md",
-      "bytes": 4329,
-      "sha256": "3ba2673a2ff409374d7abb6b1094b471db1a6b83bd9d90f6a8cd974e12522440"
+      "bytes": 5510,
+      "sha256": "316c5607e6b391a585637f7d468512a820a10b78a63856e8e2c3fd89a0a9975e"
     },
     {
       "filename": "static-site/assets/dm-sans-latin-ext-wght-normal-BOFOeGcA.woff2",
@@ -250,14 +325,14 @@
       "sha256": "9fea608a947e67020c33cad9a6fe3d60c54119dfb8cff87768a8117a15ed7543"
     },
     {
-      "filename": "static-site/assets/index-B0VxJ3KL.js",
-      "bytes": 308488,
-      "sha256": "e11a2d66a82f4aa6b043fda68c136826da9d9f7c3054e6897a1cb634ac94b825"
+      "filename": "static-site/assets/index-C1R0so7X.js",
+      "bytes": 328768,
+      "sha256": "b7cd6f479d20c815071863a2be07a5a14465b7b22bfc1efd6307ecaaa4eba4bb"
     },
     {
-      "filename": "static-site/assets/index-DrvawEUI.css",
-      "bytes": 78938,
-      "sha256": "d5175e292d9069e02c21acbd3d0f3f954473d168c8be31097d02787f756f6e81"
+      "filename": "static-site/assets/index-EUOYVotu.css",
+      "bytes": 112510,
+      "sha256": "f1e084265e580acc089d5c5a6bd049e5e3c4453bc0bd13cc4cce67d004066e8b"
     },
     {
       "filename": "static-site/assets/manrope-cyrillic-wght-normal-Dvxsihut.woff2",
@@ -285,14 +360,39 @@
       "sha256": "6bbb044ab420e07edb0a3042d2eb314b85e83a0182e945a15ab3b9092668dfd5"
     },
     {
+      "filename": "static-site/assets/permanent-marker-latin-400-normal-BF23djCy.woff2",
+      "bytes": 29564,
+      "sha256": "4884fec2c73aa52a2461073c1b87d1ceb80f400520391b43f97ca7d3c39eeb24"
+    },
+    {
+      "filename": "static-site/assets/permanent-marker-latin-400-normal-BnZj5c41.woff",
+      "bytes": 36116,
+      "sha256": "ab8ac2bb72d48e089e37d8eefbacdfe2d74ccd48ae786d952fce9874837d2b2b"
+    },
+    {
       "filename": "static-site/favicon.svg",
-      "bytes": 185,
-      "sha256": "afd5cc338ab0adcf65cd70a4abe44475ddb0f0c96ca71a17cff0921d66a122ef"
+      "bytes": 264,
+      "sha256": "c36b00704fda3d62d2eeec6f254419b0cff8cd70141b44a492d8300c86dde456"
     },
     {
       "filename": "static-site/images/hero.webp",
       "bytes": 121266,
       "sha256": "546584ee661f3e3894f18ce7077ff1484290772a66c400df888ac322e3ad81fc"
+    },
+    {
+      "filename": "static-site/images/luxury-editorial.webp",
+      "bytes": 227580,
+      "sha256": "fa6888abcf70768e800a5149f2c7a0f9624ea3aefd1b5f3dfca93b1454dea4ca"
+    },
+    {
+      "filename": "static-site/images/luxury-hero.webp",
+      "bytes": 275012,
+      "sha256": "739ca01ec2f0a18ca5995013566ba3683e5b74a872e372b785d591f5da1427a4"
+    },
+    {
+      "filename": "static-site/images/luxury-vape.webp",
+      "bytes": 95302,
+      "sha256": "8f115c54247d4be6eb42cca8c7ab24aa68f20e43048a064a6e6fc30622c1dc72"
     },
     {
       "filename": "static-site/images/product-drink.webp",
@@ -320,9 +420,59 @@
       "sha256": "9192ac6f099435cd2024d344a1ab560c4917247158d9f00d651fc22ef62987a6"
     },
     {
+      "filename": "static-site/images/reference-accessory.webp",
+      "bytes": 60020,
+      "sha256": "5878f28a88895c2f89bf389241270c2920f12b15a080e8c5c371b66077509fba"
+    },
+    {
+      "filename": "static-site/images/reference-flower.webp",
+      "bytes": 93992,
+      "sha256": "fa3c3073d26189c380e21643335bbaa87302c5bac07e0d6a641b6e3e545b716e"
+    },
+    {
+      "filename": "static-site/images/reference-gummies.webp",
+      "bytes": 64200,
+      "sha256": "943cd72823073eb0037be181ec9ef62018e85808f8548ad20555351f4c4251c0"
+    },
+    {
+      "filename": "static-site/images/reference-hero.webp",
+      "bytes": 201374,
+      "sha256": "7f9c9c3ed9030f9b00edbaf59b59889be215f16461c11ac847576b65884b8b81"
+    },
+    {
+      "filename": "static-site/images/reference-preroll.webp",
+      "bytes": 58338,
+      "sha256": "29c6ad2823d2a2631c6e8af8a30d26c1c66e359d9d2d9336548542574a9dde30"
+    },
+    {
+      "filename": "static-site/images/reference-space-1.webp",
+      "bytes": 208304,
+      "sha256": "eed839cd94742cc1718a830e0f875683e610371875ca0851604be7e679cce261"
+    },
+    {
+      "filename": "static-site/images/reference-space-2.webp",
+      "bytes": 215010,
+      "sha256": "9a906575520931616e85156deed4a487cc33555d10e4846e3c6086e00dd320fe"
+    },
+    {
+      "filename": "static-site/images/reference-space-3.webp",
+      "bytes": 174752,
+      "sha256": "4111cf6d3d3a2bb070a0005c0b019d3b0d799186b29982db1ebb8870e5621e19"
+    },
+    {
+      "filename": "static-site/images/reference-vape.webp",
+      "bytes": 43928,
+      "sha256": "908d7c652c21a3adac0d71a68156093caf1d293b27d0045a0d900d44d6796b00"
+    },
+    {
       "filename": "static-site/index.html",
-      "bytes": 1084117,
-      "sha256": "7ad253e13991b594f417d1aa6c3083374b7a56ec750eb20e2c7e9ec8e1c58d3c"
+      "bytes": 3517844,
+      "sha256": "0810a6686c5fc7f4af41bfbcbe5e41ac2c845ba4f02f0236cf6862eede125817"
+    },
+    {
+      "filename": "static-site/social-cover.webp",
+      "bytes": 201374,
+      "sha256": "7f9c9c3ed9030f9b00edbaf59b59889be215f16461c11ac847576b65884b8b81"
     }
   ]
 }
