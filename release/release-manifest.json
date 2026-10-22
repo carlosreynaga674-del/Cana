@@ -1,0 +1,328 @@
+{
+  "application": "Loud + Cana",
+  "version": "1.0.0",
+  "createdAt": "2026-10-22T13:48:42.473Z",
+  "region": "Gauteng, South Africa",
+  "currency": "ZAR",
+  "runtime": "Node.js 24",
+  "contents": {
+    "loud-cana-preview.html": "Self-contained offline client review demo; no live orders or payments.",
+    "static-site/": "Production frontend files; static hosting supports demo mode only.",
+    "source/": "Full application source and same-origin Node/SQLite service; dependencies excluded."
+  },
+  "publication": "Not published by this package. Configure and deploy to obtain an actual public URL.",
+  "launchStatus": "Live ordering remains disabled until the business and lawful-sales requirements are supplied and approved. No payment processor is connected.",
+  "checksumAlgorithm": "SHA-256",
+  "files": [
+    {
+      "filename": "DEPLOYMENT.md",
+      "bytes": 7335,
+      "sha256": "9bc45785216b255c3ecd906b47b095779bb133c0fa3ceeb4ee776e140118f922"
+    },
+    {
+      "filename": "loud-cana-preview.html",
+      "bytes": 1084117,
+      "sha256": "7ad253e13991b594f417d1aa6c3083374b7a56ec750eb20e2c7e9ec8e1c58d3c"
+    },
+    {
+      "filename": "source/.env.example",
+      "bytes": 636,
+      "sha256": "e935169425266517576c48da041188e1a67879ba1283b1a12a4be6c61ca97933"
+    },
+    {
+      "filename": "source/.github/workflows/client-handoff.yml",
+      "bytes": 724,
+      "sha256": "86a479732f8979e5550056575a97b907203846dbdc74502aa3463c392ed097db"
+    },
+    {
+      "filename": "source/.github/workflows/publish-preview.yml",
+      "bytes": 970,
+      "sha256": "c86f8cec4f3e77a3a1d6fb06ed3213b8938c1e9705893b27575a27c154021fac"
+    },
+    {
+      "filename": "source/.gitignore",
+      "bytes": 86,
+      "sha256": "049be80c052c93e9ac882dcaad502f397d770438376c88e50e12e6a4b923a5cb"
+    },
+    {
+      "filename": "source/.node-version",
+      "bytes": 3,
+      "sha256": "68ca3fba3b7e864770cb61aeb306d4bd4354b68ab4dd38450860c5d823e42a53"
+    },
+    {
+      "filename": "source/docs/DEPLOYMENT.md",
+      "bytes": 7335,
+      "sha256": "9bc45785216b255c3ecd906b47b095779bb133c0fa3ceeb4ee776e140118f922"
+    },
+    {
+      "filename": "source/docs/HANDOFF.md",
+      "bytes": 4329,
+      "sha256": "3ba2673a2ff409374d7abb6b1094b471db1a6b83bd9d90f6a8cd974e12522440"
+    },
+    {
+      "filename": "source/index.html",
+      "bytes": 601,
+      "sha256": "525517b7d6c32b58fc054d352ac4f8ea272868a0c72564afc155a47e5f078d52"
+    },
+    {
+      "filename": "source/package-lock.json",
+      "bytes": 37369,
+      "sha256": "0dfbe94c314b32efcb25afbde62dfc9d0ff6e473cbbf35e062bc07082888b149"
+    },
+    {
+      "filename": "source/package.json",
+      "bytes": 753,
+      "sha256": "7228c88ff7c8f3a53f078d5678ed3183623d6e511b60510f8ef38bf39d21a961"
+    },
+    {
+      "filename": "source/public/favicon.svg",
+      "bytes": 185,
+      "sha256": "afd5cc338ab0adcf65cd70a4abe44475ddb0f0c96ca71a17cff0921d66a122ef"
+    },
+    {
+      "filename": "source/public/images/hero.webp",
+      "bytes": 121266,
+      "sha256": "546584ee661f3e3894f18ce7077ff1484290772a66c400df888ac322e3ad81fc"
+    },
+    {
+      "filename": "source/public/images/product-drink.webp",
+      "bytes": 59474,
+      "sha256": "4f57d1bb0e14d61a53795235cdd560fbecb1c748bb4e2a5a22fe00ca58c1bb64"
+    },
+    {
+      "filename": "source/public/images/product-flower.webp",
+      "bytes": 104696,
+      "sha256": "53e146143e5750e907486bd8ca19e58517b4d42198a18a30bec5c7cee546f5ad"
+    },
+    {
+      "filename": "source/public/images/product-gummies.webp",
+      "bytes": 28388,
+      "sha256": "d81c15c0fc6201a5f8351c135333cdd82e5aef75f433c1c7876005abebe984df"
+    },
+    {
+      "filename": "source/public/images/product-preroll.webp",
+      "bytes": 47806,
+      "sha256": "5b9701f1d739ca878ee74e32dc6ad4bcff693787df79257e1362d557df103430"
+    },
+    {
+      "filename": "source/public/images/product-vape.webp",
+      "bytes": 32450,
+      "sha256": "9192ac6f099435cd2024d344a1ab560c4917247158d9f00d651fc22ef62987a6"
+    },
+    {
+      "filename": "source/README.md",
+      "bytes": 3236,
+      "sha256": "9f1b8354fd4739fbb842a28f0bbd7eed8f825dcf558b942c5681bd4e65570b98"
+    },
+    {
+      "filename": "source/render.yaml",
+      "bytes": 1026,
+      "sha256": "c4f2bdb7cab7f6d3a8facf1b7a12e7516ec549247302ebcbb66939f710b0702c"
+    },
+    {
+      "filename": "source/scripts/build-standalone.mjs",
+      "bytes": 3952,
+      "sha256": "969bd7a7c8444d5a276bb1d2b96344816d61b94b0f03080cea5c1601a64158df"
+    },
+    {
+      "filename": "source/scripts/package-release.mjs",
+      "bytes": 6896,
+      "sha256": "f0ec3061be7db1b83ec448754cd35525ac602138045be95ecab24bb719c8798f"
+    },
+    {
+      "filename": "source/server/app.mjs",
+      "bytes": 24996,
+      "sha256": "83edc15d8bcd7930f7f829a5adb51b3ff35f4e3f83d89e9abcb71d9cd717aa2c"
+    },
+    {
+      "filename": "source/server/index.mjs",
+      "bytes": 950,
+      "sha256": "63f428c5e964239cd97750928679ed75574387888cc699e5fcabe795f240d8eb"
+    },
+    {
+      "filename": "source/src/App.jsx",
+      "bytes": 63384,
+      "sha256": "1b1e44e7dfd1f7ff9d64a9899ce1ceba328877ecca41f816629cdb38634bee2e"
+    },
+    {
+      "filename": "source/src/components/OrderTracking.jsx",
+      "bytes": 5845,
+      "sha256": "43976b5517b122a0f9955eee8c6993a9c431ce54597565eeda401269d32482cc"
+    },
+    {
+      "filename": "source/src/components/ProductArt.jsx",
+      "bytes": 1021,
+      "sha256": "70a9b4a744d43d7cc814ac0eef1f55518d301e3af9f2ea6571459890350fbe17"
+    },
+    {
+      "filename": "source/src/components/StaffDashboard.jsx",
+      "bytes": 36454,
+      "sha256": "894fd6f1c52bff7b8ec3af2a8216ea397905b8c678518bc19605730f31000802"
+    },
+    {
+      "filename": "source/src/lib/api.js",
+      "bytes": 2088,
+      "sha256": "db47412584c5cab58252573b81a39c06918932df6b6b515efd649bc23dbb39c9"
+    },
+    {
+      "filename": "source/src/lib/order.js",
+      "bytes": 2003,
+      "sha256": "30e4c34ba7d5b520e6f16918d6d66c610fe89bf82dd903092d85413fd718b7ad"
+    },
+    {
+      "filename": "source/src/lib/products.js",
+      "bytes": 4529,
+      "sha256": "3a60905b58fb7b8b15fbe7afa356463a993f88338cadbd0424bed5a039f66957"
+    },
+    {
+      "filename": "source/src/lib/storage.js",
+      "bytes": 2935,
+      "sha256": "6e80a9280e6e1af62d351ec2da09601effaa476e3f5801f645bde672810be0c1"
+    },
+    {
+      "filename": "source/src/main.jsx",
+      "bytes": 316,
+      "sha256": "82c299b55c014c73d30597862ddaec7cee264266fe0e42cd37fc662fda6bd400"
+    },
+    {
+      "filename": "source/src/staff.css",
+      "bytes": 38327,
+      "sha256": "db163736a4fa23a0c29588af1966d2d8d5f4cd06476f555f83b8ae7f82c45ef2"
+    },
+    {
+      "filename": "source/src/styles.css",
+      "bytes": 55725,
+      "sha256": "20aeac9bf86127fbecc457d7a2472a33a2d58aa6cae91015e7d14cb914f91311"
+    },
+    {
+      "filename": "source/tests/browser_smoke.py",
+      "bytes": 14368,
+      "sha256": "d1af47301b792a3553d2533e9b84d520b557b89c7cfe41f60288c4def5a9005f"
+    },
+    {
+      "filename": "source/tests/fixtures/live-server.mjs",
+      "bytes": 1551,
+      "sha256": "c867dfc824796ce950b9a3a17b1cd70e0a1f12e68ffb348a23e83a20aed88dbb"
+    },
+    {
+      "filename": "source/tests/live_browser_smoke.py",
+      "bytes": 9720,
+      "sha256": "07589b5b0db7b6ef15ac91dd4b07d15d0d810da167411fdc57dd41b40d2a79fd"
+    },
+    {
+      "filename": "source/tests/order.test.js",
+      "bytes": 3923,
+      "sha256": "d97e42cd99348458024348a115d922275fd808bea918c09f368fa5eec3f0a73a"
+    },
+    {
+      "filename": "source/tests/server.test.js",
+      "bytes": 15998,
+      "sha256": "df66b18d6b64b603c392e83ded74ed7d6374538e86c476535b29379dbacd0c68"
+    },
+    {
+      "filename": "source/tests/standalone_smoke.py",
+      "bytes": 4166,
+      "sha256": "c71942a722e8fdaec22f74ee1d945282375e484cc3dcb02d1bcc04b436337deb"
+    },
+    {
+      "filename": "source/tests/storage.test.js",
+      "bytes": 4769,
+      "sha256": "61f0ff0f5b997eda4c2c5c8beed85b40863c17dc0ffde33fd1565719505dce92"
+    },
+    {
+      "filename": "source/vite.config.js",
+      "bytes": 229,
+      "sha256": "befaa9310d90c74f39559a0183dc81f9921c616390eef9657a9eb6d05d939b83"
+    },
+    {
+      "filename": "START-HERE.md",
+      "bytes": 4329,
+      "sha256": "3ba2673a2ff409374d7abb6b1094b471db1a6b83bd9d90f6a8cd974e12522440"
+    },
+    {
+      "filename": "static-site/assets/dm-sans-latin-ext-wght-normal-BOFOeGcA.woff2",
+      "bytes": 18228,
+      "sha256": "a5d38fe99f930275684999b462c7123faa063d9e44e73b4b241723d884aa0f49"
+    },
+    {
+      "filename": "static-site/assets/dm-sans-latin-wght-normal-Xz1IZZA0.woff2",
+      "bytes": 36932,
+      "sha256": "9fea608a947e67020c33cad9a6fe3d60c54119dfb8cff87768a8117a15ed7543"
+    },
+    {
+      "filename": "static-site/assets/index-B0VxJ3KL.js",
+      "bytes": 308488,
+      "sha256": "e11a2d66a82f4aa6b043fda68c136826da9d9f7c3054e6897a1cb634ac94b825"
+    },
+    {
+      "filename": "static-site/assets/index-DrvawEUI.css",
+      "bytes": 78938,
+      "sha256": "d5175e292d9069e02c21acbd3d0f3f954473d168c8be31097d02787f756f6e81"
+    },
+    {
+      "filename": "static-site/assets/manrope-cyrillic-wght-normal-Dvxsihut.woff2",
+      "bytes": 14500,
+      "sha256": "c268b459a9329e59fecf39a17618efd44c71735532048d60b12aab76a8c14914"
+    },
+    {
+      "filename": "static-site/assets/manrope-greek-wght-normal-DL7QRZyv.woff2",
+      "bytes": 9444,
+      "sha256": "2fb2e8cbfd52ae46179a8b6024eb162f1f9c6de3d22d6e3a30d8f395de7220be"
+    },
+    {
+      "filename": "static-site/assets/manrope-latin-ext-wght-normal-Ch3YOpNY.woff2",
+      "bytes": 15120,
+      "sha256": "3911b66d9f2e005a4b989223405d0e5032619c668597ba467cc76a23c8fffcfb"
+    },
+    {
+      "filename": "static-site/assets/manrope-latin-wght-normal-DHIcAJRg.woff2",
+      "bytes": 24836,
+      "sha256": "a30ddcd349703aff7464c34bef3fffdff405ee50c113440d7c8693c02d210972"
+    },
+    {
+      "filename": "static-site/assets/manrope-vietnamese-wght-normal-usUDDRr7.woff2",
+      "bytes": 8520,
+      "sha256": "6bbb044ab420e07edb0a3042d2eb314b85e83a0182e945a15ab3b9092668dfd5"
+    },
+    {
+      "filename": "static-site/favicon.svg",
+      "bytes": 185,
+      "sha256": "afd5cc338ab0adcf65cd70a4abe44475ddb0f0c96ca71a17cff0921d66a122ef"
+    },
+    {
+      "filename": "static-site/images/hero.webp",
+      "bytes": 121266,
+      "sha256": "546584ee661f3e3894f18ce7077ff1484290772a66c400df888ac322e3ad81fc"
+    },
+    {
+      "filename": "static-site/images/product-drink.webp",
+      "bytes": 59474,
+      "sha256": "4f57d1bb0e14d61a53795235cdd560fbecb1c748bb4e2a5a22fe00ca58c1bb64"
+    },
+    {
+      "filename": "static-site/images/product-flower.webp",
+      "bytes": 104696,
+      "sha256": "53e146143e5750e907486bd8ca19e58517b4d42198a18a30bec5c7cee546f5ad"
+    },
+    {
+      "filename": "static-site/images/product-gummies.webp",
+      "bytes": 28388,
+      "sha256": "d81c15c0fc6201a5f8351c135333cdd82e5aef75f433c1c7876005abebe984df"
+    },
+    {
+      "filename": "static-site/images/product-preroll.webp",
+      "bytes": 47806,
+      "sha256": "5b9701f1d739ca878ee74e32dc6ad4bcff693787df79257e1362d557df103430"
+    },
+    {
+      "filename": "static-site/images/product-vape.webp",
+      "bytes": 32450,
+      "sha256": "9192ac6f099435cd2024d344a1ab560c4917247158d9f00d651fc22ef62987a6"
+    },
+    {
+      "filename": "static-site/index.html",
+      "bytes": 1084117,
+      "sha256": "7ad253e13991b594f417d1aa6c3083374b7a56ec750eb20e2c7e9ec8e1c58d3c"
+    }
+  ]
+}

@@ -1,0 +1,231 @@
+"""Browser checks for the local Loud + Cana demo.
+
+Build and start the server in preview mode, then: python3 tests/browser_smoke.py
+Requires Python Playwright and Chromium (/usr/bin/chromium).
+"""
+import os
+import re
+from playwright.sync_api import sync_playwright, expect
+
+BASE_URL = os.environ.get("CANA_BASE_URL", "http://127.0.0.1:3000")
+
+
+def expect_money(locator, cents):
+    formatted = f"{cents / 100:,.2f}".replace(",", " ").replace(".", ",")
+    pattern = r"R\s*" + re.escape(formatted).replace(r"\ ", r"\s*")
+    expect(locator).to_contain_text(re.compile(pattern))
+
+
+def close_dialog(page):
+    page.get_by_role("dialog").get_by_role("button", name="Close dialog").click()
+
+
+def fill_contact(page):
+    page.get_by_label("Full name").fill("Jordan Demo")
+    page.get_by_label("Email address").fill("jordan@example.com")
+    page.get_by_label("Phone number").fill("0712345678")
+
+
+def run():
+    errors = []
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True, executable_path="/usr/bin/chromium", args=["--no-sandbox"])
+        context = browser.new_context(viewport={"width": 1440, "height": 1000})
+        page = context.new_page()
+        page.on("pageerror", lambda error: errors.append(str(error)))
+        page.goto(BASE_URL, wait_until="networkidle")
+        expect(page.locator(".product-card")).to_have_count(8)
+        for category, count in [("Flower", 2), ("Edibles", 2), ("Drinks", 1)]:
+            page.get_by_role("group", name="Product categories").get_by_role("button", name=category, exact=True).click()
+            expect(page.locator(".product-card")).to_have_count(count)
+        page.get_by_role("button", name="All good things").click()
+        page.get_by_label("Search products").fill("nothing-like-this")
+        expect(page.locator(".product-card")).to_have_count(0)
+        expect(page.get_by_text("No good things here. Yet.")).to_be_visible()
+        page.get_by_role("button", name="Explore all products").click()
+        page.get_by_label("Sort products").select_option("price-low")
+        expect(page.locator(".product-name").first).to_have_text("Sunday Citrus")
+        page.get_by_label("Sort products").select_option("price-high")
+        expect(page.locator(".product-name").first).to_have_text("Golden Hour")
+        page.get_by_label("Sort products").select_option("featured")
+        page.get_by_role("button", name="Save Sunset Sherbet", exact=True).click()
+        page.get_by_role("button", name=re.compile("Your saved picks")).click()
+        expect(page.locator(".product-card")).to_have_count(1)
+        page.reload(wait_until="networkidle")
+        expect(page.get_by_role("button", name="Unsave Sunset Sherbet", exact=True)).to_have_attribute("aria-pressed", "true")
+        print("PASS catalog categories, search, sort, persistent favorites")
+
+        page.locator(".location-button").click()
+        page.get_by_role("button", name="Save my neighborhood").click()
+        expect(page.get_by_text("Enter a 4-digit South African postal code.")).to_be_visible()
+        page.get_by_label("Your Postal code").fill("2196")
+        page.get_by_role("button", name="Save my neighborhood").click()
+        expect(page.locator(".location-button")).to_contain_text("2196")
+        print("PASS neighborhood validation and update")
+
+        page.get_by_role("button", name="Add Sunset Sherbet to bag", exact=True).click()
+        expect(page.get_by_role("dialog", name="Confirm your age")).to_be_visible()
+        page.get_by_role("button", name="I’m under 21", exact=True).click()
+        expect(page.get_by_role("dialog", name="Age restriction")).to_be_visible()
+        page.get_by_role("button", name="Got it", exact=True).click()
+        expect(page.locator(".bag-count")).to_have_text("0")
+        page.get_by_role("button", name="View Sunset Sherbet", exact=True).click()
+        page.get_by_label("Your size").select_option("1")
+        page.get_by_role("button", name="Increase Sunset Sherbet quantity").click()
+        expect_money(page.get_by_role("button", name=re.compile("^Add to bag")), 116000)
+        page.get_by_role("button", name=re.compile("^Add to bag")).click()
+        page.get_by_role("button", name="I’m 21 or older", exact=True).click()
+        expect(page.locator(".bag-count")).to_have_text("2")
+        page.get_by_role("button", name="Open bag, 2 items").click()
+        expect(page.get_by_role("dialog", name="Your bag")).to_contain_text("7 g")
+        expect_money(page.locator(".total-line"), 116000)
+        expect(page.locator(".free-delivery")).to_contain_text("unlocked free delivery")
+        page.get_by_role("button", name="Decrease Sunset Sherbet quantity").click()
+        expect_money(page.locator(".total-line"), 62900)
+        page.get_by_label("Promo code").fill("NOTACODE")
+        page.get_by_role("button", name="Apply", exact=True).click()
+        expect(page.get_by_text("That code isn’t on the list. Try LOUD15.")).to_be_visible()
+        page.get_by_label("Promo code").fill("loud15")
+        page.get_by_role("button", name="Apply", exact=True).click()
+        expect_money(page.locator(".total-line"), 54200)
+        page.get_by_role("button", name="Let’s check out").click()
+        page.get_by_role("button", name=re.compile("Place demo order")).click()
+        expect(page.get_by_text("Please enter your full name.")).to_be_visible()
+        expect(page.get_by_text("Please confirm you are 21 or older.")).to_be_visible()
+        fill_contact(page)
+        page.get_by_label("Street address").fill("123 Demo Lane")
+        page.get_by_label(re.compile(r"^City")).fill("Johannesburg")
+        expect(page.get_by_label("Postal code", exact=True)).to_have_value("2196")
+        page.get_by_label("Delivery notes").fill("This is a test order.")
+        page.get_by_role("checkbox").check()
+        page.get_by_role("button", name=re.compile("Place demo order")).click()
+        expect(page.get_by_role("dialog", name="Order confirmation")).to_be_visible()
+        order_id = page.locator(".order-number strong").inner_text()
+        assert re.fullmatch(r"LC-[A-Z0-9]{8}", order_id), order_id
+        expect_money(page.locator(".order-summary"), 54200)
+        expect(page.locator(".order-dialog")).to_contain_text("Note: This is a test order.")
+        close_dialog(page)
+        expect(page.locator(".bag-count")).to_have_text("0")
+        page.get_by_role("button", name="Add Sunday Citrus to bag", exact=True).click()
+        page.get_by_role("button", name="Open bag, 1 items").click()
+        expect(page.locator(".promo-message")).to_have_count(0)
+        expect(page.get_by_label("Promo code")).to_have_value("")
+        expect_money(page.locator(".total-line"), 12900)
+        page.get_by_role("button", name="Remove Sunday Citrus").click()
+        close_dialog(page)
+        print("PASS age denial/confirmation, size/quantity, free-delivery threshold, promos, validated delivery order")
+
+        page.reload(wait_until="networkidle")
+        page.get_by_role("button", name="Track order", exact=True).click()
+        expect(page.locator(".order-number strong")).to_have_text(order_id)
+        expect(page.locator(".order-dialog")).to_contain_text("Note: This is a test order.")
+        page.get_by_role("button", name="Look up another order").click()
+        page.get_by_label("Order number or tracking link", exact=True).fill("LC-NOTREAL")
+        page.get_by_role("button", name="Find my order", exact=True).click()
+        expect(page.get_by_role("alert")).to_contain_text("couldn’t find")
+        page.get_by_label("Order number or tracking link", exact=True).fill(order_id.lower())
+        page.get_by_role("button", name="Find my order", exact=True).click()
+        expect(page.locator(".order-number strong")).to_have_text(order_id)
+        close_dialog(page)
+        print("PASS persisted order tracking, invalid and valid lookup")
+
+        page.get_by_role("button", name="Add Sunday Citrus to bag", exact=True).click()
+        page.get_by_role("button", name="Open bag, 1 items").click()
+        page.get_by_role("button", name="Pickup", exact=True).click()
+        expect_money(page.locator(".total-line"), 8000)
+        page.get_by_role("button", name="Let’s check out").click()
+        expect(page.get_by_label("Street address")).to_have_count(0)
+        fill_contact(page)
+        page.get_by_role("checkbox").check()
+        page.get_by_role("button", name=re.compile("Place demo order")).click()
+        expect(page.get_by_role("dialog", name="Order confirmation")).to_be_visible()
+        expect(page.locator(".order-summary")).to_contain_text("Pickup")
+        print("PASS pickup checkout without delivery address or fee")
+        page.screenshot(path="/tmp/lc-order-confirmation.png")
+        context.close()
+
+        mobile = browser.new_context(viewport={"width":390,"height":844}, is_mobile=True, has_touch=True, device_scale_factor=1)
+        page = mobile.new_page()
+        page.on("pageerror", lambda error: errors.append(str(error)))
+        page.goto(BASE_URL, wait_until="networkidle")
+        assert not page.evaluate("document.documentElement.scrollWidth > innerWidth"), "Mobile page overflows horizontally"
+        page.get_by_role("button", name="Toggle navigation").click()
+        expect(page.get_by_role("navigation", name="Main navigation")).to_be_visible()
+        page.get_by_role("navigation").get_by_role("button", name="Our story").click()
+        expect(page.get_by_role("dialog", name="Our story")).to_be_visible()
+        close_dialog(page)
+        expect(page.get_by_role("button", name="Toggle navigation")).to_have_attribute("aria-expanded", "false")
+        page.get_by_role("button", name="Toggle navigation").click()
+        page.get_by_role("navigation").get_by_role("button", name="Your neighborhood", exact=True).click()
+        expect(page.get_by_role("dialog", name="Gauteng, South Africa")).to_be_visible()
+        page.get_by_label("Your Postal code").fill("2000")
+        page.get_by_role("button", name="Save my neighborhood").click()
+        expect(page.get_by_role("button", name="Toggle navigation")).to_have_attribute("aria-expanded", "false")
+        page.get_by_role("button", name="Add Peach State to bag", exact=True).click()
+        page.get_by_role("button", name="I’m 21 or older", exact=True).click()
+        page.get_by_role("button", name="Open bag, 1 items").click()
+        page.get_by_role("button", name="Increase Peach State quantity").click()
+        expect_money(page.locator(".total-line"), 44900)
+        page.get_by_role("button", name="Remove Peach State").click()
+        expect(page.locator(".empty-bag")).to_be_visible()
+        close_dialog(page)
+        page.screenshot(path="/tmp/lc-mobile.png",full_page=True)
+        print("PASS mobile navigation, age confirmation, cart quantity/remove/empty state, no horizontal overflow")
+
+        page.get_by_role("button", name="Add Peach State to bag", exact=True).click()
+        page.get_by_role("button", name="Open bag, 1 items").click()
+        page.get_by_role("button", name="Let’s check out").click()
+        fill_contact(page)
+        page.get_by_label("Street address").fill("456 Sample Street")
+        page.get_by_label("City", exact=True).fill("Johannesburg")
+        expect(page.get_by_label("Postal code", exact=True)).to_have_value("2000")
+        page.get_by_role("checkbox").check()
+        page.get_by_role("button", name=re.compile("Place demo order")).click()
+        expect(page.get_by_role("dialog", name="Order confirmation")).to_be_visible()
+        mobile_order_id = page.locator(".order-number strong").inner_text()
+        expect_money(page.locator(".order-summary"), 24900)
+        close_dialog(page)
+        page.reload(wait_until="networkidle")
+        page.get_by_role("button", name="Toggle navigation").click()
+        page.get_by_role("navigation").get_by_role("button", name="Track order", exact=True).click()
+        expect(page.get_by_role("dialog", name="Track your order")).to_be_visible()
+        expect(page.locator(".order-number strong")).to_have_text(mobile_order_id)
+        close_dialog(page)
+        expect(page.get_by_role("button", name="Toggle navigation")).to_have_attribute("aria-expanded", "false")
+        print("PASS mobile delivery-area update, checkout, reload and saved-order tracking from navigation")
+        mobile.close()
+
+        malformed = browser.new_context(viewport={"width": 1440, "height": 1000})
+        page = malformed.new_page()
+        page.on("pageerror", lambda error: errors.append(str(error)))
+        page.goto(BASE_URL, wait_until="networkidle")
+        page.evaluate("""() => {
+            localStorage.setItem('lc-cart', JSON.stringify([null, {id:'sunset-sherbet',size:'7 g',quantity:1,price:1}, {id:'unknown-product',quantity:9}]));
+            localStorage.setItem('lc-favorites', JSON.stringify({invalid:true}));
+            localStorage.setItem('lc-location', JSON.stringify({postcode:'90210',mode:'unknown'}));
+            localStorage.setItem('lc-orders', JSON.stringify([null,{}]));
+            localStorage.setItem('lc-age-confirmed', 'not-valid-json');
+        }""")
+        page.reload(wait_until="networkidle")
+        expect(page.locator(".product-card")).to_have_count(8)
+        expect(page.locator(".bag-count")).to_have_text("1")
+        page.get_by_role("button", name="Open bag, 1 items").click()
+        expect_money(page.locator(".total-line"), 62900)
+        expect(page.locator(".cart-item")).to_have_count(1)
+        assert page.evaluate("JSON.parse(localStorage.getItem('lc-cart'))[0].price") == 58000
+        assert page.evaluate("JSON.parse(localStorage.getItem('lc-location')).mode") == "delivery"
+        close_dialog(page)
+        page.get_by_role("button", name="Track order", exact=True).click()
+        expect(page.get_by_role("dialog", name="Find your order")).to_be_visible()
+        close_dialog(page)
+        page.get_by_role("button", name="Add Peach State to bag", exact=True).click()
+        expect(page.get_by_role("dialog", name="Confirm your age")).to_be_visible()
+        malformed.close()
+        print("PASS malformed saved-state recovery, unknown-item rejection, canonical pricing, safe age/order defaults")
+        browser.close()
+    assert not errors, errors
+    print("PASS no uncaught browser errors")
+
+
+if __name__ == "__main__":
+    run()

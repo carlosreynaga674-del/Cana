@@ -1,0 +1,40 @@
+services:
+  - type: web
+    name: loud-cana
+    runtime: node
+    plan: starter
+    region: frankfurt
+    buildCommand: npm ci --no-audit --no-fund && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    disk:
+      name: order-data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: NODE_VERSION
+        value: "24"
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_PATH
+        value: /var/data/orders.sqlite
+      - key: BUSINESS_NAME
+        value: Loud + Cana
+      - key: BUSINESS_JURISDICTION
+        value: Gauteng, South Africa
+      - key: LIVE_ORDERS_ENABLED
+        value: "false"
+      - key: LEGAL_SALES_AUTHORIZATION_CONFIRMED
+        value: "false"
+      - key: CATALOG_APPROVED
+        value: "false"
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: PICKUP_ADDRESS
+        sync: false
+      - key: CONTACT_EMAIL
+        sync: false
+      - key: DELIVERY_ZIPS
+        sync: false
+      - key: STORE_LICENSE_NUMBER
+        sync: false
