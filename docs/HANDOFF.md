@@ -4,6 +4,8 @@ An ordering experience for **Loud + Cana, Gauteng, South Africa**, with rand pri
 
 ## Show the client today
 
+Open **https://carlosreynaga674-del.github.io/Cana/** for the published client preview. The repository owner enabled GitHub Pages on `loud-cana-preview`; deployment is complete. This site demonstrates the experience and does not accept real orders. For an offline copy, use the package below.
+
 1. Extract `loud-cana-client.zip`.
 2. Open **`loud-cana-preview.html`** in a modern browser. This is a single file: no server, installation, or internet connection is needed. If a managed browser blocks local HTML files, use the hosted demo described below or another browser that permits local files.
 3. Browse products, confirm age, add a product, and complete a demo checkout using sample contact details. The standalone preview never sends a real order or collects payment. Cart/order persistence is available only when the browser permits local storage.

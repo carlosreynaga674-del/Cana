@@ -6,6 +6,8 @@ The app starts in client preview mode. Real requests remain disabled until actua
 
 ## Client handoff
 
+Published client preview: **https://carlosreynaga674-del.github.io/Cana/**. GitHub Pages deployment and the published file were verified. This is a demo storefront, not live order intake.
+
 ```sh
 npm ci
 npm test
