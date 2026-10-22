@@ -1,7 +1,9 @@
-# Loud + Cana client preview
+# Loud + Cana - The Private Collection
 
-Self-contained Gauteng client demonstration. No real orders or payments.
+Luxury public collection website for Gauteng, South Africa.
 
-Enable GitHub Pages: Settings > Pages > Deploy from a branch > loud-cana-preview > / (root).
+24 proposed selections. Prices and availability require store confirmation. Online ordering is not open; no simulated orders are created.
 
-Full service source and client ZIP: branch loud-cana-client-handoff.
+Website: https://carlosreynaga674-del.github.io/Cana/
+
+Full source, staff backend, deployment instructions, and client package: branch loud-cana-client-handoff.
