@@ -15,7 +15,8 @@ jobs:
         with:
           node-version: "24"
           cache: npm
-      - run: npm ci --no-audit --no-fund
+      - name: Install with production dependency rules
+        run: NODE_ENV=production npm ci --no-audit --no-fund
       - run: npm test
       - run: npm run release
       - uses: actions/upload-artifact@v4

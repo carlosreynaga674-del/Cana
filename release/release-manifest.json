@@ -1,7 +1,7 @@
 {
   "application": "Loud + Cana",
   "version": "1.0.0",
-  "createdAt": "2026-10-22T18:01:41.694Z",
+  "createdAt": "2026-10-22T18:25:35.127Z",
   "region": "Gauteng, South Africa",
   "currency": "ZAR",
   "runtime": "Node.js 24",
@@ -16,8 +16,8 @@
   "files": [
     {
       "filename": "DEPLOYMENT.md",
-      "bytes": 9356,
-      "sha256": "792b63bbdc452a858415540f3bf29fd13b15610922b4ed695db7ce31aeca67f2"
+      "bytes": 9487,
+      "sha256": "3f502cf7a2ad1f08bd6c82bdc8d9cf1ab4105475068c20fe4d3aff46fd9b7c42"
     },
     {
       "filename": "loud-cana-preview.html",
@@ -31,8 +31,8 @@
     },
     {
       "filename": "source/.github/workflows/client-handoff.yml",
-      "bytes": 724,
-      "sha256": "86a479732f8979e5550056575a97b907203846dbdc74502aa3463c392ed097db"
+      "bytes": 799,
+      "sha256": "52a3afaa5d850b30f4d86a1be2ed611d8986e814eaf0cd25a82d895b8654306e"
     },
     {
       "filename": "source/.github/workflows/publish-preview.yml",
@@ -51,8 +51,8 @@
     },
     {
       "filename": "source/docs/DEPLOYMENT.md",
-      "bytes": 9356,
-      "sha256": "792b63bbdc452a858415540f3bf29fd13b15610922b4ed695db7ce31aeca67f2"
+      "bytes": 9487,
+      "sha256": "3f502cf7a2ad1f08bd6c82bdc8d9cf1ab4105475068c20fe4d3aff46fd9b7c42"
     },
     {
       "filename": "source/docs/HANDOFF.md",
@@ -66,13 +66,13 @@
     },
     {
       "filename": "source/package-lock.json",
-      "bytes": 38312,
-      "sha256": "520cc3d01ba3addc051f9f30f54a7ea188c7fca5a330f0eecbb49aa2a16d5d4d"
+      "bytes": 37061,
+      "sha256": "b3817937719e5f095e85b928168b96560ea3addd1bf798347c4f85fd52acd741"
     },
     {
       "filename": "source/package.json",
-      "bytes": 847,
-      "sha256": "a6073c662a936fa454ed62d1773c16fad1af62f6208e5d7976a113bd22bf796e"
+      "bytes": 820,
+      "sha256": "d9c9186dd9efd073576e7f879cb86054b4a838ad8268a47e7cc67521cab4189d"
     },
     {
       "filename": "source/public/favicon.svg",
@@ -181,8 +181,8 @@
     },
     {
       "filename": "source/render.yaml",
-      "bytes": 875,
-      "sha256": "fa95bc96ea2c29f5102818736b88c4817daa3913173a8b45815deb6caeddd5a1"
+      "bytes": 889,
+      "sha256": "a6d31219f261810d550c5cdbcac2106196d14cf7b8b4dacb14b5295596303dec"
     },
     {
       "filename": "source/scripts/build-standalone.mjs",
