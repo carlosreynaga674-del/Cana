@@ -1,9 +1,7 @@
-# Loud + Cana - The Private Collection
+# Loud + Cana public website
 
-Luxury public collection website for Gauteng, South Africa.
+Black and neon lime storefront, responsive catalog, product categories and store concept gallery.
 
-24 proposed selections. Prices and availability require store confirmation. Online ordering is not open; no simulated orders are created.
+Live website: https://carlosreynaga674-del.github.io/Cana/
 
-Website: https://carlosreynaga674-del.github.io/Cana/
-
-Full source, staff backend, deployment instructions, and client package: branch loud-cana-client-handoff.
+This branch is the self-contained GitHub Pages catalog. The full source, Node order service, deployment instructions and client package are on `loud-cana-client-handoff`. Real order intake requires the full hosted Node service and genuine approved business configuration.
