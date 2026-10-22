@@ -7,11 +7,15 @@ export default function ProductArt({ product, className = "" }) {
       style={{ "--art-bg": product.color }}
     >
       <img
-        src={`/images/product-${product.visual}.webp`}
+        src={
+          product.visual === "vape"
+            ? "/images/luxury-vape.webp"
+            : `/images/product-${product.visual}.webp`
+        }
         alt={`${product.name} ${product.category.toLowerCase()} packaging`}
         loading="lazy"
       />
-      {product.visual !== "vape" && (
+      {
         <div
           className={`photo-package-label label-${product.visual}`}
           aria-hidden="true"
@@ -27,7 +31,7 @@ export default function ProductArt({ product, className = "" }) {
             · {product.size.toUpperCase()}
           </small>
         </div>
-      )}
+      }
     </div>
   );
 }

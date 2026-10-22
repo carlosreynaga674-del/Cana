@@ -4,11 +4,13 @@ Use the full Node service for persistent order requests and the `/staff` dashboa
 
 ## Render: full application
 
+[Open the official Deploy to Render flow for the prepared branch](https://render.com/deploy?repo=https://github.com/carlosreynaga674-del/Cana/tree/loud-cana-client-handoff). The blueprint creates a catalog-only service with live-intake flags disabled and an automatically generated staff password. It does not require fictitious licensing or store data. Review the paid persistent-disk service and sign in using the owner’s account.
+
 1. Put the complete `source/` contents in the intended GitHub repository and branch. Do not commit real `.env` files, passwords, or `.local/` databases.
 2. In Render, create a Node **Web Service** from that repository. Use `render.yaml` as a Blueprint if desired, or configure manually. If the code is in a subfolder, set Render's root directory to that folder.
 3. Use **Node.js 24**, build command `npm ci && npm run build`, and start command `npm start`. Set the health-check path to `/api/health`.
 4. Use a plan supporting a **persistent disk** (for example, Render Starter with a disk). Mount the disk at `/var/data`, and set `DATABASE_PATH=/var/data/orders.sqlite`. An ephemeral filesystem is unsuitable for client orders: deploys or restarts can remove an unmounted SQLite database.
-5. Add configuration in Render's environment settings. Enter the staff password as a secret. Start in demo mode, deploy, and use the actual Render URL returned by the service.
+5. Add configuration in Render's environment settings. Enter the staff password as a secret. Start with online intake disabled, deploy, and use the actual Render URL returned by the service.
 6. Set `PUBLIC_ORIGIN` to the exact HTTPS origin of the deployed site, without a trailing slash or path, especially when using a custom domain. Render's `RENDER_EXTERNAL_URL` is used automatically when no explicit origin is configured.
 
 ## Required configuration
@@ -27,7 +29,7 @@ Use the full Node service for persistent order requests and the `/staff` dashboa
 | `CONTACT_EMAIL`                       | Monitored customer-support email address.                                                                                                |
 | `CATALOG_APPROVED`                    | `true` only after the business approves all actual product information and prices.                                                       |
 | `LEGAL_SALES_AUTHORIZATION_CONFIRMED` | `true` only after the owner confirms lawful commercial sales and delivery authorization for the products and operating region.           |
-| `LIVE_ORDERS_ENABLED`                 | Keep `false` during client review; enable only after all launch requirements and the operational checks below are complete.              |
+| `LIVE_ORDERS_ENABLED`                 | Keep `false` while service details are pending; enable only after all launch requirements and the operational checks below are complete. |
 
 The server exposes its current `demo`/`live` mode and missing setup requirements through `/api/config`. All launch requirements must be met before it accepts real order requests. Setting an individual flag does not replace the underlying business authorization, catalog approval, or operational process.
 
@@ -42,9 +44,9 @@ The server exposes its current `demo`/`live` mode and missing setup requirements
 - Confirm the business's ID/age verification, support, cancellation, payment, and fulfillment processes. This build does not collect online payments or automatically verify identity or dispatch drivers.
 - Replace sample copy/catalog data, confirm rand pricing and four-digit postal coverage, and complete the business's required privacy/terms review before launch.
 
-## Static public demo
+## Static public catalog
 
-The client preview is published at **https://carlosreynaga674-del.github.io/Cana/**. GitHub reports a successful build from `loud-cana-preview`, and the served HTML was verified against the tested standalone export. Real order intake remains disabled on this static demo.
+The collection website is published at **https://carlosreynaga674-del.github.io/Cana/**. GitHub reports a successful build from `loud-cana-preview`, and the served HTML was verified against the tested standalone export. Real order intake remains disabled on this static catalog.
 
 The prepared repository also has a **`loud-cana-preview`** branch containing the tested single-file site at its root. For the quickest public demo, open the repository's **Settings → Pages**, choose **Deploy from a branch**, select **`loud-cana-preview`** and **`/ (root)`**, then save. GitHub displays the actual site URL after deployment. The API connection in this environment could not enable Pages automatically; the branch alone does not establish that Pages is published.
 

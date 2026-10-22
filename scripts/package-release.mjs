@@ -115,7 +115,7 @@ try {
     "loud-cana-preview.html",
   );
   await addTree(path.join(root, "dist"), "static-site");
-  // Use the fully self-contained demo as the static entry point. This works
+  // Use the fully self-contained catalog as the static entry point. This works
   // unchanged at an origin root or a GitHub Pages repository subpath (/Cana/).
   files.set("static-site/index.html", files.get("loud-cana-preview.html"));
   for (const directory of sourceDirectories) {
@@ -144,9 +144,9 @@ try {
     runtime: "Node.js 24",
     contents: {
       "loud-cana-preview.html":
-        "Self-contained offline client review demo; no live orders or payments.",
+        "Self-contained luxury catalog; no simulated checkout or live order submission.",
       "static-site/":
-        "Production frontend files; static hosting supports demo mode only.",
+        "Production catalog website; static hosting cannot run the order service.",
       "source/":
         "Full application source and same-origin Node/SQLite service; dependencies excluded.",
     },

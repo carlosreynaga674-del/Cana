@@ -76,7 +76,7 @@ def run():
                 page = customer_context.new_page()
                 page.on("pageerror", lambda error: browser_errors.append(str(error)))
                 page.goto(base, wait_until="networkidle")
-                expect(page.locator(".product-card")).to_have_count(8)
+                expect(page.locator(".product-card")).to_have_count(24)
                 page.get_by_role("button", name="Add Sunset Sherbet to bag", exact=True).click()
                 page.get_by_role("button", name="I’m 21 or older", exact=True).click()
                 page.get_by_role("button", name="Open bag, 1 items").click()

@@ -1,13 +1,13 @@
 {
   "application": "Loud + Cana",
   "version": "1.0.0",
-  "createdAt": "2026-10-22T17:13:10.581Z",
+  "createdAt": "2026-10-22T17:36:27.453Z",
   "region": "Gauteng, South Africa",
   "currency": "ZAR",
   "runtime": "Node.js 24",
   "contents": {
-    "loud-cana-preview.html": "Self-contained offline client review demo; no live orders or payments.",
-    "static-site/": "Production frontend files; static hosting supports demo mode only.",
+    "loud-cana-preview.html": "Self-contained luxury catalog; no simulated checkout or live order submission.",
+    "static-site/": "Production catalog website; static hosting cannot run the order service.",
     "source/": "Full application source and same-origin Node/SQLite service; dependencies excluded."
   },
   "publication": "Not published by this package. Configure and deploy to obtain an actual public URL.",
@@ -16,13 +16,13 @@
   "files": [
     {
       "filename": "DEPLOYMENT.md",
-      "bytes": 8090,
-      "sha256": "2610f9fc7ad9c2357228079ca18a56bdf7920ed010afd01fab0d678f6852105f"
+      "bytes": 8551,
+      "sha256": "8111a7d7a17351a26860b6a758194a00f0f7fd5288c61b14b9f8de9c074c1c6f"
     },
     {
       "filename": "loud-cana-preview.html",
-      "bytes": 1084117,
-      "sha256": "7ad253e13991b594f417d1aa6c3083374b7a56ec750eb20e2c7e9ec8e1c58d3c"
+      "bytes": 2138814,
+      "sha256": "a7fa7c31b7fda9b42175d1bd4b593251acfa7654867be33b087125354b99f936"
     },
     {
       "filename": "source/.env.example",
@@ -51,38 +51,53 @@
     },
     {
       "filename": "source/docs/DEPLOYMENT.md",
-      "bytes": 8090,
-      "sha256": "2610f9fc7ad9c2357228079ca18a56bdf7920ed010afd01fab0d678f6852105f"
+      "bytes": 8551,
+      "sha256": "8111a7d7a17351a26860b6a758194a00f0f7fd5288c61b14b9f8de9c074c1c6f"
     },
     {
       "filename": "source/docs/HANDOFF.md",
-      "bytes": 4623,
-      "sha256": "48c9e66901d399dd8dfcf0fef997b3235a42a3beb1e39fc6492816d4f50ac1d8"
+      "bytes": 4984,
+      "sha256": "f936e6012a9a4018d5924bf11bcd6aad92b785c12903728e572c818b538188b6"
     },
     {
       "filename": "source/index.html",
-      "bytes": 601,
-      "sha256": "525517b7d6c32b58fc054d352ac4f8ea272868a0c72564afc155a47e5f078d52"
+      "bytes": 1421,
+      "sha256": "0e1ede96d5ad0fc3fd920db80b2fa3217d6606fd7aa48805d3cd55d0800be9c9"
     },
     {
       "filename": "source/package-lock.json",
-      "bytes": 37369,
-      "sha256": "0dfbe94c314b32efcb25afbde62dfc9d0ff6e473cbbf35e062bc07082888b149"
+      "bytes": 37843,
+      "sha256": "953d4e58d1ab2ee048d1d676c9ccc916e7e08efae9ee1367fe5f8fc97cc57c09"
     },
     {
       "filename": "source/package.json",
-      "bytes": 753,
-      "sha256": "7228c88ff7c8f3a53f078d5678ed3183623d6e511b60510f8ef38bf39d21a961"
+      "bytes": 801,
+      "sha256": "f61daf34a601265eff781e0612f9bbe66167589e19930a80873d60a731d8d0f9"
     },
     {
       "filename": "source/public/favicon.svg",
-      "bytes": 185,
-      "sha256": "afd5cc338ab0adcf65cd70a4abe44475ddb0f0c96ca71a17cff0921d66a122ef"
+      "bytes": 324,
+      "sha256": "a51d7f17691268ff3fd91b2e8c23c14a7e586dc0251fb441d9c354f38ab49725"
     },
     {
       "filename": "source/public/images/hero.webp",
       "bytes": 121266,
       "sha256": "546584ee661f3e3894f18ce7077ff1484290772a66c400df888ac322e3ad81fc"
+    },
+    {
+      "filename": "source/public/images/luxury-editorial.webp",
+      "bytes": 227580,
+      "sha256": "fa6888abcf70768e800a5149f2c7a0f9624ea3aefd1b5f3dfca93b1454dea4ca"
+    },
+    {
+      "filename": "source/public/images/luxury-hero.webp",
+      "bytes": 275012,
+      "sha256": "739ca01ec2f0a18ca5995013566ba3683e5b74a872e372b785d591f5da1427a4"
+    },
+    {
+      "filename": "source/public/images/luxury-vape.webp",
+      "bytes": 95302,
+      "sha256": "8f115c54247d4be6eb42cca8c7ab24aa68f20e43048a064a6e6fc30622c1dc72"
     },
     {
       "filename": "source/public/images/product-drink.webp",
@@ -110,14 +125,19 @@
       "sha256": "9192ac6f099435cd2024d344a1ab560c4917247158d9f00d651fc22ef62987a6"
     },
     {
+      "filename": "source/public/social-cover.webp",
+      "bytes": 275012,
+      "sha256": "739ca01ec2f0a18ca5995013566ba3683e5b74a872e372b785d591f5da1427a4"
+    },
+    {
       "filename": "source/README.md",
-      "bytes": 3628,
-      "sha256": "31af683b9f12da8cce0a976f7bd560809abf218b42854d97abad2fcb9b5459c9"
+      "bytes": 4265,
+      "sha256": "e5fea799e9c6664cc15f339baa195bff4b4f36b7ab4c50778dec7a281b240588"
     },
     {
       "filename": "source/render.yaml",
-      "bytes": 1026,
-      "sha256": "c4f2bdb7cab7f6d3a8facf1b7a12e7516ec549247302ebcbb66939f710b0702c"
+      "bytes": 875,
+      "sha256": "fa95bc96ea2c29f5102818736b88c4817daa3913173a8b45815deb6caeddd5a1"
     },
     {
       "filename": "source/scripts/build-standalone.mjs",
@@ -126,8 +146,8 @@
     },
     {
       "filename": "source/scripts/package-release.mjs",
-      "bytes": 6896,
-      "sha256": "f0ec3061be7db1b83ec448754cd35525ac602138045be95ecab24bb719c8798f"
+      "bytes": 6913,
+      "sha256": "f17cb151b4ddd51f8c8ebdae7105289c8fb71fb63566854b10bcc865d043d834"
     },
     {
       "filename": "source/server/app.mjs",
@@ -141,8 +161,8 @@
     },
     {
       "filename": "source/src/App.jsx",
-      "bytes": 63384,
-      "sha256": "1b1e44e7dfd1f7ff9d64a9899ce1ceba328877ecca41f816629cdb38634bee2e"
+      "bytes": 66141,
+      "sha256": "e506a462f1c60bcede9cf627b7612aa1a24dcdbbe0d1d697fafd871a34911df7"
     },
     {
       "filename": "source/src/components/OrderTracking.jsx",
@@ -151,8 +171,8 @@
     },
     {
       "filename": "source/src/components/ProductArt.jsx",
-      "bytes": 1021,
-      "sha256": "70a9b4a744d43d7cc814ac0eef1f55518d301e3af9f2ea6571459890350fbe17"
+      "bytes": 1091,
+      "sha256": "249c42f83cf992fb6cd287ad5b9ed1f98499c28ec7c562cfafafdcc2e61c95b4"
     },
     {
       "filename": "source/src/components/StaffDashboard.jsx",
@@ -171,8 +191,8 @@
     },
     {
       "filename": "source/src/lib/products.js",
-      "bytes": 4529,
-      "sha256": "3a60905b58fb7b8b15fbe7afa356463a993f88338cadbd0424bed5a039f66957"
+      "bytes": 14879,
+      "sha256": "2a73609fcf810ca3a1be2d923e2b55eec02dc631fb7f64a3690f53c92a3fda10"
     },
     {
       "filename": "source/src/lib/storage.js",
@@ -180,9 +200,14 @@
       "sha256": "6e80a9280e6e1af62d351ec2da09601effaa476e3f5801f645bde672810be0c1"
     },
     {
+      "filename": "source/src/luxury.css",
+      "bytes": 33487,
+      "sha256": "a7f2a720d52dbcc35853adf70066ebbd1c32925f6a58d4495cb5f4525080a10e"
+    },
+    {
       "filename": "source/src/main.jsx",
-      "bytes": 316,
-      "sha256": "82c299b55c014c73d30597862ddaec7cee264266fe0e42cd37fc662fda6bd400"
+      "bytes": 511,
+      "sha256": "17d31e6e8a8e66bfbb178cdc6f17cc2005b8daf4f7776258b223d6f315289333"
     },
     {
       "filename": "source/src/staff.css",
@@ -196,8 +221,8 @@
     },
     {
       "filename": "source/tests/browser_smoke.py",
-      "bytes": 14368,
-      "sha256": "d1af47301b792a3553d2533e9b84d520b557b89c7cfe41f60288c4def5a9005f"
+      "bytes": 11075,
+      "sha256": "1eb8ead4c099b8c1e67310aaadb602ce68058f43359a3a4108e75c4bb08fdac8"
     },
     {
       "filename": "source/tests/fixtures/live-server.mjs",
@@ -206,8 +231,8 @@
     },
     {
       "filename": "source/tests/live_browser_smoke.py",
-      "bytes": 9720,
-      "sha256": "07589b5b0db7b6ef15ac91dd4b07d15d0d810da167411fdc57dd41b40d2a79fd"
+      "bytes": 9721,
+      "sha256": "32ef791c6a7537c372c5e41b6d654cbf42c5c295fa661ff1545f3886e11ff8d6"
     },
     {
       "filename": "source/tests/order.test.js",
@@ -216,13 +241,13 @@
     },
     {
       "filename": "source/tests/server.test.js",
-      "bytes": 15998,
-      "sha256": "df66b18d6b64b603c392e83ded74ed7d6374538e86c476535b29379dbacd0c68"
+      "bytes": 16043,
+      "sha256": "177e693cbacce55f11b6faa2363497bb15ba5fb76fdffb1f301a71ac68e3086b"
     },
     {
       "filename": "source/tests/standalone_smoke.py",
-      "bytes": 4166,
-      "sha256": "c71942a722e8fdaec22f74ee1d945282375e484cc3dcb02d1bcc04b436337deb"
+      "bytes": 4765,
+      "sha256": "6a145e5155e1738d606749ab6f2a238e0dbc7eaf53c2bea03fc02ca16d806fb0"
     },
     {
       "filename": "source/tests/storage.test.js",
@@ -236,8 +261,38 @@
     },
     {
       "filename": "START-HERE.md",
-      "bytes": 4623,
-      "sha256": "48c9e66901d399dd8dfcf0fef997b3235a42a3beb1e39fc6492816d4f50ac1d8"
+      "bytes": 4984,
+      "sha256": "f936e6012a9a4018d5924bf11bcd6aad92b785c12903728e572c818b538188b6"
+    },
+    {
+      "filename": "static-site/assets/cormorant-garamond-latin-400-italic-BLh7T8o8.woff",
+      "bytes": 32888,
+      "sha256": "337d07118277acbf5a0eb19c602aaf917b2485585360f2c7139ce42d9d4e6cc1"
+    },
+    {
+      "filename": "static-site/assets/cormorant-garamond-latin-400-italic-Dc_OZ8oc.woff2",
+      "bytes": 23660,
+      "sha256": "e48e58027030df56869b795ca6f19b7012158275f7ad7cde1900b4a0b68d02e2"
+    },
+    {
+      "filename": "static-site/assets/cormorant-garamond-latin-400-normal-B-1hWBU7.woff2",
+      "bytes": 22876,
+      "sha256": "8048ac209bec741e1c29cd0cfac5aac1c0c2ba8c3ddbd4a58fa9bd92ef5c63c2"
+    },
+    {
+      "filename": "static-site/assets/cormorant-garamond-latin-400-normal-B7YtguxJ.woff",
+      "bytes": 30980,
+      "sha256": "b926f33f9d3d5cb64e639b8fe9ad5380560a63f3e7a29d212f2b80a2d22ec051"
+    },
+    {
+      "filename": "static-site/assets/cormorant-garamond-latin-500-normal-BsRWmXhO.woff2",
+      "bytes": 23312,
+      "sha256": "8197bf53615ddc8c423f444c7f0eec63b7fa0ba093fcfbec60dfdd28429b0fc8"
+    },
+    {
+      "filename": "static-site/assets/cormorant-garamond-latin-500-normal-zIXX3Q-H.woff",
+      "bytes": 31372,
+      "sha256": "314ee3edd5ddcdef5cf2374c1126b8be9f7f1ebd6c5c66a23c237f3b836a3ec1"
     },
     {
       "filename": "static-site/assets/dm-sans-latin-ext-wght-normal-BOFOeGcA.woff2",
@@ -250,14 +305,14 @@
       "sha256": "9fea608a947e67020c33cad9a6fe3d60c54119dfb8cff87768a8117a15ed7543"
     },
     {
-      "filename": "static-site/assets/index-B0VxJ3KL.js",
-      "bytes": 308488,
-      "sha256": "e11a2d66a82f4aa6b043fda68c136826da9d9f7c3054e6897a1cb634ac94b825"
+      "filename": "static-site/assets/index-DdS7RmQY.js",
+      "bytes": 318017,
+      "sha256": "5160cfa92420698752f9b87befd16971a3f7d4a07403757a347737b11c6df2a0"
     },
     {
-      "filename": "static-site/assets/index-DrvawEUI.css",
-      "bytes": 78938,
-      "sha256": "d5175e292d9069e02c21acbd3d0f3f954473d168c8be31097d02787f756f6e81"
+      "filename": "static-site/assets/index-e1ur5x45.css",
+      "bytes": 105760,
+      "sha256": "915ebae96dcecbf392f95bc7ed2100c015702a135a87c39f7400d66c61408b1a"
     },
     {
       "filename": "static-site/assets/manrope-cyrillic-wght-normal-Dvxsihut.woff2",
@@ -286,13 +341,28 @@
     },
     {
       "filename": "static-site/favicon.svg",
-      "bytes": 185,
-      "sha256": "afd5cc338ab0adcf65cd70a4abe44475ddb0f0c96ca71a17cff0921d66a122ef"
+      "bytes": 324,
+      "sha256": "a51d7f17691268ff3fd91b2e8c23c14a7e586dc0251fb441d9c354f38ab49725"
     },
     {
       "filename": "static-site/images/hero.webp",
       "bytes": 121266,
       "sha256": "546584ee661f3e3894f18ce7077ff1484290772a66c400df888ac322e3ad81fc"
+    },
+    {
+      "filename": "static-site/images/luxury-editorial.webp",
+      "bytes": 227580,
+      "sha256": "fa6888abcf70768e800a5149f2c7a0f9624ea3aefd1b5f3dfca93b1454dea4ca"
+    },
+    {
+      "filename": "static-site/images/luxury-hero.webp",
+      "bytes": 275012,
+      "sha256": "739ca01ec2f0a18ca5995013566ba3683e5b74a872e372b785d591f5da1427a4"
+    },
+    {
+      "filename": "static-site/images/luxury-vape.webp",
+      "bytes": 95302,
+      "sha256": "8f115c54247d4be6eb42cca8c7ab24aa68f20e43048a064a6e6fc30622c1dc72"
     },
     {
       "filename": "static-site/images/product-drink.webp",
@@ -321,8 +391,13 @@
     },
     {
       "filename": "static-site/index.html",
-      "bytes": 1084117,
-      "sha256": "7ad253e13991b594f417d1aa6c3083374b7a56ec750eb20e2c7e9ec8e1c58d3c"
+      "bytes": 2138814,
+      "sha256": "a7fa7c31b7fda9b42175d1bd4b593251acfa7654867be33b087125354b99f936"
+    },
+    {
+      "filename": "static-site/social-cover.webp",
+      "bytes": 275012,
+      "sha256": "739ca01ec2f0a18ca5995013566ba3683e5b74a872e372b785d591f5da1427a4"
     }
   ]
 }
