@@ -8,17 +8,16 @@ Use the full Node service for persistent order requests and the `/staff` dashboa
 
 **Staff login page:** https://loud-cana.onrender.com/staff
 
-The existing service deploys `main`. Deployment `46d4573` succeeded on 22 October 2026 after a production-install fix. The storefront, static assets, health check, product API, configuration endpoint, and staff login page returned HTTP 200. The last recorded public configuration was in catalog mode with the following setup requirements missing; check the actual current configuration again before launch:
+The existing service deploys `main`. A public configuration check on 23 October 2026 confirmed that the storefront remains in catalog mode with the following two setup requirements missing. Check the actual current configuration again before launch:
 
 | Setting | Action in Render → Environment |
 | --- | --- |
 | `DELIVERY_ZIPS` | Supply the client's actual approved four-digit delivery postal codes, separated by commas. |
 | `ADMIN_PASSWORD` | Set a unique secret of at least 16 characters. Keep it in Render's secure settings, not chat or source. |
-| `CATALOG_APPROVED` | Set to `true` only after the client approves the actual products, prices, and information. |
-| `LEGAL_SALES_AUTHORIZATION_CONFIRMED` | Set to `true` only after the business confirms genuine commercial sales and delivery authorization. |
-| `LIVE_ORDERS_ENABLED` | Enable only after the other setup requirements and operational acceptance checks below are complete. |
 
-Some business fields pass the application's format checks. Their authenticity and the underlying sales authorization have not been independently verified. Before taking orders, confirm a persistent disk is mounted at `/var/data` and set `DATABASE_PATH=/var/data/orders.sqlite`; the disk configuration cannot be verified from the public API. Save the legitimate settings, redeploy, and check `/api/config` for `mode: "live"` with no missing requirements. Payment collection remains unconnected.
+The public configuration reports `CATALOG_APPROVED`, `LEGAL_SALES_AUTHORIZATION_CONFIRMED`, and `LIVE_ORDERS_ENABLED` as enabled. Those flags and the supplied business fields have not been independently verified as genuine catalog approval or lawful commercial sales authorization. The owner must confirm those underlying facts before completing launch; keep intake disabled while they are unresolved. Do not fill the missing settings with invented postal codes or a password committed to source.
+
+Before taking registrations or orders, confirm a persistent disk is mounted at `/var/data` and set `DATABASE_PATH=/var/data/orders.sqlite`; the disk configuration cannot be verified from the public API. The connected repository tools cannot change the existing service's private Render settings. Save legitimate settings in the owner's Render dashboard, redeploy, and check `/api/config` for the intended mode and missing requirements. Payment collection and automatic driver dispatch remain unconnected.
 
 ## Membership deployment
 

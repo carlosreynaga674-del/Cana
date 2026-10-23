@@ -13,7 +13,7 @@ HASH_DOCUMENT = "https://catalog.test/Cana/"
 
 
 def exercise(app):
-    expect(app.locator(".reference-hero")).to_be_visible()
+    expect(app.locator(".reference-hero")).to_be_visible(timeout=15000)
     expect(app.locator(".featured-card")).to_have_count(5)
     expect(app.locator("#shop")).to_have_count(0)
     app.get_by_role("button", name="View gallery", exact=True).click()

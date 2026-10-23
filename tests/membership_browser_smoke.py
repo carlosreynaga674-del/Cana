@@ -96,6 +96,32 @@ def assert_no_overflow(page):
     assert not page.evaluate("document.documentElement.scrollWidth > innerWidth + 1"), f"Horizontal overflow at {page.url}"
 
 
+def assert_signup_actions(page):
+    """Both final-step actions must fit their panel on desktop and a phone."""
+    for width, height, suffix in ((1440, 1000, "desktop"), (390, 844, "mobile")):
+        page.set_viewport_size({"width": width, "height": height})
+        actions = page.locator(".signup-form .signup-actions")
+        actions.scroll_into_view_if_needed()
+        expect(actions.get_by_role("button", name="Back", exact=True)).to_be_visible()
+        expect(actions.get_by_role("button", name="Create account", exact=True)).to_be_visible()
+        assert actions.evaluate("""el => {
+            const panel = el.getBoundingClientRect();
+            return Array.from(el.querySelectorAll('button')).every(button => {
+                const rect = button.getBoundingClientRect();
+                return rect.width >= 84 && rect.height >= 44 &&
+                    rect.left >= panel.left - 1 && rect.right <= panel.right + 1 &&
+                    rect.left >= 0 && rect.right <= innerWidth + 1 &&
+                    rect.top >= 0 && rect.bottom <= innerHeight + 1;
+            });
+        }"""), f"Final signup buttons are clipped at {width}px."
+        assert_no_overflow(page)
+        actions.screenshot(path=f"/tmp/cana-signup-actions-{suffix}.png")
+        page.evaluate("document.activeElement?.blur(); window.scrollTo(0, 0)")
+        page.screenshot(path=f"/tmp/cana-signup-final-{suffix}.png", full_page=True)
+    page.set_viewport_size({"width": 1440, "height": 1000})
+    print("PASS final signup actions fit their panel and viewport on desktop and mobile", flush=True)
+
+
 def form_field(page, label):
     return page.get_by_label(label, exact=True)
 
@@ -235,6 +261,7 @@ def run():
                 assert rejected_quiz.value.status == 422, rejected_quiz.value.text()
                 assert member_state(page, base) is None
                 fill_questions(page)
+                assert_signup_actions(page)
                 page.screenshot(path="/tmp/cana-membership-signup.png", full_page=True)
                 with page.expect_response(lambda response: response.url == base + "/api/members/signup" and response.request.method == "POST") as signup:
                     page.get_by_role("button", name="Create account", exact=True).click()

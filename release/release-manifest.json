@@ -1,7 +1,7 @@
 {
   "application": "Loud + Cana",
   "version": "1.0.0",
-  "createdAt": "2026-10-23T07:02:29.553Z",
+  "createdAt": "2026-10-23T11:50:38.719Z",
   "region": "Gauteng, South Africa",
   "currency": "ZAR",
   "runtime": "Node.js 24",
@@ -16,13 +16,13 @@
   "files": [
     {
       "filename": "DEPLOYMENT.md",
-      "bytes": 17201,
-      "sha256": "232c2a51f3053aea4bb055f84a9e126c8994bec9be60c6277bf9a49733da3651"
+      "bytes": 17164,
+      "sha256": "ee78f2d8fdde272b743db3065f0e8ad6433e2099db2ba07abc8c430af7bec7ba"
     },
     {
       "filename": "loud-cana-preview.html",
-      "bytes": 3667856,
-      "sha256": "3e9da2851fcff8a23af98041d8ec76f91e144b9fc578e515eeb345ba1df594de"
+      "bytes": 3667879,
+      "sha256": "ff2d94d3c53e8d6b7406a815c2c06563b5beeb58609f509a9320ab2add442822"
     },
     {
       "filename": "source/.env.example",
@@ -51,8 +51,8 @@
     },
     {
       "filename": "source/docs/DEPLOYMENT.md",
-      "bytes": 17201,
-      "sha256": "232c2a51f3053aea4bb055f84a9e126c8994bec9be60c6277bf9a49733da3651"
+      "bytes": 17164,
+      "sha256": "ee78f2d8fdde272b743db3065f0e8ad6433e2099db2ba07abc8c430af7bec7ba"
     },
     {
       "filename": "source/docs/HANDOFF.md",
@@ -281,8 +281,8 @@
     },
     {
       "filename": "source/src/pages.css",
-      "bytes": 38664,
-      "sha256": "cc1e2492968de3630a9447907ef294f84979e33ed81bf4ea3dc64a8964f50951"
+      "bytes": 38691,
+      "sha256": "e9e7d5ce5eb1b50ffeec7f4f1b01213ec6af2da9f48954b4de71c1c791508a35"
     },
     {
       "filename": "source/src/reference.css",
@@ -336,8 +336,8 @@
     },
     {
       "filename": "source/tests/membership_browser_smoke.py",
-      "bytes": 22738,
-      "sha256": "ecd99037673025065339605480dbd5a496adaa6cc0578dbbbee4612f03f380df"
+      "bytes": 24375,
+      "sha256": "f2df3061725722192b817e070d3699f99385a545f8c8eddbb024b8f3946f476d"
     },
     {
       "filename": "source/tests/order.test.js",
@@ -351,8 +351,8 @@
     },
     {
       "filename": "source/tests/standalone_smoke.py",
-      "bytes": 9429,
-      "sha256": "f456ac957fc393677263806a43a4e79fa2abfc887481df6e7f2aac65beb47823"
+      "bytes": 9442,
+      "sha256": "4adab6ed3e21a2a522a92b8bc8b1388203120fccdf4624ab323384d6ff885e1f"
     },
     {
       "filename": "source/tests/storage.test.js",
@@ -380,14 +380,14 @@
       "sha256": "9fea608a947e67020c33cad9a6fe3d60c54119dfb8cff87768a8117a15ed7543"
     },
     {
-      "filename": "static-site/assets/index-B9BSpcrY.js",
-      "bytes": 438086,
-      "sha256": "a47c2c7da38f4a086676a6649181d74fc165a1a82525012a7b5e665525024822"
+      "filename": "static-site/assets/index-Ckon42K7.css",
+      "bytes": 153138,
+      "sha256": "6adb8c3849cfd9dc14f84a7c0f51b273bc618a25f3c97b2c0f0edb3e5a20e74b"
     },
     {
-      "filename": "static-site/assets/index-TtbQ0azm.css",
-      "bytes": 153115,
-      "sha256": "0c91096920049d14441fa56bc4262f52e80f792d5db2693ac4a88d7c8867f698"
+      "filename": "static-site/assets/index-D5DVKIMv.js",
+      "bytes": 438086,
+      "sha256": "a47c2c7da38f4a086676a6649181d74fc165a1a82525012a7b5e665525024822"
     },
     {
       "filename": "static-site/assets/manrope-cyrillic-wght-normal-Dvxsihut.woff2",
@@ -521,8 +521,8 @@
     },
     {
       "filename": "static-site/index.html",
-      "bytes": 3667856,
-      "sha256": "3e9da2851fcff8a23af98041d8ec76f91e144b9fc578e515eeb345ba1df594de"
+      "bytes": 3667879,
+      "sha256": "ff2d94d3c53e8d6b7406a815c2c06563b5beeb58609f509a9320ab2add442822"
     },
     {
       "filename": "static-site/social-cover.webp",
