@@ -7,6 +7,7 @@ import {
 } from "node:crypto";
 import { promisify } from "node:util";
 import { createOnboarding, ONBOARDING_POLICY_VERSION } from "./onboarding.mjs";
+import { createIdentityService } from "./identity.mjs";
 
 const deriveKey = promisify(scrypt);
 const SESSION_SECONDS = 30 * 24 * 60 * 60;
@@ -24,12 +25,15 @@ export function createMemberHandlers({
   production,
   send,
   readJson,
+  readIdentityJson = readJson,
   rateLimit,
   HttpError,
   productIds,
+  identityConfig = {},
 }) {
-  const knownProducts = new Set(productIds);
+  const knownProducts = () => new Set(typeof productIds === "function" ? productIds() : productIds);
   let activeDerivations = 0;
+  let activeIdentityRequests = 0;
   db.exec(`
     CREATE TABLE IF NOT EXISTS members (
       id TEXT PRIMARY KEY,
@@ -65,6 +69,15 @@ export function createMemberHandlers({
   const revokeAll = db.prepare(
     "DELETE FROM member_sessions WHERE member_id = ?",
   );
+  const identity = createIdentityService({
+    db, HttpError, config: { ...identityConfig, production },
+    getApplication(memberId) {
+      const member = byId.get(memberId);
+      const application = onboarding.providerApplication(memberId);
+      return member && application ? { ...application, name: member.name } : null;
+    },
+    recordDecision: (decision) => onboarding.recordIdentityDecision(decision),
+  });
 
   function cookie(value, seconds = SESSION_SECONDS) {
     return `${COOKIE_NAME}=${value}; Path=/api; HttpOnly; SameSite=Strict; Max-Age=${seconds}${production ? "; Secure" : ""}`;
@@ -105,8 +118,9 @@ export function createMemberHandlers({
       email: row.email,
       createdAt: row.created_at,
       ageVerification: onboarding.publicAge(row.id),
+      identityVerification: identity.status(row.id),
       favorites: Array.isArray(favorites)
-        ? [...new Set(favorites.filter((id) => knownProducts.has(id)))]
+        ? [...new Set(favorites.filter((id) => knownProducts().has(id)))]
         : [],
     };
   }
@@ -206,12 +220,36 @@ export function createMemberHandlers({
       send(res, 200, onboarding.createChallenge(req, res));
       return true;
     }
+    if (pathname === "/api/members/identity-verification" && req.method === "GET") {
+      const { member } = authenticate(req);
+      send(res, 200, { verification: identity.status(member.id) });
+      return true;
+    }
+    if (pathname === "/api/members/identity-verification" && req.method === "POST") {
+      const { member } = authenticate(req);
+      rateLimit(req, `member-identity:${member.id}`, 12, 60 * 60 * 1000);
+      if (activeIdentityRequests >= 2)
+        throw new HttpError(503, "Image uploads are busy. Please try again shortly.");
+      activeIdentityRequests += 1;
+      try {
+        const body = await readIdentityJson(req);
+        if (!record(body)) throw new HttpError(400, "Submit the ID and selfie as a valid request.");
+        if (body.identityConsent !== true)
+          fieldsError({ identityConsent: "Consent to private ID and selfie processing for staff review before continuing." });
+        authenticate(req);
+        const result = await identity.submit(member.id, body, { assertAuthorized: () => authenticate(req) });
+        authenticate(req);
+        send(res, 200, result);
+      } finally { activeIdentityRequests -= 1; }
+      return true;
+    }
     if (pathname === "/api/members/age-verification" && req.method === "POST") {
       const { member } = authenticate(req);
       rateLimit(req, `member-age-submission:${member.id}`, 12, 60 * 60 * 1000);
       if (onboarding.publicAge(member.id).status === "verified")
         throw new HttpError(409, "Your age check is already verified.");
       const body = await bodyObject(req);
+      authenticate(req);
       const submission = onboarding.validateSubmission(req, body);
       db.exec("BEGIN IMMEDIATE");
       try {
@@ -248,6 +286,8 @@ export function createMemberHandlers({
       if (body.termsAccepted !== true)
         errors.termsAccepted =
           "Accept the membership terms and privacy policy.";
+      if (body.identityConsent !== true)
+        errors.identityConsent = "Consent to the stated secure document and face verification.";
       if (Object.keys(errors).length) fieldsError(errors);
       const submission = onboarding.validateSubmission(req, body);
       rateLimit(
@@ -279,7 +319,7 @@ export function createMemberHandlers({
           now,
           ONBOARDING_POLICY_VERSION,
         );
-        onboarding.recordSubmission(id, submission, res);
+        onboarding.recordSubmission(id, submission, res, true);
         issueSession(res, id);
         db.exec("COMMIT");
       } catch (error) {
@@ -329,6 +369,7 @@ export function createMemberHandlers({
       const { member } = authenticate(req);
       rateLimit(req, `member-profile:${member.id}`, 90, 15 * 60 * 1000);
       const body = await bodyObject(req);
+      authenticate(req);
       const errors = {};
       const name = body.name === undefined ? member.name : clean(body.name);
       if (name.length < 2 || name.length > 80)
@@ -339,7 +380,7 @@ export function createMemberHandlers({
           !Array.isArray(body.favorites) ||
           body.favorites.length > 100 ||
           body.favorites.some(
-            (id) => typeof id !== "string" || !knownProducts.has(id),
+            (id) => typeof id !== "string" || !knownProducts().has(id),
           )
         )
           errors.favorites =
@@ -435,6 +476,7 @@ export function createMemberHandlers({
       "/api/members/password",
       "/api/members/signup-challenge",
       "/api/members/age-verification",
+      "/api/members/identity-verification",
     ]);
     throw new HttpError(
       knownPaths.has(pathname) ? 405 : 404,
@@ -448,11 +490,30 @@ export function createMemberHandlers({
     onboarding.requireVerified(member.id);
     return publicMember(member);
   };
-  handleMembers.ageQueue = (status) => onboarding.queue(status);
+  handleMembers.ageQueue = (status) => onboarding.queue(status).map((member) => ({ ...member, identityVerification: identity.status(member.id) }));
+  handleMembers.listMembers = ({ q = "", page = "1", limit = "20" } = {}) => {
+    const pageNumber = Number(page), pageSize = Number(limit);
+    if (typeof q !== "string" || q.length > 120 || !Number.isInteger(pageNumber) || pageNumber < 1 || pageNumber > 100000 || !Number.isInteger(pageSize) || pageSize < 1 || pageSize > 100)
+      throw new HttpError(422, "Choose a valid member search and page.");
+    const query = q.trim().toLowerCase();
+    const where = "WHERE instr(lower(name),?)>0 OR instr(lower(email),?)>0";
+    const total = db.prepare(`SELECT COUNT(*) AS count FROM members ${where}`).get(query, query).count;
+    const rows = db.prepare(`SELECT * FROM members ${where} ORDER BY created_at DESC,id LIMIT ? OFFSET ?`).all(query, query, pageSize, (pageNumber - 1) * pageSize);
+    return { members: rows.map((row) => {
+      const member = publicMember(row);
+      return { id: member.id, name: member.name, email: member.email, createdAt: member.createdAt, ageVerification: member.ageVerification, identityVerification: member.identityVerification };
+    }), total, page: pageNumber, limit: pageSize };
+  };
+  handleMembers.identityImage = (id, kind, uploadId) => identity.image(id, kind, uploadId);
+  handleMembers.identityConfiguration = () => identity.configStatus();
   handleMembers.reviewAge = (id, body, reviewerRef) => {
-    onboarding.review(id, body, reviewerRef);
+    if (onboarding.providerApplication(id)?.identityRequired) {
+      if (body.method !== "uploaded_id_selfie")
+        throw new HttpError(409, "This member requires the uploaded ID and selfie review.");
+      identity.review(id, body, reviewerRef);
+    } else onboarding.review(id, body, reviewerRef);
     return publicMember(byId.get(id));
   };
-  handleMembers.close = () => onboarding.close();
+  handleMembers.close = () => { identity.dispose(); onboarding.close(); };
   return handleMembers;
 }

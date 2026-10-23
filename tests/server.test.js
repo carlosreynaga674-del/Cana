@@ -5,6 +5,7 @@ import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createServer } from "../server/app.mjs";
+import { DatabaseSync } from "node:sqlite";
 import { products } from "../src/lib/products.js";
 import { verifiedMemberCookie } from "./helpers/age-fixture.mjs";
 
@@ -44,11 +45,15 @@ function checkout(overrides = {}) {
 }
 
 async function start(t, options = {}) {
+  const directory = await mkdtemp(join(tmpdir(), "cana-server-fixture-"));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const dbPath = options.dbPath && options.dbPath !== ":memory:"
+    ? options.dbPath : join(directory, "orders.sqlite");
   const server = createServer({
-    dbPath: ":memory:",
     config: { ...storeConfig },
     adminPassword,
     ...options,
+    dbPath,
   });
   server.listen(0, "127.0.0.1");
   await once(server, "listening");
@@ -72,6 +77,12 @@ async function start(t, options = {}) {
       ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
     });
     return response;
+  };
+  rawRequest.markLegacy = (id) => {
+    // Pricing/order tests use the supported legacy in-person review path.
+    const fixture = new DatabaseSync(dbPath);
+    fixture.prepare("UPDATE member_age_checks SET identity_required=0 WHERE member_id=?").run(id);
+    fixture.close();
   };
   let orderCookie;
   const request = async (path, options = {}) => {

@@ -16,6 +16,7 @@ const signup = (overrides = {}) => ({
   ageConfirmed: true,
   birthDate: "2000-01-01",
   verificationConsent: true,
+  identityConsent: true,
   termsAccepted: true,
   ...overrides,
 });
@@ -92,7 +93,7 @@ test("membership creates real catalog-mode accounts and discloses only safe own-
   assert.deepEqual(member.favorites, []);
   assert.equal(
     Object.keys(member).sort().join(","),
-    "ageVerification,createdAt,email,favorites,id,name",
+    "ageVerification,createdAt,email,favorites,id,identityVerification,name",
   );
   assert.match(response.headers.get("set-cookie"), /HttpOnly; SameSite=Strict/);
   assert.match(response.headers.get("set-cookie"), /Path=\/api;/);

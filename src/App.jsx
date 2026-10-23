@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   BrowserRouter,
   HashRouter,
@@ -40,7 +40,8 @@ import {
   Truck,
   X,
 } from "lucide-react";
-import { products, categories } from "./lib/products.js";
+import { products as seedProducts, categories } from "./lib/products.js";
+import { publishedCatalog } from "./lib/catalog.js";
 import { calculateTotals, formatMoney, validateCheckout } from "./lib/order.js";
 import ProductArt from "./components/ProductArt.jsx";
 import StaffDashboard from "./components/StaffDashboard.jsx";
@@ -61,17 +62,18 @@ import {
   createIdempotencyKey,
 } from "./lib/api.js";
 
-function useSavedState(key, fallback, sanitize = (value) => value) {
+function useSavedState(key, fallback, sanitize = (value) => value, persist = true) {
   const [value, setValue] = useState(() =>
     readSavedState(key, fallback, sanitize),
   );
   useEffect(() => {
+    if (!persist) return;
     try {
       localStorage.setItem(key, JSON.stringify(value));
     } catch {
       /* Storage may be blocked by an embedded preview. */
     }
-  }, [key, value]);
+  }, [key, value, persist]);
   return [value, setValue];
 }
 
@@ -238,7 +240,7 @@ function ProductCard({
         <div className="product-bottom">
           <div>
             <strong>{formatMoney(product.price)}</strong>
-            <span>Indicative pricing</span>
+            <span>{product.priceStatus === "confirmed" ? "Store price" : "Indicative pricing"}</span>
           </div>
           <button
             className="add-button"
@@ -251,8 +253,23 @@ function ProductCard({
           </button>
         </div>
       </div>
-      <p className="availability-note">Availability to be confirmed</p>
+      <p className="availability-note">{product.availability || "Availability to be confirmed"}</p>
     </article>
+  );
+}
+
+function CatalogNotice({ loading, error, onRetry }) {
+  return (
+    <div className="empty-results" role={error ? "alert" : "status"}>
+      <ShoppingBag size={30} />
+      <h3>{loading ? "Loading the collection…" : "The collection is unavailable."}</h3>
+      {error && <p>{error}</p>}
+      {error && (
+        <button className="button dark" onClick={onRetry}>
+          Try again <ArrowRight size={17} />
+        </button>
+      )}
+    </div>
   );
 }
 
@@ -303,7 +320,8 @@ export default function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/staff/*" element={<StaffDashboard />} />
+        <Route path="/admin/*" element={<StaffDashboard workspace="admin" />} />
+        <Route path="/staff/*" element={<StaffDashboard workspace="staff" />} />
         <Route path="*" element={<Storefront />} />
       </Routes>
     </Router>
@@ -336,17 +354,33 @@ function Storefront() {
   const [member, setMember] = useState(null);
   const [memberLoading, setMemberLoading] = useState(!offlinePreview);
   const [favoriteBusy, setFavoriteBusy] = useState(false);
+  const [products, setProducts] = useState(offlinePreview ? seedProducts : []);
+  const [catalogReady, setCatalogReady] = useState(offlinePreview);
+  const [catalogLoading, setCatalogLoading] = useState(!offlinePreview);
+  const [catalogError, setCatalogError] = useState("");
+  const catalogLoaded = useRef(offlinePreview);
+  const catalogFlight = useRef(null);
+  const catalogSequence = useRef(0);
+  const productsRef = useRef(products);
+  productsRef.current = products;
   const mainRef = useRef(null);
   const [category, setCategory] = useState("All good things");
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState("featured");
   const [collection, setCollection] = useState("All collections");
-  const [cart, setCart] = useSavedState("lc-cart", [], cleanCart);
+  const [cart, setCart] = useSavedState(
+    "lc-cart", [], (value) => cleanCart(value, offlinePreview ? seedProducts : []), catalogReady,
+  );
   const [favorites, setFavorites] = useSavedState(
     "lc-favorites",
     [],
-    cleanFavorites,
+    (value) => cleanFavorites(value, offlinePreview ? seedProducts : null),
+    catalogReady,
   );
+  const cartRef = useRef(cart);
+  const memberRef = useRef(member);
+  cartRef.current = cart;
+  memberRef.current = member;
   const [ageAcknowledged, setAgeAcknowledged] = useSavedState(
     "lc-age-confirmed",
     false,
@@ -402,6 +436,11 @@ function Storefront() {
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [selectedSize, setSelectedSize] = useState(0);
   const [productQuantity, setProductQuantity] = useState(1);
+  const productSelection = useRef(null);
+  productSelection.current = selectedProduct ? {
+    id: selectedProduct.id,
+    size: selectedProduct.sizes?.[selectedSize]?.label || selectedProduct.size,
+  } : null;
   const [pendingAdd, setPendingAdd] = useState(null);
   const [toast, setToast] = useState("");
   const [showFavorites, setShowFavorites] = useState(false);
@@ -470,15 +509,8 @@ function Storefront() {
       description: "Complete your setup",
     },
   ];
-  const featuredProducts = [
-    "sunset-sherbet",
-    "daydream",
-    "peach-state",
-    "golden-hour",
-    "signature-grinder",
-  ]
-    .map((id) => products.find((product) => product.id === id))
-    .filter(Boolean);
+  const featuredProducts = catalogError ? [] : products.filter((product) => product.featured).slice(0, 5);
+  const visibleSavedCount = favorites.filter((id) => products.some((product) => product.id === id)).length;
   const goToSection = (id) => navigate(`/${id}`);
   const goToPage = (path) => {
     setMenuOpen(false);
@@ -487,7 +519,7 @@ function Storefront() {
   };
   const handleSessionChange = (nextMember) => {
     setMember(nextMember);
-    setFavorites(nextMember ? cleanFavorites(nextMember.favorites) : []);
+    setFavorites(nextMember ? cleanFavorites(nextMember.favorites, null) : []);
   };
   useEffect(() => {
     if (offlinePreview) return;
@@ -496,7 +528,7 @@ function Storefront() {
       .then(({ member: currentMember }) => {
         setMember(currentMember);
         if (currentMember)
-          setFavorites(cleanFavorites(currentMember.favorites));
+          setFavorites(cleanFavorites(currentMember.favorites, null));
       })
       .catch(() => {})
       .finally(() => {
@@ -552,11 +584,91 @@ function Storefront() {
   const mode = location.mode;
   const totals = calculateTotals(cart, mode, promo);
   useEffect(() => () => clearTimeout(toastTimer.current), []);
-  const notify = (message) => {
+  const notify = useCallback((message) => {
     setToast(message);
     clearTimeout(toastTimer.current);
     toastTimer.current = setTimeout(() => setToast(""), 3200);
-  };
+  }, []);
+
+  const refreshCatalog = useCallback(({ announce = true } = {}) => {
+    if (offlinePreview) return Promise.resolve({ products: seedProducts, cart: cartRef.current, changed: false });
+    if (catalogFlight.current) return catalogFlight.current.promise;
+    const controller = new AbortController();
+    const sequence = ++catalogSequence.current;
+    if (!catalogLoaded.current) setCatalogLoading(true);
+    const promise = request("/api/products", { signal: controller.signal })
+      .then((payload) => {
+        const nextProducts = publishedCatalog(payload);
+        if (controller.signal.aborted || sequence !== catalogSequence.current)
+          throw new Error("Collection refresh was interrupted. Please try again.");
+        const wasLoaded = catalogLoaded.current;
+        const previousCart = wasLoaded ? cartRef.current : readSavedState("lc-cart", [], (value) => Array.isArray(value) ? value : []);
+        const nextCart = cleanCart(previousCart, nextProducts);
+        const signature = (items) => JSON.stringify(items.map((item) =>
+          item && typeof item === "object"
+            ? [item.id, item.size, item.price, item.quantity]
+            : null,
+        ));
+        const changed = signature(previousCart) !== signature(nextCart);
+        productsRef.current = nextProducts;
+        cartRef.current = nextCart;
+        setProducts(nextProducts);
+        setCart(nextCart);
+        setCatalogError("");
+        setCatalogReady(true);
+        catalogLoaded.current = true;
+        setFavorites((current) => cleanFavorites(memberRef.current?.favorites || current, null));
+        const selection = productSelection.current;
+        if (selection) {
+          const next = nextProducts.find((product) => product.id === selection.id);
+          setSelectedProduct(next || null);
+          setSelectedSize(Math.max(0, next?.sizes?.findIndex((size) => size.label === selection.size) ?? 0));
+          if (!next) setModal((value) => value === "product" ? null : value);
+        }
+        if (changed && previousCart.length)
+          setModal((current) => current === "checkout" ? "cart" : current);
+        if (announce && changed && previousCart.length)
+          notify("Your selection has changed. Review the latest prices and available products in your bag.");
+        return { products: nextProducts, cart: nextCart, changed };
+      })
+      .catch((error) => {
+        if (!controller.signal.aborted && sequence === catalogSequence.current)
+          setCatalogError("The collection is temporarily unavailable. Please try again.");
+        throw error;
+      })
+      .finally(() => {
+        if (sequence === catalogSequence.current) {
+          catalogFlight.current = null;
+          setCatalogLoading(false);
+        }
+      });
+    catalogFlight.current = { controller, promise };
+    return promise;
+  }, [notify]);
+
+  useEffect(() => {
+    if (offlinePreview) return;
+    const refresh = () => {
+      if (document.visibilityState !== "hidden") refreshCatalog().catch(() => {});
+    };
+    refresh();
+    window.addEventListener("focus", refresh);
+    document.addEventListener("visibilitychange", refresh);
+    const timer = window.setInterval(refresh, 60000);
+    return () => {
+      window.removeEventListener("focus", refresh);
+      document.removeEventListener("visibilitychange", refresh);
+      window.clearInterval(timer);
+      catalogFlight.current?.controller.abort();
+      catalogFlight.current = null;
+      catalogSequence.current += 1;
+    };
+  }, [refreshCatalog]);
+
+  useEffect(() => {
+    if (!offlinePreview && catalogLoaded.current)
+      refreshCatalog().catch(() => {});
+  }, [routeLocation.pathname, refreshCatalog]);
   const closeModal = () => {
     setModal(null);
     setPendingAdd(null);
@@ -576,6 +688,10 @@ function Storefront() {
   };
 
   function addToCart(product, quantity = 1, sizeIndex = 0) {
+    if (!catalogReady || catalogError) {
+      notify("Load the current collection before adding a product.");
+      return;
+    }
     if (!ageAcknowledged) {
       setPendingAdd({ product, quantity, sizeIndex });
       setModal("age");
@@ -584,6 +700,14 @@ function Storefront() {
     commitAdd(product, quantity, sizeIndex);
   }
   function commitAdd(product, quantity = 1, sizeIndex = 0) {
+    const current = productsRef.current.find((item) => item.id === product.id);
+    if (!current || catalogError) {
+      notify("This product is no longer available. Explore the current collection.");
+      return;
+    }
+    const requestedSize = product.sizes?.[sizeIndex]?.label || product.size;
+    sizeIndex = Math.max(0, current.sizes?.findIndex((size) => size.label === requestedSize) ?? 0);
+    product = current;
     const size = product.sizes?.[sizeIndex]?.label || product.size;
     const price = product.sizes?.[sizeIndex]?.price || product.price;
     const lineId = `${product.id}-${size}`;
@@ -631,6 +755,7 @@ function Storefront() {
         body: { favorites: next },
       });
       setMember(updatedMember);
+      setFavorites(cleanFavorites(updatedMember.favorites, null));
     } catch (error) {
       setFavorites(previous);
       notify(
@@ -641,7 +766,7 @@ function Storefront() {
       setFavoriteBusy(false);
     }
   }
-  function beginCheckout() {
+  async function beginCheckout() {
     if (!live) {
       setModal("cart");
       return;
@@ -656,6 +781,16 @@ function Storefront() {
     if (member.ageVerification?.status !== "verified") {
       goToPage("/account");
       notify("Complete your ID age check before submitting an order.");
+      return;
+    }
+    try {
+      const latest = await refreshCatalog();
+      if (!latest.cart.length || latest.changed) {
+        setModal("cart");
+        return;
+      }
+    } catch {
+      notify("The current collection could not be checked. Please try again before ordering.");
       return;
     }
     setCheckout((values) => ({
@@ -714,6 +849,11 @@ function Storefront() {
     setSubmitting(true);
     setCheckoutError("");
     try {
+      const latest = await refreshCatalog();
+      if (!latest.cart.length || latest.changed) {
+        setModal("cart");
+        return;
+      }
       const customer = Object.fromEntries(
         ["name", "email", "phone", "address", "city", "postcode"].map((key) => [
           key,
@@ -721,7 +861,7 @@ function Storefront() {
         ]),
       );
       const payload = {
-        items: toOrderItems(cart),
+        items: toOrderItems(latest.cart),
         fulfillment: mode,
         customer,
         notes: checkout.notes.trim(),
@@ -1137,6 +1277,10 @@ function Storefront() {
                     View all products <ArrowRight size={17} />
                   </button>
                 </div>
+                {(catalogLoading || catalogError) && (
+                  <CatalogNotice loading={catalogLoading} error={catalogError}
+                    onRetry={() => refreshCatalog().catch(() => {})} />
+                )}
                 <div className="featured-grid">
                   {featuredProducts.map((product) => (
                     <article className="featured-card" key={product.id}>
@@ -1201,7 +1345,7 @@ function Storefront() {
                     fill={showFavorites ? "currentColor" : "none"}
                   />{" "}
                   Your saved picks{" "}
-                  {favorites.length > 0 && <span>{favorites.length}</span>}
+                  {visibleSavedCount > 0 && <span>{visibleSavedCount}</span>}
                 </button>
               </div>
               <div className="catalog-toolbar">
@@ -1286,7 +1430,10 @@ function Storefront() {
                   <ChevronDown size={12} />
                 </label>
               </div>
-              {filteredProducts.length ? (
+              {catalogLoading || catalogError ? (
+                <CatalogNotice loading={catalogLoading} error={catalogError}
+                  onRetry={() => refreshCatalog().catch(() => {})} />
+              ) : filteredProducts.length ? (
                 <div className="product-grid">
                   {filteredProducts.map((product) => (
                     <ProductCard
@@ -1452,6 +1599,7 @@ function Storefront() {
             onNavigate={goToPage}
             store={store}
             offline={offlinePreview}
+            visibleSavedCount={visibleSavedCount}
           />
         )}
         {!["home", "shop", "membership", "login", "signup", "account"].includes(

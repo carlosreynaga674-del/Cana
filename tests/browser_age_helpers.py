@@ -2,11 +2,40 @@
 import json
 from pathlib import Path
 import subprocess
+import sqlite3
+import base64
+from functools import lru_cache
 from uuid import uuid4
 from playwright.sync_api import expect
 
 ROOT = Path(__file__).resolve().parents[1]
 ADULT_BIRTH_DATE = "2000-01-01"
+
+
+@lru_cache(maxsize=1)
+def synthetic_identity_images():
+    """Generate obvious synthetic image fixtures locally; never real ID images."""
+    result = subprocess.run(["node", "--input-type=module", "-e", """
+import {identityFixture} from './tests/helpers/identity-fixture.mjs';
+const fixture=await identityFixture();
+console.log(JSON.stringify(fixture.body));
+"""], cwd=ROOT, capture_output=True, text=True, check=True)
+    body = json.loads(result.stdout)
+    return {key: base64.b64decode(body[key]["data"]) for key in ("document", "selfie")}
+
+
+def fill_identity_images(page):
+    for key, content in synthetic_identity_images().items():
+        page.locator(f'input[name="{key}"]').set_input_files({
+            "name": f"local-synthetic-{key}.png", "mimeType": "image/png", "buffer": content,
+        })
+
+
+def mark_legacy_member(database, member_id):
+    """Model a member enrolled before mandatory uploads in an isolated local database."""
+    assert Path(database).is_file()
+    with sqlite3.connect(database) as fixture:
+        fixture.execute("UPDATE member_age_checks SET identity_required=0 WHERE member_id=?", (member_id,))
 
 
 def answer_bank():
@@ -46,7 +75,7 @@ def register_member(context, base, password, name="Local Adult Fixture", email=N
     response = context.request.post(base + "/api/members/signup", data={
         "name": name, "email": email, "password": password,
         "birthDate": ADULT_BIRTH_DATE, "ageConfirmed": True,
-        "termsAccepted": True, "verificationConsent": True,
+        "termsAccepted": True, "verificationConsent": True, "identityConsent": True,
         "challengeId": challenge["challengeId"], "answers": challenge_answers(challenge),
     })
     assert response.status == 201, response.text()
@@ -79,9 +108,7 @@ def approve_member_ui(browser, base, email, admin_password):
     context = browser.new_context(viewport={"width": 1440, "height": 1000})
     page = context.new_page()
     try:
-        page.goto(base + "/staff", wait_until="networkidle")
-        page.get_by_label("Staff password").fill(admin_password)
-        page.get_by_role("button", name="Let’s get to the good", exact=True).click()
+        workforce_sign_in(page, base, "admin", admin_password)
         page.get_by_role("tab", name="Age checks", exact=True).click()
         card = page.locator(".staff-age-card").filter(has_text=email)
         card.locator(".staff-age-summary").click()
@@ -113,3 +140,16 @@ def approve_member_ui(browser, base, email, admin_password):
     finally:
         context.request.post(base + "/api/admin/logout")
         context.close()
+
+
+def workforce_sign_in(page, base, role, password):
+    """Use the shared login page and verify its server-authorised destination."""
+    page.goto(base + "/login", wait_until="networkidle")
+    page.get_by_label("Email or staff username", exact=True).fill(role)
+    page.get_by_label("Password", exact=True).fill(password)
+    with page.expect_response(lambda response: response.url == base + "/api/admin/login" and response.request.method == "POST") as login:
+        page.get_by_role("button", name="Sign in", exact=True).click()
+    assert login.value.status == 200, login.value.text()
+    assert login.value.json()["role"] == role
+    expect(page).to_have_url(base + ("/admin" if role == "admin" else "/staff"))
+    expect(page.get_by_role("heading", name="Admin dashboard" if role == "admin" else "Staff dashboard", exact=True)).to_be_visible()

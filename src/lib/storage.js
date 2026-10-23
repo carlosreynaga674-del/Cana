@@ -1,11 +1,12 @@
 import { products } from "./products.js";
+import { isProductId } from "./catalog.js";
 
-export function cleanCart(value) {
+export function cleanCart(value, catalog = products) {
   if (!Array.isArray(value)) return [];
   const result = new Map();
   for (const row of value.slice(0, 50)) {
     if (!row || typeof row !== "object") continue;
-    const product = products.find((p) => p.id === row.id);
+    const product = catalog.find((p) => p.id === row.id);
     if (!product || !Number.isInteger(row.quantity) || row.quantity < 1)
       continue;
     const variant = product.sizes?.find((size) => size.label === row.size);
@@ -23,9 +24,10 @@ export function cleanCart(value) {
   return [...result.values()];
 }
 
-export function cleanFavorites(value) {
+export function cleanFavorites(value, catalog = products) {
   return Array.isArray(value)
-    ? [...new Set(value.filter((id) => products.some((p) => p.id === id)))]
+    ? [...new Set(value.filter((id) => isProductId(id) &&
+        (catalog === null || catalog.some((p) => p.id === id))))].slice(0, 100)
     : [];
 }
 
@@ -46,7 +48,7 @@ export function cleanOrders(value) {
   const validItem = (item) =>
     item &&
     typeof item === "object" &&
-    products.some((product) => product.id === item.id) &&
+    isProductId(item.id) &&
     ["name", "size"].every((key) => typeof item[key] === "string") &&
     Number.isInteger(item.quantity) &&
     item.quantity > 0 &&

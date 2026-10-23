@@ -16,11 +16,12 @@ import urllib.request
 from uuid import uuid4
 
 from playwright.sync_api import sync_playwright, expect
-from browser_age_helpers import ADULT_BIRTH_DATE, fill_questions, approve_member_ui
+from browser_age_helpers import ADULT_BIRTH_DATE, fill_questions, approve_member_ui, mark_legacy_member, fill_identity_images
 
 ROOT = Path(__file__).resolve().parents[1]
 PASSWORD = "Local-membership-test-passphrase-42"
 ADMIN_PASSWORD = "local-membership-review-password-for-test"
+STAFF_PASSWORD = "local-membership-worker-password-for-test"
 NEW_PASSWORD = "Changed-local-membership-passphrase-84"
 FIXTURE_SCRIPT = r"""
 import path from 'node:path';
@@ -29,6 +30,8 @@ const {createServer} = await import(pathToFileURL(path.join(process.cwd(), 'serv
 const server = createServer({
   dbPath: process.env.LC_MEMBER_TEST_DATABASE,
   adminPassword: 'local-membership-review-password-for-test',
+  staffPassword: 'local-membership-worker-password-for-test',
+  identityConfig: { storageKey: '61'.repeat(32) },
   staticDir: path.join(process.cwd(), 'dist'),
   config: {
     businessName: 'Loud + Cana Local Membership Test',
@@ -144,7 +147,7 @@ def wait_for_favorite(page, base, product_id):
 
 def sign_in(page, base, email, password=PASSWORD, expected_status=200):
     page.goto(base + "/login", wait_until="networkidle")
-    form_field(page, "Email address").fill(email)
+    form_field(page, "Email or staff username").fill(email)
     form_field(page, "Password").fill(password)
     with page.expect_response(lambda response: response.url == base + "/api/members/login" and response.request.method == "POST") as result:
         page.get_by_role("button", name=re.compile(r"^(Sign|Log) in$", re.I)).click()
@@ -255,7 +258,9 @@ def run():
                 page.wait_for_function("expected => JSON.stringify(Array.from(document.querySelectorAll('fieldset.age-question')).map(item => [item.querySelector('input').name, ...Array.from(item.querySelectorAll('input')).map(r => r.value)])) === JSON.stringify(expected)", arg=expected_questions)
                 assert before != expected_questions, "A new challenge should rotate the question/choice order."
                 fill_questions(page, correct=False)
-                page.get_by_role("checkbox", name=re.compile("terms|privacy", re.I)).check()
+                fill_identity_images(page)
+                page.locator('input[name="identityConsent"]').check()
+                page.locator('input[name="termsAccepted"]').check()
                 with page.expect_response(lambda response: response.url == base + "/api/members/signup" and response.request.method == "POST") as rejected_quiz:
                     page.get_by_role("button", name="Create account", exact=True).click()
                 assert rejected_quiz.value.status == 422, rejected_quiz.value.text()
@@ -271,6 +276,12 @@ def run():
                 member = member_state(page, base)
                 assert member["email"] == email
                 assert member["ageVerification"]["status"] == "pending"
+                assert member["identityVerification"]["required"] is True
+                assert member["identityVerification"]["status"] != "verified"
+                # The remainder deliberately covers legacy manual review. Newly
+                # registered accounts above retain the upload-and-review gate.
+                mark_legacy_member(database, member["id"])
+                page.reload(wait_until="networkidle")
                 assert "birthDate" not in member
                 expect(page.get_by_text("ID check pending", exact=True)).to_be_visible()
                 expect(page.get_by_text("18+ ID checked", exact=True)).to_have_count(0)

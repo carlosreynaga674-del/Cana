@@ -35,6 +35,7 @@ export async function prepareSignup(request, body, headers = {}) {
     body: {
       birthDate: "2000-01-01",
       verificationConsent: true,
+      identityConsent: true,
       ...body,
       challengeId: challenge.challengeId,
       answers: challengeAnswers(challenge),
@@ -61,6 +62,10 @@ export async function verifiedMemberCookie(request, adminPassword) {
   });
   assert.equal(signup.status, 201, await signup.clone().text());
   const { member } = await signup.json();
+  // This helper exercises the retained legacy in-person workflow. The test
+  // server provides access only to its isolated temporary database.
+  assert.equal(typeof request.markLegacy, "function");
+  request.markLegacy(member.id);
   const memberCookie = cookieValue(signup, "lc_member");
   assert.ok(memberCookie);
   const login = await request("/api/admin/login", {

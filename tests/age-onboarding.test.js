@@ -22,6 +22,7 @@ const validDetails = {
   ageConfirmed: true,
   termsAccepted: true,
   verificationConsent: true,
+  identityConsent: true,
 };
 const liveConfig = {
   businessName: "Local age fixture",
@@ -36,7 +37,10 @@ const liveConfig = {
 };
 
 async function start(t, options = {}) {
-  const server = createServer({ adminPassword: staffPassword, ...options });
+  const directory = await mkdtemp(join(tmpdir(), "cana-age-fixture-"));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const dbPath = options.dbPath || join(directory, "members.sqlite");
+  const server = createServer({ adminPassword: staffPassword, ...options, dbPath });
   server.listen(0, "127.0.0.1");
   await once(server, "listening");
   const base = `http://127.0.0.1:${server.address().port}`;
@@ -54,6 +58,12 @@ async function start(t, options = {}) {
     const cookies = new Map();
     return {
       cookies,
+      markLegacy(id) {
+        // Explicitly model an account enrolled before hosted ID verification.
+        const fixture = new DatabaseSync(dbPath);
+        fixture.prepare("UPDATE member_age_checks SET identity_required=0 WHERE member_id=?").run(id);
+        fixture.close();
+      },
       async request(
         path,
         {
@@ -124,6 +134,7 @@ async function staff(client) {
   assert.equal(response.status, 200);
 }
 async function verify(client, id, body = {}) {
+  client.markLegacy(id);
   const queue = await (
     await client.request("/api/admin/members/age-verifications?status=pending")
   ).json();
@@ -231,6 +242,7 @@ test("under-age declarations, missing consent and incorrect knowledge answers ca
     { birthDate: "2020-01-01" },
     { birthDate: "2099-01-01" },
     { verificationConsent: false },
+    { identityConsent: false },
     { ageConfirmed: false },
   ]) {
     const response = await applicant.request("/api/members/signup", {
@@ -292,7 +304,7 @@ test("signup is pending rather than identity-verified and a challenge cannot be 
   assert.equal(replay.status, 422);
 });
 
-test("staff must actually attest the original ID check; verified age clears DOB and enforces member-only orders", async (t) => {
+test("legacy accounts require original-ID attestations; verified age clears DOB and enforces member-only orders", async (t) => {
   const { client } = await start(t, { config: liveConfig });
   const applicant = client(),
     reviewer = client(),

@@ -108,6 +108,38 @@ test("favorites retain only unique product identities from the current catalog",
   assert.deepEqual(cleanFavorites({ id: flower.id }), []);
 });
 
+test("live catalog restoration retains staff-created products, updates prices and removes withdrawn lines", () => {
+  const custom = { ...drink, id: "staff-added-drink", name: "Current name", price: 9900 };
+  const currentFlower = { ...flower, sizes: [{ label: "3.5 g", price: 37000 }] };
+  const cart = cleanCart([
+    { id: custom.id, size: custom.size, quantity: 2, price: 1, name: "Stale name" },
+    { id: flower.id, size: "3.5 g", quantity: 1, price: 32000 },
+    { id: drink.id, size: drink.size, quantity: 1 },
+  ], [custom, currentFlower]);
+  assert.equal(cart.length, 2);
+  assert.equal(cart[0].name, "Current name");
+  assert.equal(cart[0].price, 9900);
+  assert.equal(cart[1].price, 37000);
+  assert.deepEqual(cleanCart(cart, []), []);
+  assert.deepEqual(toOrderItems(cart), [
+    { productId: custom.id, sizeIndex: 0, quantity: 2 },
+    { productId: flower.id, sizeIndex: 0, quantity: 1 },
+  ]);
+});
+
+test("safe favourite references survive loading while visible picks use the live catalog", () => {
+  const custom = { ...drink, id: "staff-added-drink" };
+  const references = cleanFavorites([custom.id, "temporarily-draft", custom.id, "<script>", null], null);
+  assert.deepEqual(references, [custom.id, "temporarily-draft"]);
+  assert.deepEqual(cleanFavorites(references, [custom]), [custom.id]);
+});
+
+test("server-backed history preserves product snapshots after a product is withdrawn", () => {
+  const archivedSnapshot = { ...savedOrder().items[0], id: "withdrawn-staff-product", name: "Historical product", price: 12500 };
+  const order = savedOrder({ items: [archivedSnapshot] });
+  assert.deepEqual(cleanOrders([order]), [order]);
+});
+
 test("delivery-area storage keeps four-digit postal codes and accepts only an explicit pickup mode", () => {
   assert.deepEqual(
     cleanLocation({

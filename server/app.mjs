@@ -18,12 +18,11 @@ import {
 } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { products } from "../src/lib/products.js";
 import { calculateTotals, validateCheckout } from "../src/lib/order.js";
 import { createMemberHandlers } from "./members.mjs";
+import { createCatalog } from "./catalog.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const productById = new Map(products.map((product) => [product.id, product]));
 const SESSION_AGE_MS = 8 * 60 * 60 * 1000;
 const STATUS_TRANSITIONS = {
   pending: ["confirmed", "cancelled"],
@@ -159,7 +158,7 @@ function publicConfig(config) {
   };
 }
 
-function validateOrder(body, config) {
+function validateOrder(body, config, catalog) {
   if (!isRecord(body)) throw new HttpError(400, "Please submit a valid order.");
   const errors = {};
   if (body.ageConfirmed !== true)
@@ -214,7 +213,7 @@ function validateOrder(body, config) {
         errors.items = "Your bag contains an invalid item.";
         continue;
       }
-      const product = productById.get(item.productId);
+      const product = catalog.findPublished(item.productId);
       if (!product) {
         errors.items = "A product in your bag is no longer available.";
         continue;
@@ -298,7 +297,7 @@ function parseOrder(row) {
     : null;
 }
 
-async function readJson(req) {
+async function readJson(req, maxBytes = 48 * 1024) {
   if (
     !String(req.headers["content-type"] || "")
       .toLowerCase()
@@ -309,7 +308,7 @@ async function readJson(req) {
   const chunks = [];
   for await (const chunk of req) {
     bytes += chunk.length;
-    if (bytes > 48 * 1024)
+    if (bytes > maxBytes)
       throw new HttpError(413, "The request is too large.");
     chunks.push(chunk);
   }
@@ -331,7 +330,9 @@ export function createServer({
   dbPath = ":memory:",
   config = {},
   adminPassword = "",
+  staffPassword = "",
   staticDir = path.join(ROOT, "dist"),
+  identityConfig = {},
 } = {}) {
   const settings = normalizeConfig(config, adminPassword);
   if (dbPath !== ":memory:")
@@ -351,6 +352,7 @@ export function createServer({
     );
     CREATE INDEX IF NOT EXISTS orders_created ON orders(created_at DESC);
   `);
+  const catalog = createCatalog({ db, ErrorType: HttpError });
   if (dbPath !== ":memory:")
     for (const file of [dbPath, `${dbPath}-wal`, `${dbPath}-shm`]) {
       if (existsSync(file)) chmodSync(file, 0o600);
@@ -368,6 +370,8 @@ export function createServer({
   const passwordHash = settings.readiness.adminConfigured
     ? scryptSync(adminPassword, passwordSalt, 64)
     : null;
+  const staffConfigured = typeof staffPassword === "string" && staffPassword.length >= 16 && staffPassword !== adminPassword;
+  const staffPasswordHash = staffConfigured ? scryptSync(staffPassword, passwordSalt, 64) : null;
   const sessions = new Map();
   const rates = new Map();
   let databaseClosed = false;
@@ -424,7 +428,7 @@ export function createServer({
     if (origin !== expected)
       throw new HttpError(403, "Cross-site requests are not allowed.");
   }
-  function authenticate(req) {
+  function authenticate(req, requiredRole = null) {
     const cookie = String(req.headers.cookie || "")
       .split(";")
       .map((value) => value.trim())
@@ -436,6 +440,8 @@ export function createServer({
       sessions.delete(hash);
       throw new HttpError(401, "Please sign in to the staff dashboard.");
     }
+    if (requiredRole && session.role !== requiredRole)
+      throw new HttpError(403, "This page requires an administrator account.");
     return hash;
   }
   function sessionCookie(value, age) {
@@ -489,9 +495,11 @@ export function createServer({
     production: settings.production,
     send,
     readJson,
+    readIdentityJson: (req) => readJson(req, 17 * 1024 * 1024),
     rateLimit,
     HttpError,
-    productIds: products.map((product) => product.id),
+    productIds: () => catalog.productIds(),
+    identityConfig: { ...identityConfig, publicOrigin: identityConfig.publicOrigin || settings.publicOrigin },
   });
   const server = http.createServer(async (req, res) => {
     res.setHeader("X-Content-Type-Options", "nosniff");
@@ -502,7 +510,7 @@ export function createServer({
     );
     res.setHeader(
       "Content-Security-Policy",
-      "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'",
+      "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'",
     );
     if (settings.production)
       res.setHeader(
@@ -523,9 +531,9 @@ export function createServer({
           mode: settings.readiness.ready ? "live" : "demo",
         });
       if (pathname === "/api/config" && req.method === "GET")
-        return send(res, 200, publicConfig(settings));
+        return send(res, 200, { ...publicConfig(settings), identityVerification: handleMembers.identityConfiguration() });
       if (pathname === "/api/products" && req.method === "GET")
-        return send(res, 200, { products });
+        return send(res, 200, { products: catalog.listPublic() });
       if (pathname === "/api/orders" && req.method === "POST") {
         rateLimit(req, "order", 60, 15 * 60 * 1000);
         if (!settings.readiness.ready)
@@ -537,7 +545,7 @@ export function createServer({
         const body = await readJson(req);
         // Body reads yield: a session may be revoked or identity details changed in the meantime.
         handleMembers.requireVerifiedMember(req);
-        const canonical = validateOrder(body, settings);
+        const canonical = validateOrder(body, settings, catalog);
         const rawKey = clean(req.headers["idempotency-key"]);
         if (
           rawKey &&
@@ -620,9 +628,12 @@ export function createServer({
       }
       if (pathname === "/api/admin/login" && req.method === "POST") {
         rateLimit(req, "login", 10, 15 * 60 * 1000);
-        if (!passwordHash)
-          throw new HttpError(503, "Staff access has not been configured.");
         const body = await readJson(req);
+        const role = body?.role ?? "admin";
+        if (!["admin", "staff"].includes(role)) throw new HttpError(422, "Choose a valid workforce account.");
+        const expectedHash = role === "staff" ? staffPasswordHash : passwordHash;
+        if (!expectedHash)
+          throw new HttpError(503, `${role === "staff" ? "Staff" : "Administrator"} access has not been configured.`);
         const candidate =
           isRecord(body) &&
           typeof body.password === "string" &&
@@ -630,15 +641,15 @@ export function createServer({
             ? body.password
             : "";
         const candidateHash = scryptSync(candidate, passwordSalt, 64);
-        if (!timingSafeEqual(candidateHash, passwordHash))
+        if (!timingSafeEqual(candidateHash, expectedHash))
           throw new HttpError(401, "The staff password was not accepted.");
         const token = randomBytes(32).toString("base64url");
-        sessions.set(sha256(token), { expiresAt: Date.now() + SESSION_AGE_MS });
+        sessions.set(sha256(token), { expiresAt: Date.now() + SESSION_AGE_MS, role });
         res.setHeader(
           "Set-Cookie",
           sessionCookie(token, SESSION_AGE_MS / 1000),
         );
-        return send(res, 200, { ok: true });
+        return send(res, 200, { ok: true, role });
       }
       if (pathname === "/api/admin/logout" && req.method === "POST") {
         const sessionHash = authenticate(req);
@@ -647,8 +658,60 @@ export function createServer({
         return send(res, 200, { ok: true });
       }
       if (pathname === "/api/admin/session" && req.method === "GET") {
+        const hash = authenticate(req);
+        return send(res, 200, { authenticated: true, role: sessions.get(hash).role });
+      }
+      if (pathname === "/api/admin/overview" && req.method === "GET") {
+        authenticate(req, "admin");
+        const total = (table) => db.prepare(`SELECT COUNT(*) AS count FROM ${table}`).get().count;
+        const count = (table, status) => db.prepare(`SELECT COUNT(*) AS count FROM ${table} WHERE status=?`).get(status).count;
+        return send(res, 200, {
+          members: { total: total("members"), pending: count("member_age_checks", "pending"), verified: count("member_age_checks", "verified") },
+          products: { total: total("catalog_products"), published: count("catalog_products", "published"), draft: count("catalog_products", "draft"), archived: count("catalog_products", "archived") },
+          orders: { total: total("orders"), pending: count("orders", "pending") },
+          setup: { staffConfigured, identityStorageConfigured: handleMembers.identityConfiguration().configured },
+        });
+      }
+      if (pathname === "/api/admin/members" && req.method === "GET") {
         authenticate(req);
-        return send(res, 200, { authenticated: true });
+        return send(res, 200, handleMembers.listMembers({
+          q: url.searchParams.get("q") || "", page: url.searchParams.get("page") || "1", limit: url.searchParams.get("limit") || "20",
+        }));
+      }
+      const identityImageMatch = pathname.match(/^\/api\/admin\/members\/([a-f0-9-]+)\/identity-documents\/(document|selfie)$/);
+      if (identityImageMatch && req.method === "GET") {
+        authenticate(req);
+        rateLimit(req, "staff-identity-images", 240, 15 * 60 * 1000);
+        const image = handleMembers.identityImage(identityImageMatch[1], identityImageMatch[2], url.searchParams.get("uploadId"));
+        res.writeHead(200, {
+          "Content-Type": "image/jpeg", "Cache-Control": "private, no-store, max-age=0",
+          "Content-Disposition": 'inline; filename="identity-review.jpg"',
+          "Cross-Origin-Resource-Policy": "same-origin",
+        });
+        return res.end(image.bytes || image);
+      }
+      if (pathname === "/api/admin/products" && req.method === "GET") {
+        authenticate(req);
+        return send(res, 200, catalog.listAdmin({
+          search: url.searchParams.get("search") || "", status: url.searchParams.get("status") || "all",
+          limit: Number(url.searchParams.get("limit") || "50"), offset: Number(url.searchParams.get("offset") || "0"),
+        }));
+      }
+      if (pathname === "/api/admin/products" && req.method === "POST") {
+        authenticate(req);
+        rateLimit(req, "staff-products", 120, 15 * 60 * 1000);
+        const body = await readJson(req);
+        const actor = authenticate(req);
+        return send(res, 201, { product: catalog.create(body, actor) });
+      }
+      const productMatch = pathname.match(/^\/api\/admin\/products\/([a-z0-9-]{1,100})$/);
+      if (productMatch && ["PATCH", "DELETE"].includes(req.method)) {
+        authenticate(req);
+        rateLimit(req, "staff-products", 120, 15 * 60 * 1000);
+        const body = await readJson(req);
+        const actor = authenticate(req);
+        const product = req.method === "DELETE" ? catalog.archive(productMatch[1], body, actor) : catalog.update(productMatch[1], body, actor);
+        return send(res, 200, { product });
       }
       if (
         pathname === "/api/admin/members/age-verifications" &&
@@ -666,6 +729,7 @@ export function createServer({
         const reviewer = authenticate(req);
         rateLimit(req, "staff-age-review", 120, 15 * 60 * 1000);
         const body = await readJson(req);
+        authenticate(req);
         if (!isRecord(body))
           throw new HttpError(400, "Please submit a valid age-check decision.");
         return send(res, 200, {
@@ -723,7 +787,7 @@ export function createServer({
       else res.end();
     }
   });
-  server.requestTimeout = 15000;
+  server.requestTimeout = 60000;
   server.headersTimeout = 10000;
   server.on("close", () => {
     if (!databaseClosed) {

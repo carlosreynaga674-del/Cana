@@ -70,7 +70,7 @@ def run():
         page.locator(".membership-page").get_by_role("link", name="Member login", exact=True).click()
         expect(page).to_have_url(re.compile(r"/login$"))
         expect(page.locator(".auth-form")).to_be_visible()
-        expect(page.get_by_label("Email address", exact=True)).to_be_visible()
+        expect(page.get_by_label("Email or staff username", exact=True)).to_be_visible()
         page.go_back(wait_until="networkidle")
         expect(page.locator(".membership-page h1")).to_contain_text("Your people.")
         page.get_by_role("navigation", name="Main navigation").get_by_role("link", name="Home", exact=True).click()

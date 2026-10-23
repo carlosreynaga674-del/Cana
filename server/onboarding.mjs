@@ -1,7 +1,7 @@
 import { createHash, randomBytes, randomInt, randomUUID } from "node:crypto";
 
 export const MINIMUM_AGE = 18;
-export const ONBOARDING_POLICY_VERSION = "2026-10-sa-adult-v1";
+export const ONBOARDING_POLICY_VERSION = "2026-10-sa-private-review-v2";
 const CHALLENGE_SECONDS = 15 * 60;
 const PENDING_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
 const COOKIE_NAME = "lc_signup_challenge";
@@ -44,12 +44,12 @@ export const RESPONSIBILITY_QUESTIONS = [
   },
   {
     id: "photo-id",
-    prompt: "What is needed for Loud +Cana's manual age verification?",
+    prompt: "What is needed before Loud +Cana's manual ID review can be completed?",
     choices: [
       {
         id: "original",
         label:
-          "An authorised staff member checks an original valid photo ID against the person and their details.",
+          "An authorised staff member actually compares the required ID evidence, photographs and application details.",
       },
       { id: "quiz", label: "Only passing these questions." },
       { id: "name", label: "Only entering a name and email address." },
@@ -142,7 +142,7 @@ export const RESPONSIBILITY_QUESTIONS = [
       {
         id: "minimal",
         label:
-          "Only the requested details; do not upload ID copies or enter ID numbers.",
+          "Only the requested details here; submit ID photographs and selfies only through the private review form.",
       },
       { id: "id-number", label: "A full identity number in an answer box." },
       { id: "password", label: "Your email account's password." },
@@ -303,6 +303,10 @@ export function createOnboarding({ db, production, HttpError }) {
       reviewer_ref TEXT NOT NULL, reason TEXT
     );
   `);
+  if (!db.prepare("PRAGMA table_info(member_age_checks)").all().some((column) => column.name === "identity_required"))
+    db.exec("ALTER TABLE member_age_checks ADD COLUMN identity_required INTEGER NOT NULL DEFAULT 0");
+  if (!db.prepare("PRAGMA table_info(member_age_checks)").all().some((column) => column.name === "identity_consent_at"))
+    db.exec("ALTER TABLE member_age_checks ADD COLUMN identity_consent_at TEXT");
   const challengeById = db.prepare(
     "SELECT * FROM member_signup_challenges WHERE id = ?",
   );
@@ -452,7 +456,7 @@ export function createOnboarding({ db, production, HttpError }) {
       questionIds: expected,
     };
   }
-  function recordSubmission(memberId, submission, res) {
+  function recordSubmission(memberId, submission, res, identityRequired = false) {
     const previousTime =
       Date.parse(ageById.get(memberId)?.submitted_at || "") || 0;
     // A review version must change even when two valid submissions arrive in one millisecond.
@@ -479,18 +483,23 @@ export function createOnboarding({ db, production, HttpError }) {
       JSON.stringify(submission.questionIds),
       ONBOARDING_POLICY_VERSION,
     );
+    if (identityRequired)
+      db.prepare("UPDATE member_age_checks SET identity_required=1,identity_consent_at=? WHERE member_id=?").run(now, memberId);
     appendCookie(res, challengeCookie("", 0));
   }
   function invalidateName(memberId) {
+    const previous = Date.parse(ageById.get(memberId)?.submitted_at || "") || 0;
+    const version = new Date(Math.max(Date.now(), previous + 1)).toISOString();
     db.prepare(
-      "UPDATE member_age_checks SET status='required',birth_date=NULL,verified_at=NULL,method=NULL,reason='name_changed' WHERE member_id=?",
-    ).run(memberId);
+      "UPDATE member_age_checks SET status='required',birth_date=NULL,submitted_at=?,verified_at=NULL,method=NULL,reason='name_changed' WHERE member_id=?",
+    ).run(version, memberId);
   }
   function requireVerified(memberId) {
-    if (publicAge(memberId).status !== "verified")
+    const age = publicAge(memberId);
+    if (age.status !== "verified" || (ageById.get(memberId)?.identity_required && age.method !== "uploaded_id_selfie"))
       throw new HttpError(
         403,
-        "Complete the original-photo-ID age check before submitting an order request.",
+        "Complete the required staff ID and age review before submitting an order request.",
       );
   }
   function queue(status) {
@@ -520,6 +529,8 @@ export function createOnboarding({ db, production, HttpError }) {
     if (!member) throw new HttpError(404, "Member not found.");
     const current = publicAge(memberId);
     const age = ageById.get(memberId);
+    if (age?.identity_required)
+      throw new HttpError(409, "This application requires the private uploaded ID and selfie review.");
     if (current.status !== "pending" || !age?.birth_date)
       throw new HttpError(
         409,
@@ -608,6 +619,37 @@ export function createOnboarding({ db, production, HttpError }) {
     requireVerified,
     queue,
     review,
+    providerApplication(memberId) {
+      cleanup();
+      const row = ageById.get(memberId);
+      return row ? {
+        memberId, birthDate: row.birth_date, submittedAt: row.submitted_at,
+        status: row.status, method: row.method, identityRequired: Boolean(row.identity_required),
+      } : null;
+    },
+    recordIdentityDecision({ memberId, submittedAt, decision, reason, uploadId, reviewerRef }) {
+      if (!["verified", "rejected"].includes(decision))
+        throw new HttpError(422, "Unsupported identity decision.");
+      const current = ageById.get(memberId);
+      if (!current || !current.identity_required || current.submitted_at !== submittedAt ||
+          !["pending", "verified", "rejected"].includes(current.status) ||
+          (decision === "verified" && current.status === "pending" && validateBirthDate(current.birth_date)))
+        throw new HttpError(409, "The identity application changed or expired.");
+      if (current.status === decision && current.method === "uploaded_id_selfie") return publicAge(memberId);
+      const timestamp = new Date().toISOString();
+      const safeReason = decision === "rejected" ? (reasons.has(reason) ? reason : "unable_to_verify") : null;
+      const ownsTransaction = !db.isTransaction;
+      if (ownsTransaction) db.exec("BEGIN IMMEDIATE");
+      try {
+        const result = db.prepare("UPDATE member_age_checks SET status=?,birth_date=NULL,verified_at=?,method='uploaded_id_selfie',reason=? WHERE member_id=? AND submitted_at=? AND identity_required=1")
+          .run(decision, decision === "verified" ? timestamp : null, safeReason, memberId, submittedAt);
+        if (result.changes !== 1) throw new HttpError(409, "The identity application changed.");
+        db.prepare("INSERT INTO member_age_audit (id,member_id,decision,method,reviewed_at,reviewer_ref,reason) VALUES (?,?,?,'uploaded_id_selfie',?,?,?)")
+          .run(randomUUID(), memberId, decision, timestamp, hash(String(reviewerRef || uploadId)), safeReason);
+        if (ownsTransaction) db.exec("COMMIT");
+      } catch (error) { if (ownsTransaction) db.exec("ROLLBACK"); throw error; }
+      return publicAge(memberId);
+    },
     close: () => clearInterval(cleanupTimer),
   };
 }

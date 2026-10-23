@@ -366,8 +366,10 @@ function PrivacyPage({ onNavigate, store = {} }) {
             Your date of birth is checked against the 18-year adult threshold
             using the South African date. A declaration and awareness quiz do
             not prove identity. New accounts remain pending until authorised
-            staff check an original photo ID against the person, full name, and
-            date of birth. Email ownership is not independently verified.
+            staff review the uploaded ID photograph and selfie against the full
+            name and declared date of birth. This is manual photo comparison;
+            it does not establish liveness or automatically authenticate a
+            document. Email ownership is not independently verified.
             Membership is a free account, not a paid subscription.
           </p>
         </section>
@@ -381,15 +383,20 @@ function PrivacyPage({ onNavigate, store = {} }) {
             expires. An expired application needs a fresh check.
           </p>
           <p>
-            Do not upload or send ID numbers, ID photos, or document copies
-            through signup. The service records the check's status, method,
-            time, and a staff audit reference. It does not retain the original
-            document. A name change requires a new ID check. Random questions
-            record completion of awareness steps; they do not verify age.
+            New applicants submit an ID photograph and a selfie through the
+            private upload form, with separate consent. A document photograph
+            may contain its document number and other personal details. Do not
+            enter these in notes or send documents by email or the contact form.
+            Images are encrypted in server storage and accessible only to
+            authorised staff reviewing the application. They are removed from
+            active storage after approval, rejection, or seven days pending.
+            The check's outcome, timestamps, and staff audit reference remain.
+            Backups have a separate retention process. A name change requires
+            a new check. Questions do not verify age or identity.
           </p>
           <p>
             You can stop before submitting or close your account later. If you
-            decline the necessary age-check processing, ID verification and
+            decline the necessary private document and selfie processing, ID verification and
             order submission are unavailable. Browsing does not require an ID
             upload.
           </p>
@@ -482,7 +489,7 @@ function TermsPage({ onNavigate }) {
             This website is intended for adults aged 18 or older. Signup checks
             your declared date of birth and includes random awareness questions.
             These steps do not prove identity. Your account's ID status remains
-            pending until staff check your original valid photo ID in person. A
+            pending until staff review the required ID photograph and selfie. A
             verified adult account is required for an order request, and the
             business must separately confirm lawful eligibility and
             availability.
@@ -609,9 +616,11 @@ function ResponsiblePage({ onNavigate }) {
           awareness questions do not change those rules or prove identity.
         </p>
         <p>
-          Our account age check requires an authorised staff member to inspect
-          an original valid photo ID in person. Do not send an ID number or a
-          document image through the signup form.
+          New members upload an ID photograph and a selfie for private staff
+          review. Staff compare the photographs and check the name and adult
+          birth date. This does not provide automated face matching or liveness
+          detection. Older accounts may still require an original-ID check in
+          person. Use only the private verification form for document images.
         </p>
         <a
           href="https://www.gov.za/news/media-statements/justice-and-constitutional-development-draft-regulations-under-cannabis"
@@ -665,7 +674,7 @@ function HelpPage({ store, onNavigate }) {
         address, and a password of at least 12 characters. Provide your date of
         birth, confirm you are 18 or older, accept the age-check notice, and
         answer three randomly selected awareness questions. Your account can
-        save favourites while its original-photo-ID check is pending.{" "}
+        save favourites while its private ID-and-selfie review is pending.{" "}
         <PageLink to="/signup" onNavigate={onNavigate}>
           Create an account <ArrowRight size={15} />
         </PageLink>

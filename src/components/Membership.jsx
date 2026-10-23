@@ -3,6 +3,9 @@ import {
   ArrowRight,
   ArrowLeft,
   CalendarDays,
+  Camera,
+  FileCheck2,
+  LockKeyhole,
   RefreshCw,
   Clock3,
   ArrowUpRight,
@@ -74,6 +77,7 @@ function PasswordField({
   autoComplete = "current-password",
   hint,
   disabled = false,
+  maxLength = 128,
 }) {
   const [visible, setVisible] = useState(false);
   const hintId = hint ? `${name}-hint` : "";
@@ -89,7 +93,7 @@ function PasswordField({
           value={value}
           onChange={onChange}
           autoComplete={autoComplete}
-          maxLength={128}
+          maxLength={maxLength}
           disabled={disabled}
           required
           aria-invalid={!!error}
@@ -144,6 +148,7 @@ export default function Membership({
   onSessionChange = () => {},
   onNavigate = () => {},
   store,
+  visibleSavedCount,
   offline = false,
 }) {
   const [fields, setFields] = useState(EMPTY_SIGNUP);
@@ -152,11 +157,15 @@ export default function Membership({
   const [busy, setBusy] = useState(false);
   const formRef = useRef(null);
 
+  const nextRole = new URLSearchParams(window.location.search).get("next");
   useEffect(() => {
-    setFields({ ...EMPTY_SIGNUP });
+    setFields({
+      ...EMPTY_SIGNUP,
+      email: mode === "login" && ["admin", "staff"].includes(nextRole) ? nextRole : "",
+    });
     setErrors({});
     setServerError("");
-  }, [mode]);
+  }, [mode, nextRole]);
 
   const change = (name) => (event) => {
     const value =
@@ -175,16 +184,18 @@ export default function Membership({
     const nextErrors = {};
     const name = fields.name.trim();
     const email = fields.email.trim().toLowerCase();
+    const workforceRole = !signup && ["admin", "staff"].includes(email) ? email : null;
     if (signup && (name.length < 2 || name.length > 80))
       nextErrors.name = "Enter your name using 2 to 80 characters.";
-    if (!EMAIL.test(email) || email.length > 254)
-      nextErrors.email = "Enter a valid email address.";
+    if (!workforceRole && (!EMAIL.test(email) || email.length > 254))
+      nextErrors.email = "Enter your member email address, or the admin or staff username.";
     if (!fields.password || (signup && fields.password.length < 12))
       nextErrors.password = signup
         ? "Use at least 12 characters for your password."
         : "Enter your password.";
-    if (fields.password.length > 128)
-      nextErrors.password = "Use no more than 128 characters.";
+    const passwordLimit = workforceRole ? 256 : 128;
+    if (fields.password.length > passwordLimit)
+      nextErrors.password = `Use no more than ${passwordLimit} characters.`;
     if (signup && fields.confirmPassword !== fields.password)
       nextErrors.confirmPassword = "Your passwords do not match.";
     if (signup && !fields.ageConfirmed)
@@ -199,6 +210,17 @@ export default function Membership({
     setBusy(true);
     setServerError("");
     try {
+      if (workforceRole) {
+        const result = await request("/api/admin/login", {
+          method: "POST",
+          body: { role: workforceRole, password: fields.password },
+        });
+        if (result.ok !== true || result.role !== workforceRole)
+          throw new Error("Team sign-in could not be confirmed. Please try again.");
+        setFields({ ...EMPTY_SIGNUP });
+        onNavigate(result.role === "admin" ? "/admin" : "/staff");
+        return;
+      }
       const result = await request(
         `/api/members/${signup ? "signup" : "login"}`,
         {
@@ -378,6 +400,7 @@ export default function Membership({
         onSessionChange={onSessionChange}
         onNavigate={onNavigate}
         store={store}
+        visibleSavedCount={visibleSavedCount}
       />
     ) : (
       <section className="membership-page container">
@@ -408,7 +431,7 @@ export default function Membership({
     );
   }
 
-  if (member) {
+  if (member && signup) {
     return (
       <section className="membership-page container">
         <div className="member-panel auth-panel">
@@ -438,7 +461,7 @@ export default function Membership({
     <section className="membership-page container">
       <div className="auth-layout">
         <div className="auth-intro">
-          <span className="eyebrow">LOUD +CANA MEMBERS</span>
+          <span className="eyebrow">LOUD +CANA ACCESS</span>
           <h1>
             {signup ? (
               <>
@@ -457,21 +480,21 @@ export default function Membership({
           <p>
             {signup
               ? "Your favourites. Your account. Your own corner of the Loud +Cana community."
-              : "Sign in to pick up where you left off. Your saved favourites and account settings are waiting."}
+              : "One sign-in for your member account and the team. Use your member email, or your assigned admin or staff credentials."}
           </p>
           <div className="auth-trust">
             <ShieldCheck size={21} />
             <span>
-              Your password is protected. Account access uses a secure server
-              session.
+              Your password is protected. Your credentials determine which
+              account or team dashboard you can access.
             </span>
           </div>
         </div>
         <div className="member-panel auth-panel">
           <span className="eyebrow">
-            {signup ? "FREE MEMBERSHIP" : "MEMBER ACCESS"}
+            {signup ? "FREE MEMBERSHIP" : "MEMBERS + TEAM"}
           </span>
-          <h2>{signup ? "Create your account" : "Member login"}</h2>
+          <h2>{signup ? "Create your account" : "Sign in"}</h2>
           <form
             className="auth-form"
             onSubmit={submit}
@@ -500,13 +523,13 @@ export default function Membership({
               </div>
             )}
             <div className="auth-field">
-              <label htmlFor="member-email">Email address</label>
+              <label htmlFor="member-email">Email or staff username</label>
               <input
                 id="member-email"
                 name="email"
-                type="email"
-                autoComplete="email"
-                inputMode="email"
+                type="text"
+                autoComplete="username"
+                inputMode="text"
                 autoCapitalize="none"
                 spellCheck={false}
                 value={fields.email}
@@ -515,10 +538,11 @@ export default function Membership({
                 required
                 disabled={busy}
                 aria-invalid={!!errors.email}
-                aria-describedby={
-                  errors.email ? "member-email-error" : undefined
-                }
+                aria-describedby={`login-identifier-hint${errors.email ? " member-email-error" : ""}`}
               />
+              <small className="auth-hint" id="login-identifier-hint">
+                Members: your email address. Team: use admin or staff with your assigned password.
+              </small>
               <FieldError name="member-email" error={errors.email} />
             </div>
             <PasswordField
@@ -528,6 +552,11 @@ export default function Membership({
               onChange={change("password")}
               error={errors.password}
               autoComplete={signup ? "new-password" : "current-password"}
+              maxLength={
+                !signup && ["admin", "staff"].includes(fields.email.trim().toLowerCase())
+                  ? 256
+                  : 128
+              }
               hint={
                 signup
                   ? "At least 12 characters. A unique passphrase works well."
@@ -689,7 +718,7 @@ function eligibilityErrors(fields) {
     errors.ageConfirmed = "Confirm that you are 18 or older.";
   if (!fields.verificationConsent)
     errors.verificationConsent =
-      "Please consent to the adult-eligibility and in-person ID check.";
+      "Please consent to the adult-eligibility and identity check.";
   return errors;
 }
 
@@ -772,7 +801,14 @@ function answersPayload(quiz) {
   }));
 }
 
-function AgeEligibilityFields({ fields, onChange, errors, busy, onNavigate }) {
+function AgeEligibilityFields({
+  fields,
+  onChange,
+  errors,
+  busy,
+  onNavigate,
+  identityRequired = false,
+}) {
   const today = southAfricanToday();
   return (
     <>
@@ -781,8 +817,9 @@ function AgeEligibilityFields({ fields, onChange, errors, busy, onNavigate }) {
         <div>
           <strong>For adults 18 and older.</strong>
           <p>
-            Your date of birth is a declaration. Your account stays pending
-            until a staff member checks your original valid photo ID.
+            {identityRequired
+              ? "Your date of birth is a declaration. You must also upload your ID and a current selfie for a private staff comparison before your account can be approved."
+              : "Your date of birth is a declaration. Your account stays pending until a staff member checks your original valid photo ID."}
           </p>
         </div>
       </div>
@@ -840,8 +877,9 @@ function AgeEligibilityFields({ fields, onChange, errors, busy, onNavigate }) {
             }
           />
           <span>
-            I consent to my date of birth being used to assess adult eligibility
-            and to an in-person identity check.
+            {identityRequired
+              ? "I consent to my date of birth being used to assess adult eligibility and matched against my identity document."
+              : "I consent to my date of birth being used to assess adult eligibility and to an in-person identity check."}
           </span>
         </label>
         <FieldError
@@ -850,9 +888,10 @@ function AgeEligibilityFields({ fields, onChange, errors, busy, onNavigate }) {
         />
       </div>
       <p className="age-data-note">
-        No ID number, ID photograph, or document upload is requested here.
-        Pending dates of birth are removed after the review or after 30 days.
-        See our{" "}
+        {identityRequired
+          ? "Upload your ID and selfie only through the private upload fields. Do not enter an ID number in text fields. "
+          : "No ID number, ID photograph, or document upload is requested here. "}
+        Pending dates of birth are removed after review or after 30 days. See our{" "}
         <MemberLink
           to="/privacy"
           onNavigate={onNavigate}
@@ -971,11 +1010,334 @@ function SignupQuestions({ quiz, busy, error, onAnswer }) {
   );
 }
 
+const MAX_IDENTITY_IMAGE_BYTES = 6 * 1024 * 1024;
+const IDENTITY_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+
+function identityImageErrors(files) {
+  const errors = {};
+  for (const [name, label] of [["document", "ID document"], ["selfie", "selfie"]]) {
+    const file = files[name];
+    if (!file) errors[name] = `Choose your ${label} image.`;
+    else if (!IDENTITY_IMAGE_TYPES.has(file.type))
+      errors[name] = "Choose a JPEG, PNG, or WebP image.";
+    else if (!file.size || file.size > MAX_IDENTITY_IMAGE_BYTES)
+      errors[name] = "Choose an image no larger than 6 MB.";
+  }
+  return errors;
+}
+
+function imageBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = typeof reader.result === "string" ? reader.result : "";
+      const separator = result.indexOf(",");
+      if (separator < 0) reject(new Error("The selected image could not be read."));
+      else resolve(result.slice(separator + 1));
+    };
+    reader.onerror = () => reject(new Error("The selected image could not be read. Choose it again."));
+    reader.onabort = () => reject(new Error("Image reading was interrupted. Choose it again."));
+    reader.readAsDataURL(file);
+  });
+}
+
+async function identityUploadBody(files) {
+  const [document, selfie] = await Promise.all([
+    imageBase64(files.document),
+    imageBase64(files.selfie),
+  ]);
+  return { identityConsent: true, document: { data: document }, selfie: { data: selfie } };
+}
+
+function IdentityImagePreview({ file, label }) {
+  const [url, setUrl] = useState("");
+  useEffect(() => {
+    if (!file || !IDENTITY_IMAGE_TYPES.has(file.type) || file.size > MAX_IDENTITY_IMAGE_BYTES) {
+      setUrl("");
+      return;
+    }
+    const objectUrl = URL.createObjectURL(file);
+    setUrl(objectUrl);
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [file]);
+  return url ? <img className="identity-image-preview" src={url} alt={`Selected ${label} preview`} /> : null;
+}
+
+function IdentityEvidenceFields({ files, onChange, errors = {}, disabled = false, prefix = "identity" }) {
+  return (
+    <div className="identity-evidence-fields">
+      {[
+        { name: "document", label: "Photo ID document", hint: "A clear image of your original valid government-issued photo ID.", capture: "environment" },
+        { name: "selfie", label: "Your selfie", hint: "A current, unfiltered photo showing your face clearly in good light.", capture: "user" },
+      ].map((item) => (
+        <div className="auth-field identity-evidence-field" key={item.name}>
+          <label htmlFor={`${prefix}-${item.name}`}>{item.label}</label>
+          <input
+            id={`${prefix}-${item.name}`}
+            type="file"
+            name={item.name}
+            accept="image/jpeg,image/png,image/webp"
+            capture={item.capture}
+            onChange={(event) => onChange(item.name, event.target.files?.[0] || null)}
+            disabled={disabled}
+            required
+            aria-invalid={!!errors[item.name]}
+            aria-describedby={`${prefix}-${item.name}-hint${errors[item.name] ? ` ${item.name}-error` : ""}`}
+          />
+          <small className="auth-hint" id={`${prefix}-${item.name}-hint`}>
+            {item.hint} JPEG, PNG, or WebP; up to 6 MB.
+          </small>
+          <IdentityImagePreview file={files[item.name]} label={item.label.toLowerCase()} />
+          <FieldError name={item.name} error={errors[item.name]} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function IdentityConsent({ checked, onChange, error, disabled, onNavigate }) {
+  return (
+    <div className="auth-check identity-consent">
+      <label>
+        <input
+          type="checkbox"
+          name="identityConsent"
+          checked={checked}
+          onChange={onChange}
+          disabled={disabled}
+          aria-invalid={!!error}
+          aria-describedby={error ? "identityConsent-error" : undefined}
+        />
+        <span>
+          I consent to Loud +Cana processing my ID document and selfie for a
+          private manual identity and adult-age review, as described in the{" "}
+          <MemberLink to="/privacy" onNavigate={onNavigate} target="_blank" rel="noreferrer">
+            Privacy Notice
+          </MemberLink>
+          .
+        </span>
+      </label>
+      <FieldError name="identityConsent" error={error} />
+    </div>
+  );
+}
+
+function IdentityVerificationCard({ member, onSessionChange, onNavigate, store }) {
+  const [verification, setVerification] = useState(member.identityVerification);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [files, setFiles] = useState({ document: null, selfie: null });
+  const [fileErrors, setFileErrors] = useState({});
+  const [consent, setConsent] = useState(false);
+  const [consentError, setConsentError] = useState("");
+  const [inputVersion, setInputVersion] = useState(0);
+  useEffect(() => {
+    setVerification(member.identityVerification);
+  }, [member.identityVerification]);
+  useEffect(() => {
+    const current = new AbortController();
+    setLoading(true);
+    request("/api/members/identity-verification", { signal: current.signal })
+      .then((result) => {
+        if (!current.signal.aborted && result.verification) setVerification(result.verification);
+      })
+      .catch((failure) => {
+        if (!current.signal.aborted) setError(failure.message || "Your review status could not be loaded.");
+      })
+      .finally(() => {
+        if (!current.signal.aborted) setLoading(false);
+      });
+    return () => current.abort();
+  }, [member.id]);
+
+  async function refreshStatus() {
+    if (busy || loading) return;
+    setLoading(true);
+    setError("");
+    try {
+      const [result, account] = await Promise.all([
+        request("/api/members/identity-verification"),
+        request("/api/members/me"),
+      ]);
+      if (result.verification) setVerification(result.verification);
+      if (account.member) onSessionChange(account.member);
+    } catch (failure) {
+      setError(failure.message || "Your review status could not be refreshed.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function uploadEvidence(event) {
+    event.preventDefault();
+    if (busy || loading || !verification?.configured) return;
+    const invalidFiles = identityImageErrors(files);
+    setFileErrors(invalidFiles);
+    setConsentError(consent ? "" : "Please consent to the private ID and selfie review.");
+    if (Object.keys(invalidFiles).length || !consent) {
+      focusInvalid(event.currentTarget, {
+        ...invalidFiles,
+        ...(!consent ? { identityConsent: "Consent required" } : {}),
+      });
+      return;
+    }
+    setBusy(true);
+    setError("");
+    try {
+      const result = await request("/api/members/identity-verification", {
+        method: "POST",
+        body: await identityUploadBody(files),
+      });
+      if (result.verification?.status !== "pending")
+        throw new Error("Your upload could not be confirmed. Please try again.");
+      setVerification(result.verification);
+      onSessionChange({ ...member, identityVerification: result.verification });
+      setFiles({ document: null, selfie: null });
+      setConsent(false);
+      setInputVersion((version) => version + 1);
+    } catch (failure) {
+      setError(failure.message || "Your ID and selfie could not be uploaded. Please try again.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const status = verification?.status || "not_started";
+  const verified = status === "verified";
+  const unavailable = !verification?.configured || status === "unavailable";
+  const needsEligibility = ["required", "rejected"].includes(member.ageVerification?.status);
+  const labels = {
+    not_started: "ID and selfie required",
+    pending: "ID and selfie review pending",
+    verified: "ID and selfie reviewed · 18+",
+    rejected: "Review needs attention",
+    expired: "Review expired",
+    unavailable: "Private uploads unavailable",
+  };
+  return (
+    <>
+      <section
+        className={`age-verification-card identity-verification-card${verified ? " age-status-verified" : ""}`}
+        aria-labelledby="identity-verification-title"
+      >
+        <div className="age-verification-summary">
+          <ShieldCheck size={29} />
+          <div>
+            <span className="eyebrow">PRIVATE ADULT MEMBERSHIP REVIEW</span>
+            <h2 id="identity-verification-title">Your ID & selfie review</h2>
+            <strong className="age-status-badge" role="status">
+              {loading ? "Checking review status…" : labels[status] || labels.not_started}
+            </strong>
+          </div>
+        </div>
+        {verified ? (
+          <p>
+            An authorised staff member has reviewed your ID and compared it
+            with your selfie and account details for adult eligibility. Keep
+            your original ID available for any check required at fulfilment.
+            Changing your account name requires a new review.
+          </p>
+        ) : (
+          <>
+            <p>
+              Provide a clear image of your original government-issued photo
+              ID and a current selfie. Authorised staff compare the images and
+              your account details privately. Your account stays restricted
+              until the review is completed.
+            </p>
+            <ol className="identity-check-steps">
+              <li><FileCheck2 size={21} /><span><strong>Photo ID</strong>Use a clear image of your original valid photo identity document.</span></li>
+              <li><Camera size={21} /><span><strong>Current selfie</strong>Show your face clearly, in good light, without filters.</span></li>
+              <li><ShieldCheck size={21} /><span><strong>Private staff review</strong>Staff compare your ID, selfie, full name, and date of birth.</span></li>
+            </ol>
+            {needsEligibility ? (
+              <p className="identity-next-note">
+                Update your adult-eligibility details below before submitting
+                new ID and selfie images.
+              </p>
+            ) : unavailable && !loading ? (
+              <p className="identity-unavailable" role="status">
+                Private ID uploads are currently unavailable. Contact the
+                store or try again later. Your account remains restricted;
+                please do not email your ID or selfie.
+              </p>
+            ) : status === "pending" ? (
+              <p className="identity-next-note">
+                Your images were submitted for private staff review. You do not
+                need to upload again unless staff request a new submission.
+                Check your status here later.
+              </p>
+            ) : (
+              <form className="auth-form identity-start-form" onSubmit={uploadEvidence} noValidate>
+                <IdentityEvidenceFields
+                  key={inputVersion}
+                  files={files}
+                  onChange={(name, file) => {
+                    setFiles((current) => ({ ...current, [name]: file }));
+                    setFileErrors((current) => ({ ...current, [name]: "" }));
+                    setError("");
+                  }}
+                  errors={fileErrors}
+                  disabled={busy || loading || unavailable}
+                  prefix="account-identity"
+                />
+                <IdentityConsent
+                  checked={consent}
+                  onChange={(event) => {
+                    setConsent(event.target.checked);
+                    setConsentError("");
+                  }}
+                  error={consentError}
+                  disabled={busy || loading || unavailable}
+                  onNavigate={onNavigate}
+                />
+                <button type="submit" className="button lime" disabled={busy || loading || unavailable}>
+                  {busy ? <LoaderCircle size={17} className="member-spinner" /> : <LockKeyhole size={17} />}
+                  {busy ? "Uploading securely…" : "Upload ID & selfie for review"}
+                  <ArrowRight size={16} />
+                </button>
+              </form>
+            )}
+          </>
+        )}
+        <div className="identity-status-actions">
+          <button type="button" className="button outline" onClick={refreshStatus} disabled={busy || loading}>
+            <RefreshCw size={15} className={loading ? "member-spinner" : undefined} />
+            {loading ? "Checking status…" : "Refresh review status"}
+          </button>
+          {!verified && <MemberLink className="text-link" to="/contact" onNavigate={onNavigate}>Get help <ArrowUpRight size={15} /></MemberLink>}
+        </div>
+        {error && <p className="auth-error" role="alert">{error}</p>}
+        <p className="age-verification-limits">
+          This is a manual staff comparison of ID and selfie images, not an
+          automated biometric or liveness check. Images are sent to this
+          service for private review, not to a third-party verification
+          provider. Read the{" "}
+          <MemberLink to="/privacy" onNavigate={onNavigate}>Privacy Notice</MemberLink>
+          . Membership does not authorize commercial cannabis sales.
+        </p>
+      </section>
+      {needsEligibility && (
+        <AgeVerificationCard
+          member={member}
+          store={store}
+          onSessionChange={onSessionChange}
+          onNavigate={onNavigate}
+          identityRequired
+        />
+      )}
+    </>
+  );
+}
+
 function SignupWizard({ onSessionChange, onNavigate }) {
   const [fields, setFields] = useState({
     ...EMPTY_SIGNUP,
     ...EMPTY_ELIGIBILITY,
+    identityConsent: false,
   });
+  const [files, setFiles] = useState({ document: null, selfie: null });
   const [step, setStep] = useState(0);
   const [errors, setErrors] = useState({});
   const [serverError, setServerError] = useState("");
@@ -1023,6 +1385,9 @@ function SignupWizard({ onSessionChange, onNavigate }) {
       if (issue) found.questions = issue;
       if (!fields.termsAccepted)
         found.termsAccepted = "Please accept the terms and privacy notice.";
+      Object.assign(found, identityImageErrors(files));
+      if (!fields.identityConsent)
+        found.identityConsent = "Please consent to the private ID and selfie review.";
     }
     setErrors(found);
     if (Object.keys(found).length) {
@@ -1061,15 +1426,35 @@ function SignupWizard({ onSessionChange, onNavigate }) {
           ageConfirmed: fields.ageConfirmed,
           termsAccepted: fields.termsAccepted,
           verificationConsent: fields.verificationConsent,
+          identityConsent: fields.identityConsent,
           challengeId: quiz.challenge.challengeId,
           answers: answersPayload(quiz),
         },
       });
       if (!member)
         throw new Error("Your account could not be created. Please try again.");
-      setFields({ ...EMPTY_SIGNUP, ...EMPTY_ELIGIBILITY });
-      onSessionChange(member);
-      onNavigate("/account");
+      // Signup creates a restricted account, never a completed identity
+      // review. Send the two selected images only to the private member API.
+      let updatedMember = member;
+      let uploadCompleted = false;
+      try {
+        const result = await request("/api/members/identity-verification", {
+          method: "POST",
+          body: await identityUploadBody(files),
+        });
+        if (result.verification?.status === "pending") {
+          updatedMember = { ...member, identityVerification: result.verification };
+          uploadCompleted = true;
+        }
+      } catch {
+        // A failed upload must not retry account creation. The account page
+        // offers a private upload retry; files are not kept in local storage,
+        // query strings, or account profile data.
+      }
+      setFields({ ...EMPTY_SIGNUP, ...EMPTY_ELIGIBILITY, identityConsent: false });
+      setFiles({ document: null, selfie: null });
+      onSessionChange(updatedMember);
+      onNavigate(uploadCompleted ? "/account" : "/account?identityUpload=required");
     } catch (error) {
       const message =
         error.message || "Your account could not be created. Please try again.";
@@ -1099,15 +1484,16 @@ function SignupWizard({ onSessionChange, onNavigate }) {
             <span className="lime-text">at home.</span>
           </h1>
           <p>
-            A free account for adults. Tell us who you are, complete the
-            awareness questions, and arrange your original-ID check.
+            A free account for adults. Complete your details and awareness
+            questions, then upload your ID and a current selfie for private
+            staff review.
           </p>
           <div className="auth-trust">
             <ShieldCheck size={22} />
             <span>
-              Your date of birth and quiz answers do not verify identity. A
-              staff member must check your original photo ID before the account
-              is marked age-verified.
+              Your date of birth and quiz answers do not prove identity. Your
+              account stays restricted until staff review your ID, compare
+              your face in the selfie, and assess your adult eligibility.
             </span>
           </div>
           <MemberLink
@@ -1169,8 +1555,8 @@ function SignupWizard({ onSessionChange, onNavigate }) {
                     }
                   />
                   <small className="auth-hint">
-                    Use the full name shown on the original photo ID you will
-                    present.
+                    Use the full name shown on the government-issued photo ID
+                    you will use for verification.
                   </small>
                   <FieldError name="member-name" error={errors.name} />
                 </div>
@@ -1221,6 +1607,7 @@ function SignupWizard({ onSessionChange, onNavigate }) {
                 errors={errors}
                 busy={busy}
                 onNavigate={onNavigate}
+                identityRequired
               />
             )}
             {step === 2 && (
@@ -1234,6 +1621,45 @@ function SignupWizard({ onSessionChange, onNavigate }) {
                     setServerError("");
                   }}
                 />
+                <div className="signup-identity-next">
+                  <div className="signup-identity-heading">
+                    <LockKeyhole size={21} />
+                    <div>
+                      <span className="eyebrow">REQUIRED · PRIVATE STAFF REVIEW</span>
+                      <h3>Your ID and a current selfie.</h3>
+                    </div>
+                  </div>
+                  <p>
+                    Upload a clear image of your government-issued photo ID
+                    and a current selfie. Authorised staff privately compare
+                    your ID photograph, selfie, and account details. This is
+                    a manual review, not an automated face or liveness check.
+                  </p>
+                  <IdentityEvidenceFields
+                    files={files}
+                    onChange={(name, file) => {
+                      setFiles((current) => ({ ...current, [name]: file }));
+                      setErrors((current) => ({ ...current, [name]: "" }));
+                      setServerError("");
+                    }}
+                    errors={errors}
+                    disabled={busy}
+                    prefix="signup-identity"
+                  />
+                  <IdentityConsent
+                    checked={fields.identityConsent}
+                    onChange={change("identityConsent")}
+                    error={errors.identityConsent}
+                    disabled={busy}
+                    onNavigate={onNavigate}
+                  />
+                  <p className="age-data-note">
+                    Your images are uploaded privately after your account is
+                    created. They are not published or sent to an external
+                    verification provider. Your account remains restricted
+                    until staff complete the review.
+                  </p>
+                </div>
                 <div className="auth-check">
                   <label>
                     <input
@@ -1305,7 +1731,7 @@ function SignupWizard({ onSessionChange, onNavigate }) {
                 {busy ? (
                   <>
                     <LoaderCircle size={17} className="member-spinner" />
-                    Creating your account…
+                    Uploading your ID & selfie…
                   </>
                 ) : (
                   <>
@@ -1323,9 +1749,9 @@ function SignupWizard({ onSessionChange, onNavigate }) {
             </MemberLink>
           </p>
           <p className="auth-footnote">
-            Membership is free. New accounts start with an ID check pending.
-            Creating an account does not place an order or subscribe you to
-            marketing emails.
+            Membership is free. ID and selfie review is required to complete
+            your eligibility check. Creating an account does not place an order
+            or subscribe you to marketing emails.
           </p>
         </div>
       </div>
@@ -1333,7 +1759,13 @@ function SignupWizard({ onSessionChange, onNavigate }) {
   );
 }
 
-function AgeVerificationCard({ member, store, onSessionChange, onNavigate }) {
+function AgeVerificationCard({
+  member,
+  store,
+  onSessionChange,
+  onNavigate,
+  identityRequired = false,
+}) {
   const verification = member.ageVerification || {
     status: "required",
     minimumAge: 18,
@@ -1434,7 +1866,9 @@ function AgeVerificationCard({ member, store, onSessionChange, onNavigate }) {
         <ShieldCheck size={29} />
         <div>
           <span className="eyebrow">ADULT MEMBERSHIP</span>
-          <h2 id="age-verification-title">Age verification</h2>
+          <h2 id="age-verification-title">
+            {identityRequired ? "Renew adult eligibility" : "Age verification"}
+          </h2>
           <strong className="age-status-badge">
             {status === "verified"
               ? "18+ ID checked"
@@ -1519,10 +1953,12 @@ function AgeVerificationCard({ member, store, onSessionChange, onNavigate }) {
       ) : (
         <>
           <p>
-            {status === "rejected"
-              ? reasons[verification.reason] ||
-                "Your ID check could not be completed. Review your details and contact the store before submitting again."
-              : "Complete an adult-eligibility declaration and a fresh set of awareness questions. A staff member will then need to check your original photo ID in person."}
+            {identityRequired
+              ? "Review your full name, submit your date of birth again, and answer a fresh set of awareness questions. Then upload new ID and selfie images for private staff review."
+              : status === "rejected"
+                ? reasons[verification.reason] ||
+                  "Your ID check could not be completed. Review your details and contact the store before submitting again."
+                : "Complete an adult-eligibility declaration and a fresh set of awareness questions. A staff member will then need to check your original photo ID in person."}
           </p>
           {!expanded && (
             <button
@@ -1530,7 +1966,8 @@ function AgeVerificationCard({ member, store, onSessionChange, onNavigate }) {
               type="button"
               onClick={() => setExpanded(true)}
             >
-              Complete age check <ArrowRight size={16} />
+              {identityRequired ? "Update eligibility details" : "Complete age check"}
+              <ArrowRight size={16} />
             </button>
           )}
         </>
@@ -1548,6 +1985,7 @@ function AgeVerificationCard({ member, store, onSessionChange, onNavigate }) {
             errors={errors}
             busy={busy}
             onNavigate={onNavigate}
+            identityRequired={identityRequired}
           />
           <SignupQuestions
             quiz={quiz}
@@ -1576,22 +2014,35 @@ function AgeVerificationCard({ member, store, onSessionChange, onNavigate }) {
               className="button lime"
               disabled={busy || quiz.loading || !quiz.challenge || quiz.expired}
             >
-              {busy ? "Submitting…" : "Submit for ID review"}
+              {busy
+                ? "Submitting…"
+                : identityRequired
+                  ? "Save eligibility details"
+                  : "Submit for ID review"}
               <ArrowRight size={16} />
             </button>
           </div>
         </form>
       )}
       <p className="age-verification-limits">
-        Only a completed original-ID check can mark this account age-verified.
-        The awareness questions alone do not verify age. Membership does not
-        authorize cannabis sales.
+        {identityRequired
+          ? "Saving these details does not verify your identity. Upload your ID and selfie for private staff review next."
+          : "Only a completed original-ID check can mark this account age-verified. The awareness questions alone do not verify age."}
+        {" "}Membership does not authorize cannabis sales.
       </p>
     </section>
   );
 }
 
-function MemberAccount({ member, onSessionChange, onNavigate, store }) {
+function MemberAccount({
+  member,
+  onSessionChange,
+  onNavigate,
+  store,
+  visibleSavedCount,
+}) {
+  const uploadIncomplete =
+    new URLSearchParams(window.location.search).get("identityUpload") === "required";
   const [name, setName] = useState(member.name);
   const [profileState, setProfileState] = useState({
     busy: false,
@@ -1614,9 +2065,11 @@ function MemberAccount({ member, onSessionChange, onNavigate, store }) {
   const [deleteConfirmed, setDeleteConfirmed] = useState(false);
   const [deleteState, setDeleteState] = useState({ busy: false, error: "" });
   const passwordForm = useRef(null);
-  const savedCount = Array.isArray(member.favorites)
-    ? member.favorites.length
-    : 0;
+  const savedCount = Number.isInteger(visibleSavedCount)
+    ? visibleSavedCount
+    : Array.isArray(member.favorites)
+      ? member.favorites.length
+      : 0;
 
   useEffect(() => setName(member.name), [member.name]);
 
@@ -1757,12 +2210,28 @@ function MemberAccount({ member, onSessionChange, onNavigate, store }) {
           {logoutState.error}
         </p>
       )}
-      <AgeVerificationCard
-        member={member}
-        store={store}
-        onSessionChange={onSessionChange}
-        onNavigate={onNavigate}
-      />
+      {uploadIncomplete && member.identityVerification?.status !== "pending" && member.identityVerification?.status !== "verified" && (
+        <p className="auth-error" role="alert">
+          Your account was created, but your ID and selfie were not submitted.
+          Your account remains restricted. When private uploads are available,
+          choose your files again below to complete your submission.
+        </p>
+      )}
+      {member.identityVerification?.required ? (
+        <IdentityVerificationCard
+          member={member}
+          store={store}
+          onSessionChange={onSessionChange}
+          onNavigate={onNavigate}
+        />
+      ) : (
+        <AgeVerificationCard
+          member={member}
+          store={store}
+          onSessionChange={onSessionChange}
+          onNavigate={onNavigate}
+        />
+      )}
       <div className="account-grid">
         <section className="account-card account-favourites">
           <Heart size={27} />

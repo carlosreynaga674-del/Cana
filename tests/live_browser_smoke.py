@@ -17,7 +17,7 @@ import time
 import urllib.request
 
 from playwright.sync_api import sync_playwright, expect
-from browser_age_helpers import register_member, approve_member
+from browser_age_helpers import register_member, approve_member, mark_legacy_member, workforce_sign_in
 
 ROOT = Path(__file__).resolve().parents[1]
 TEST_PASSWORD = "local-test-password-for-api-only"
@@ -77,6 +77,7 @@ def run():
                 page = customer_context.new_page()
                 page.on("pageerror", lambda error: browser_errors.append(str(error)))
                 member = register_member(customer_context, base, "Local age-verified order password")
+                mark_legacy_member(database, member["id"])
                 approve_member(playwright, base, member["id"], TEST_PASSWORD)
                 page.goto(base, wait_until="networkidle")
                 page.get_by_role("navigation", name="Main navigation").get_by_role("link", name="Shop", exact=True).click()
@@ -117,11 +118,8 @@ def run():
                 staff_context = browser.new_context(viewport={"width": 1440, "height": 1000})
                 staff = staff_context.new_page()
                 staff.on("pageerror", lambda error: browser_errors.append(str(error)))
-                staff.goto(base + "/staff", wait_until="networkidle")
-                expect(staff.get_by_role("heading", name="Good to see you.")).to_be_visible()
-                staff.get_by_label("Staff password").fill(TEST_PASSWORD)
-                staff.get_by_role("button", name="Let’s get to the good").click()
-                expect(staff.get_by_role("heading", name="Every request. A little care.")).to_be_visible()
+                workforce_sign_in(staff, base, "admin", TEST_PASSWORD)
+                staff.get_by_role("tab", name="Order requests", exact=True).click()
                 expect(staff.locator(".staff-service-badge")).to_have_text("Live intake enabled")
                 staff.locator(".staff-order-summary").filter(has_text=order_id).click()
                 expect(staff.get_by_text("Browser test only. Please ring the bell.")).to_be_visible()
