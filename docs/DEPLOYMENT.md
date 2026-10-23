@@ -1,6 +1,24 @@
 # Deploy Loud + Cana
 
-Use the full Node service for persistent order requests and the `/staff` dashboard. Use static hosting for the public collection website. The collection website is already published on GitHub Pages. This guide covers the separate Node service; a Render deployment and commercial sales authorization are not implied.
+Use the full Node service for persistent order requests and the `/staff` dashboard. The application is hosted on Render, and a separate static collection website is published on GitHub Pages. A successful deployment does not establish commercial sales authorization or readiness to accept orders.
+
+## Existing Render service
+
+**Application:** https://loud-cana.onrender.com/
+
+**Staff login page:** https://loud-cana.onrender.com/staff
+
+The existing service deploys `main`. Deployment `46d4573` succeeded on 22 October 2026 after a production-install fix. The storefront, static assets, health check, product API, configuration endpoint, and staff login page returned HTTP 200. Public configuration reports catalog mode, with these setup requirements still missing:
+
+| Setting | Action in Render → Environment |
+| --- | --- |
+| `DELIVERY_ZIPS` | Supply the client's actual approved four-digit delivery postal codes, separated by commas. |
+| `ADMIN_PASSWORD` | Set a unique secret of at least 16 characters. Keep it in Render's secure settings, not chat or source. |
+| `CATALOG_APPROVED` | Set to `true` only after the client approves the actual products, prices, and information. |
+| `LEGAL_SALES_AUTHORIZATION_CONFIRMED` | Set to `true` only after the business confirms genuine commercial sales and delivery authorization. |
+| `LIVE_ORDERS_ENABLED` | Enable only after the other setup requirements and operational acceptance checks below are complete. |
+
+Some business fields pass the application's format checks. Their authenticity and the underlying sales authorization have not been independently verified. Before taking orders, confirm a persistent disk is mounted at `/var/data` and set `DATABASE_PATH=/var/data/orders.sqlite`; the disk configuration cannot be verified from the public API. Save the legitimate settings, redeploy, and check `/api/config` for `mode: "live"` with no missing requirements. Payment collection remains unconnected.
 
 ## Render: full application
 

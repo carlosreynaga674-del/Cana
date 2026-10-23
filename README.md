@@ -6,7 +6,9 @@ The public site operates as an informational catalog, with no simulated checkout
 
 ## Client handoff
 
-Published collection website: **https://carlosreynaga674-del.github.io/Cana/**. GitHub Pages deployment and the published file were verified. Online order intake is not open. Product prices, potency, and availability require store confirmation.
+Hosted full application: **https://loud-cana.onrender.com/**. Its storefront, product API, health check, and staff login page were verified after deployment of `46d4573` on 22 October 2026. Order intake remains disabled; the remaining configuration is listed in [deployment instructions](docs/DEPLOYMENT.md#existing-render-service).
+
+Static collection website: **https://carlosreynaga674-del.github.io/Cana/**. GitHub Pages and the published file were verified. Product prices, potency, and availability require store confirmation.
 
 ```sh
 npm ci
@@ -34,9 +36,9 @@ For frontend development, leave the Node service running and run `npm run dev` i
 
 ## Hosting
 
-[Deploy the prepared full service to Render](https://render.com/deploy?repo=https://github.com/carlosreynaga674-del/Cana/tree/loud-cana-client-handoff). This opens Render’s official deployment flow for this branch. The account owner must sign in and approve the persistent-disk service cost. No hosting account credentials were supplied to the agent.
+The existing Render service deploys `main`. A production-install fix was pushed to `main` and `loud-cana-client-handoff`, and Render deployed it successfully. Manage the existing service rather than creating a duplicate. Hosting account credentials were not supplied to the agent.
 
-`render.yaml` prepares a Node service with persistent SQLite storage. It uses a paid plan with a persistent disk; review the hosting cost before creating the service. The repository owner must connect the repository to their Render account and securely configure the actual store details. No Render deployment is implied by the presence of this file. The full application uses same-origin API requests: give clients the deployed Render URL or a custom domain attached to that service. The static Pages export does not connect to a separate order API.
+`render.yaml` is also available for a new Node service with persistent SQLite storage. Its [deployment flow](https://render.com/deploy?repo=https://github.com/carlosreynaga674-del/Cana/tree/loud-cana-client-handoff) uses a paid plan and persistent disk; review the cost before creating another service. Confirm the existing service's disk and actual business configuration before taking orders. The full application uses same-origin API requests: give clients the Render URL or a custom domain attached to that service. The static Pages export does not connect to a separate order API.
 
 GitHub Pages is already configured at **Settings → Pages → Deploy from a branch → loud-cana-preview → / (root)**. That branch contains the self-contained catalog; subsequent pushes trigger its public deployment.
 

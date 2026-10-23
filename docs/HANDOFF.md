@@ -4,7 +4,9 @@ An ordering experience for **Loud + Cana, Gauteng, South Africa**, with rand pri
 
 ## Show the client today
 
-Open **https://carlosreynaga674-del.github.io/Cana/** for the published collection website. The repository owner enabled GitHub Pages on `loud-cana-preview`; deployment is complete. The public catalog is available to browse. It does not accept orders or produce simulated confirmations. For an offline copy, use the package below.
+Open **https://loud-cana.onrender.com/** for the hosted full application. The storefront, product API, health check, and `/staff` login page were verified on 22 October 2026 after deployment of `46d4573`. It currently operates in catalog mode; order intake still needs the configuration listed in `DEPLOYMENT.md` under "Existing Render service". A loaded staff login page does not mean staff credentials have been configured.
+
+The static collection website also remains available at **https://carlosreynaga674-del.github.io/Cana/**. It does not accept orders or produce simulated confirmations. For an offline copy, use the package below.
 
 1. Extract `loud-cana-client.zip`.
 2. Open **`loud-cana-preview.html`** in a modern browser. This is a single file: no server, installation, or internet connection is needed. If a managed browser blocks local HTML files, use the published website above or another browser that permits local files.
@@ -12,7 +14,7 @@ Open **https://carlosreynaga674-del.github.io/Cana/** for the published collecti
 
 For public catalog hosting, upload the **contents** of `static-site/` to a static host such as GitHub Pages. Its self-contained `index.html` works at the site's root or a repository subpath such as `/Cana/`, without extra asset or base-path configuration. The static site cannot receive real orders or run the staff dashboard. The single-file copy and static site remain catalog-only even when the separate full server has been configured for live requests.
 
-For the full application and staff dashboard, deploy `source/` as a Node web service following `DEPLOYMENT.md`. The staff route is **`/staff`**. Render supplies the full application URL after a successful deployment. The Pages catalog is already public, but no deployed order backend is included or claimed. Use the Render URL or attach the client’s domain to that service for the operational application; the standalone Pages export does not call a separate backend.
+The full application is already hosted on Render and deploys the repository's `main` branch. Its staff route is **https://loud-cana.onrender.com/staff**. Finish configuring that existing service following `DEPLOYMENT.md`; no second deployment is needed. For a separate host, deploy `source/` as a Node web service. Use the full service URL or attach the client's domain for the operational application; the standalone Pages export does not call a separate backend.
 
 ## Collection and service status
 
