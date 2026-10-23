@@ -106,6 +106,9 @@ export function createMemberHandlers({
     return /^[A-Za-z0-9_-]{43}$/.test(raw) ? raw : "";
   }
   function publicMember(row) {
+    // Upload expiry can update the age decision; expose both states from the
+    // same completed cleanup rather than returning a stale age status once.
+    const identityVerification = identity.status(row.id);
     let favorites = [];
     try {
       favorites = JSON.parse(row.favorites_json);
@@ -118,7 +121,7 @@ export function createMemberHandlers({
       email: row.email,
       createdAt: row.created_at,
       ageVerification: onboarding.publicAge(row.id),
-      identityVerification: identity.status(row.id),
+      identityVerification,
       favorites: Array.isArray(favorites)
         ? [...new Set(favorites.filter((id) => knownProducts().has(id)))]
         : [],
@@ -490,7 +493,10 @@ export function createMemberHandlers({
     onboarding.requireVerified(member.id);
     return publicMember(member);
   };
-  handleMembers.ageQueue = (status) => onboarding.queue(status).map((member) => ({ ...member, identityVerification: identity.status(member.id) }));
+  handleMembers.ageQueue = (status) => {
+    identity.cleanup();
+    return onboarding.queue(status).map((member) => ({ ...member, identityVerification: identity.status(member.id) }));
+  };
   handleMembers.listMembers = ({ q = "", page = "1", limit = "20" } = {}) => {
     const pageNumber = Number(page), pageSize = Number(limit);
     if (typeof q !== "string" || q.length > 120 || !Number.isInteger(pageNumber) || pageNumber < 1 || pageNumber > 100000 || !Number.isInteger(pageSize) || pageSize < 1 || pageSize > 100)

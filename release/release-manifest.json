@@ -1,7 +1,7 @@
 {
   "application": "Loud + Cana",
   "version": "1.0.0",
-  "createdAt": "2026-10-23T22:13:43.090Z",
+  "createdAt": "2026-10-23T22:17:03.987Z",
   "region": "Gauteng, South Africa",
   "currency": "ZAR",
   "runtime": "Node.js 24",
@@ -206,8 +206,8 @@
     },
     {
       "filename": "source/server/app.mjs",
-      "bytes": 30725,
-      "sha256": "ff5a91e27d8ee5fde359c7e95478f928052aed4a2e7c831769cf9547a81a2b5f"
+      "bytes": 30731,
+      "sha256": "d0e68cb9903b655492d45e8d978b2ebd177459df4f729e272ea8336c9443bd72"
     },
     {
       "filename": "source/server/catalog.mjs",
@@ -226,8 +226,8 @@
     },
     {
       "filename": "source/server/members.mjs",
-      "bytes": 20623,
-      "sha256": "8e01e0dddc36620ae3b9bfe383989f6c685e50ff3c4e861118858aa57343f70a"
+      "bytes": 20853,
+      "sha256": "e1d8ffb3856b44d85ac6d778d85762acacce559fcfa7bd0d3e959b3e90b40c56"
     },
     {
       "filename": "source/server/onboarding.mjs",
@@ -396,8 +396,8 @@
     },
     {
       "filename": "source/tests/membership_browser_smoke.py",
-      "bytes": 25113,
-      "sha256": "aa8f2a4ef11633a1b46a80ab07e5ddd59a968c893051210ade8a09039fbceac7"
+      "bytes": 25586,
+      "sha256": "0366615c6cb5bbd3e9317e9603025ce4c15c446bd876e29531dc31ff12a586c6"
     },
     {
       "filename": "source/tests/order.test.js",

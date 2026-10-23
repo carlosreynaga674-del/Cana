@@ -99,6 +99,15 @@ def assert_no_overflow(page):
     assert not page.evaluate("document.documentElement.scrollWidth > innerWidth + 1"), f"Horizontal overflow at {page.url}"
 
 
+def assert_identity_previews(page):
+    previews = page.locator("img.identity-image-preview")
+    expect(previews).to_have_count(2)
+    assert previews.evaluate_all("""async images => {
+        await Promise.all(images.map(image => image.decode()));
+        return images.every(image => image.complete && image.naturalWidth >= 200);
+    }"""), "Selected ID and selfie previews must load under the real HTTP content policy."
+
+
 def assert_signup_actions(page):
     """Both final-step actions must fit their panel on desktop and a phone."""
     for width, height, suffix in ((1440, 1000, "desktop"), (390, 844, "mobile")):
@@ -259,6 +268,7 @@ def run():
                 assert before != expected_questions, "A new challenge should rotate the question/choice order."
                 fill_questions(page, correct=False)
                 fill_identity_images(page)
+                assert_identity_previews(page)
                 page.locator('input[name="identityConsent"]').check()
                 page.locator('input[name="termsAccepted"]').check()
                 with page.expect_response(lambda response: response.url == base + "/api/members/signup" and response.request.method == "POST") as rejected_quiz:
