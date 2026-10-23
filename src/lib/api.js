@@ -45,7 +45,7 @@ export async function request(
     payload = await response.json();
   } catch {
     throw new Error(
-      "The order service is unavailable. Please try again shortly.",
+      "The service is unavailable. Please try again shortly.",
     );
   }
   if (!response.ok)

@@ -20,6 +20,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { products } from "../src/lib/products.js";
 import { calculateTotals, validateCheckout } from "../src/lib/order.js";
+import { createMemberHandlers } from "./members.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const productById = new Map(products.map((product) => [product.id, product]));
@@ -483,6 +484,15 @@ export function createServer({
     res.end(req.method === "HEAD" ? undefined : readFileSync(real));
   }
 
+  const handleMembers = createMemberHandlers({
+    db,
+    production: settings.production,
+    send,
+    readJson,
+    rateLimit,
+    HttpError,
+    productIds: products.map((product) => product.id),
+  });
   const server = http.createServer(async (req, res) => {
     res.setHeader("X-Content-Type-Options", "nosniff");
     res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
@@ -505,6 +515,7 @@ export function createServer({
       if (pathname.startsWith("/api/"))
         res.setHeader("Cache-Control", "no-store");
       if (!["GET", "HEAD", "OPTIONS"].includes(req.method)) checkOrigin(req);
+      if (await handleMembers(req, res, pathname)) return;
       if (pathname === "/api/health" && req.method === "GET")
         return send(res, 200, {
           ok: true,

@@ -20,6 +20,20 @@ The existing service deploys `main`. Deployment `46d4573` succeeded on 22 Octobe
 
 Some business fields pass the application's format checks. Their authenticity and the underlying sales authorization have not been independently verified. Before taking orders, confirm a persistent disk is mounted at `/var/data` and set `DATABASE_PATH=/var/data/orders.sqlite`; the disk configuration cannot be verified from the public API. Save the legitimate settings, redeploy, and check `/api/config` for `mode: "live"` with no missing requirements. Payment collection remains unconnected.
 
+## Membership deployment
+
+This release adds real member accounts independently of order activation. Signup and login do not require `LIVE_ORDERS_ENABLED`, catalog approval, or a configured staff password. Keep order intake disabled while the business requirements above are pending. The member service creates its tables in the same SQLite database on startup; no member credentials or signing secrets need to be added to source.
+
+**Before accepting member registrations, verify the existing service's persistent disk and set `DATABASE_PATH=/var/data/orders.sqlite` with a disk mounted at `/var/data`. The current disk mount cannot be verified through the public API.** An ephemeral database can lose accounts, favourites, sessions, and order records on redeployment. The Blueprint includes a persistent disk, but an existing manually configured Render service must be checked in the owner's dashboard. Keep a tested backup and restore procedure.
+
+After the latest `main` deployment, check `/api/health`, `/api/members/me`, `/membership`, `/signup`, `/login`, and `/account` on the actual HTTPS service. A guest request to `/api/members/me` should return `{ "member": null }`. In an authorized test environment, verify signup, logout/login, profile changes, cross-device favourites, password changes, and account deletion. Restart the test service once to confirm account and session persistence. Do not use a real customer's account for acceptance tests.
+
+Passwords use salted scrypt hashes with a 12–128 character input limit. Member sessions expire after 30 days and use opaque tokens, hashed at rest, in HttpOnly SameSite cookies marked Secure in production. A password change replaces the current session and revokes other sessions. Account deletion requires the member's password and removes the member profile, saved favourites, and sessions; independent order records are not cancelled. Staff sessions and member sessions are separate.
+
+No email verification or email-based password reset provider is connected. Registration does not prove email ownership or identity. The login help link goes to Contact rather than claiming to send a reset email. Add and test a genuine mail provider and recovery process before advertising those features.
+
+The full service supports direct navigation and refresh on 14 routes: `/`, `/shop`, `/our-space`, `/about`, `/membership`, `/contact`, `/signup`, `/login`, `/account`, `/privacy`, `/terms`, `/responsible-use`, `/help`, and `/staff`. Unknown page paths show a page-not-found view. Account pages require member access; staff pages use their own authentication.
+
 ## Render: full application
 
 [Open the official Deploy to Render flow for the prepared branch](https://render.com/deploy?repo=https://github.com/carlosreynaga674-del/Cana/tree/loud-cana-client-handoff). The blueprint creates a catalog-only service with live-intake flags disabled and an automatically generated staff password. It does not require fictitious licensing or store data. Review the paid persistent-disk service and sign in using the owner’s account.
@@ -70,12 +84,12 @@ The collection website is published at **https://carlosreynaga674-del.github.io/
 
 The **`loud-cana-preview`** branch contains the self-contained public website at its root. Pages is already configured to deploy from this branch. To review the configuration, open the repository’s **Settings → Pages → Deploy from a branch → loud-cana-preview → / (root)**. Pushing an updated branch triggers the next deployment.
 
-For another static host, publish the **contents** of `static-site/`. Its self-contained `index.html` works at an origin root or a repository subpath such as `/Cana/` without extra base-path configuration. It supports browsing, filters, saved picks, the gallery, and a personal selection. It does not submit orders or produce simulated confirmations.
+For another static host, publish the **contents** of `static-site/`. Its self-contained `index.html` works at an origin root or a repository subpath such as `/Cana/` without extra base-path configuration. Internal pages use hash routes such as `#/shop`, so direct page links and refresh work without server rewrites. It supports browsing, filters, saved picks, the gallery, and a personal selection. Signup, login, and account buttons direct the visitor to the full Render website for real account access. The static files neither simulate authentication nor submit orders or produce simulated confirmations.
 
 The reference-style design uses black, neon lime, bold lettering, and illustrative store imagery. The proposed 28-entry catalog includes accessories; actual products, prices, potency, and inventory still require business approval. A static site has no persistent server orders, staff authentication service, payment processor, or dispatch integration.
 
 ## Operating notes
 
-The database contains customer contact and delivery details. Restrict staff and host access, use HTTPS, maintain tested backups, and apply the business's retention policy. Changing `ADMIN_PASSWORD` requires the business to distribute the new secret securely. Do not send passwords through chat or include them in the client ZIP.
+The database contains member names, emails, password hashes, saved favourites, session hashes, age/terms acceptance records, and customer order details. Restrict staff and host access, use HTTPS, maintain tested backups, and apply the business's retention policy. Changing `ADMIN_PASSWORD` requires the business to distribute the new secret securely. Member passwords are set by members through the HTTPS account forms. Do not send passwords through chat or include them in the client ZIP.
 
 Check service logs for errors while keeping customer data and secrets out of shared logs. Redeploy code changes through the normal Git/Render process; the data disk should remain mounted at the same path.

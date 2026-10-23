@@ -1,7 +1,7 @@
 {
   "application": "Loud + Cana",
   "version": "1.0.0",
-  "createdAt": "2026-10-23T00:05:28.510Z",
+  "createdAt": "2026-10-23T00:24:26.629Z",
   "region": "Gauteng, South Africa",
   "currency": "ZAR",
   "runtime": "Node.js 24",
@@ -16,13 +16,13 @@
   "files": [
     {
       "filename": "DEPLOYMENT.md",
-      "bytes": 11122,
-      "sha256": "89199d81f120dd10a85faa1e9f6662025c65c331b738d1c859bfc3b5c9510c59"
+      "bytes": 14155,
+      "sha256": "019f98aa8a2334b4bd68613eaaed78d0799a90bbd81aad08b41d2701a1e9dfc5"
     },
     {
       "filename": "loud-cana-preview.html",
-      "bytes": 3517844,
-      "sha256": "0810a6686c5fc7f4af41bfbcbe5e41ac2c845ba4f02f0236cf6862eede125817"
+      "bytes": 3616781,
+      "sha256": "4c5a586b4827a198b08ee5e1a5070d6a1f4050804cb0910fb4de805b0720d081"
     },
     {
       "filename": "source/.env.example",
@@ -51,28 +51,28 @@
     },
     {
       "filename": "source/docs/DEPLOYMENT.md",
-      "bytes": 11122,
-      "sha256": "89199d81f120dd10a85faa1e9f6662025c65c331b738d1c859bfc3b5c9510c59"
+      "bytes": 14155,
+      "sha256": "019f98aa8a2334b4bd68613eaaed78d0799a90bbd81aad08b41d2701a1e9dfc5"
     },
     {
       "filename": "source/docs/HANDOFF.md",
-      "bytes": 5813,
-      "sha256": "a049dd9e8a141dbf2dd81dcd2a3e15817143e7fd163e0279ede09da378f788bd"
+      "bytes": 8238,
+      "sha256": "d27486a53257d9d981ee480e3f777443a6d1561a8cea7203cc50e5bf129551ef"
     },
     {
       "filename": "source/index.html",
-      "bytes": 1424,
-      "sha256": "c35a02fea8bf4eeac0e2cb3124db9843192c242c549f2892c1aa4300bfe02710"
+      "bytes": 1385,
+      "sha256": "3ff4edc70020b261db0d1f46cc0c9b2527274c864d1a9d5497c744fa97466443"
     },
     {
       "filename": "source/package-lock.json",
-      "bytes": 37061,
-      "sha256": "b3817937719e5f095e85b928168b96560ea3addd1bf798347c4f85fd52acd741"
+      "bytes": 38505,
+      "sha256": "047b37c255561f70125e0cafc2e0cd92910ef2ec565d674556d0a763e03e7ba2"
     },
     {
       "filename": "source/package.json",
-      "bytes": 820,
-      "sha256": "d9c9186dd9efd073576e7f879cb86054b4a838ad8268a47e7cc67521cab4189d"
+      "bytes": 855,
+      "sha256": "888ae89ba9dcc681e48ceb7d8ce4d9c76cba3ef9621a25129332cf5b25e98093"
     },
     {
       "filename": "source/public/favicon.svg",
@@ -176,8 +176,8 @@
     },
     {
       "filename": "source/README.md",
-      "bytes": 4741,
-      "sha256": "35b0d4d153c32f14fc89441285f071833a519a1945c3d70d14a43cbb7f68aabe"
+      "bytes": 6924,
+      "sha256": "073d00b9d1a8cd144a7396d88c63f4e75939f8dd9f20d4c67fb5550e6586692c"
     },
     {
       "filename": "source/render.yaml",
@@ -196,8 +196,8 @@
     },
     {
       "filename": "source/server/app.mjs",
-      "bytes": 24996,
-      "sha256": "83edc15d8bcd7930f7f829a5adb51b3ff35f4e3f83d89e9abcb71d9cd717aa2c"
+      "bytes": 25316,
+      "sha256": "968ddbe8443592a88ecd52f54cdafebdea29a0a2d47aa8de48c8623df9ff085b"
     },
     {
       "filename": "source/server/index.mjs",
@@ -205,9 +205,19 @@
       "sha256": "63f428c5e964239cd97750928679ed75574387888cc699e5fcabe795f240d8eb"
     },
     {
+      "filename": "source/server/members.mjs",
+      "bytes": 14119,
+      "sha256": "4d2adcb83ae1e62cfd29b1480e7957d6c0d27657d67b1d73e12a56b4acc6c0f1"
+    },
+    {
       "filename": "source/src/App.jsx",
-      "bytes": 78007,
-      "sha256": "1d913d5d40cc700c157ee2f794d9fd1938b13672357fbeea5fc9feb486394a53"
+      "bytes": 85655,
+      "sha256": "e88f559f7b563ffb90dbe1879b754a1519a7b026d6032a7c3bc4c9b509b7fecb"
+    },
+    {
+      "filename": "source/src/components/Membership.jsx",
+      "bytes": 32374,
+      "sha256": "7d63afbc01aefd81fbd021a31cf29daba6cad31a42a534019ed6c908cdb83090"
     },
     {
       "filename": "source/src/components/OrderTracking.jsx",
@@ -220,14 +230,19 @@
       "sha256": "5edcfe34e72fb3936e228d04b636fd24a88c6e64f55aa1bbc8ff18a165284b8c"
     },
     {
+      "filename": "source/src/components/SitePages.jsx",
+      "bytes": 28664,
+      "sha256": "055634c4fb397de579ef2c0a88f69bdc10841edea6a22e2fc83912ae8d058a88"
+    },
+    {
       "filename": "source/src/components/StaffDashboard.jsx",
       "bytes": 36454,
       "sha256": "894fd6f1c52bff7b8ec3af2a8216ea397905b8c678518bc19605730f31000802"
     },
     {
       "filename": "source/src/lib/api.js",
-      "bytes": 2088,
-      "sha256": "db47412584c5cab58252573b81a39c06918932df6b6b515efd649bc23dbb39c9"
+      "bytes": 2082,
+      "sha256": "b93d6f47442fc27dcfdf5f6abede918ec8b534556389a92bd3fec220c83e9ad5"
     },
     {
       "filename": "source/src/lib/order.js",
@@ -251,8 +266,13 @@
     },
     {
       "filename": "source/src/main.jsx",
-      "bytes": 395,
-      "sha256": "60a5f278f3f1b07c1f9c121f8711eadbf2e0d4d01566b90b07c61bb3d043ddf4"
+      "bytes": 417,
+      "sha256": "90c830f8c94ddca2a24117ee9ef719c8f68bf0c9de8a0ca295e6d73845588a5b"
+    },
+    {
+      "filename": "source/src/pages.css",
+      "bytes": 30305,
+      "sha256": "6e1399ad032076cd19f2fb9bda1311b7cfa8db1817bb0e5a96facf829421ff20"
     },
     {
       "filename": "source/src/reference.css",
@@ -271,8 +291,8 @@
     },
     {
       "filename": "source/tests/browser_smoke.py",
-      "bytes": 13093,
-      "sha256": "c194a7b9b71197c7b676d98552864fec9b990be92a7e2e976a6bb4c9c197b189"
+      "bytes": 14052,
+      "sha256": "5e322f2a54099e742f801354314a2f8fb3ed5921d6eb4a180d1db31e4d643e53"
     },
     {
       "filename": "source/tests/fixtures/live-server.mjs",
@@ -281,8 +301,18 @@
     },
     {
       "filename": "source/tests/live_browser_smoke.py",
-      "bytes": 9909,
-      "sha256": "832e59fddef485421761d847ed33ed245905ed53599421f071e7ad4290cde826"
+      "bytes": 9907,
+      "sha256": "3f4d9e726bfe93214e44c0543c622746f18320145b77b2ed8cb0b02c014f5897"
+    },
+    {
+      "filename": "source/tests/members.test.js",
+      "bytes": 14448,
+      "sha256": "d2ef2b4921654601b5084c9845bcd39e975fda8bafec97a8b4f0c1004a71bf76"
+    },
+    {
+      "filename": "source/tests/membership_browser_smoke.py",
+      "bytes": 18627,
+      "sha256": "6092e8f491fae71b7af970d7e71b7161c2246f8a08b13310f632d016f06a2c70"
     },
     {
       "filename": "source/tests/order.test.js",
@@ -296,8 +326,8 @@
     },
     {
       "filename": "source/tests/standalone_smoke.py",
-      "bytes": 5593,
-      "sha256": "3b96e46ec770e113f626fa93ae3164a203e6dc2c624936e513a30ae2d002ff90"
+      "bytes": 9429,
+      "sha256": "cd0cb83c5101f15cf375d6290cfa984bcbb8003e027074ea876f154bdd33cc3d"
     },
     {
       "filename": "source/tests/storage.test.js",
@@ -311,8 +341,8 @@
     },
     {
       "filename": "START-HERE.md",
-      "bytes": 5813,
-      "sha256": "a049dd9e8a141dbf2dd81dcd2a3e15817143e7fd163e0279ede09da378f788bd"
+      "bytes": 8238,
+      "sha256": "d27486a53257d9d981ee480e3f777443a6d1561a8cea7203cc50e5bf129551ef"
     },
     {
       "filename": "static-site/assets/dm-sans-latin-ext-wght-normal-BOFOeGcA.woff2",
@@ -325,14 +355,14 @@
       "sha256": "9fea608a947e67020c33cad9a6fe3d60c54119dfb8cff87768a8117a15ed7543"
     },
     {
-      "filename": "static-site/assets/index-C1R0so7X.js",
-      "bytes": 328768,
-      "sha256": "b7cd6f479d20c815071863a2be07a5a14465b7b22bfc1efd6307ecaaa4eba4bb"
+      "filename": "static-site/assets/index-KxqZyIWW.js",
+      "bytes": 401805,
+      "sha256": "700cb3b816f0564a7b00bcb3a45931b9af5d78bfecd7be710182adfb9c1a4c98"
     },
     {
-      "filename": "static-site/assets/index-EUOYVotu.css",
-      "bytes": 112510,
-      "sha256": "f1e084265e580acc089d5c5a6bd049e5e3c4453bc0bd13cc4cce67d004066e8b"
+      "filename": "static-site/assets/index-NumLomLy.css",
+      "bytes": 138321,
+      "sha256": "19eb8bc353cf49bb44e85aa3b6366eaa29cb8f356720ceab56bf2c405ebd808e"
     },
     {
       "filename": "static-site/assets/manrope-cyrillic-wght-normal-Dvxsihut.woff2",
@@ -466,8 +496,8 @@
     },
     {
       "filename": "static-site/index.html",
-      "bytes": 3517844,
-      "sha256": "0810a6686c5fc7f4af41bfbcbe5e41ac2c845ba4f02f0236cf6862eede125817"
+      "bytes": 3616781,
+      "sha256": "4c5a586b4827a198b08ee5e1a5070d6a1f4050804cb0910fb4de805b0720d081"
     },
     {
       "filename": "static-site/social-cover.webp",
