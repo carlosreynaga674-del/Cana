@@ -16,9 +16,11 @@ import urllib.request
 from uuid import uuid4
 
 from playwright.sync_api import sync_playwright, expect
+from browser_age_helpers import ADULT_BIRTH_DATE, fill_questions, approve_member_ui
 
 ROOT = Path(__file__).resolve().parents[1]
 PASSWORD = "Local-membership-test-passphrase-42"
+ADMIN_PASSWORD = "local-membership-review-password-for-test"
 NEW_PASSWORD = "Changed-local-membership-passphrase-84"
 FIXTURE_SCRIPT = r"""
 import path from 'node:path';
@@ -26,6 +28,7 @@ import {pathToFileURL} from 'node:url';
 const {createServer} = await import(pathToFileURL(path.join(process.cwd(), 'server/app.mjs')));
 const server = createServer({
   dbPath: process.env.LC_MEMBER_TEST_DATABASE,
+  adminPassword: 'local-membership-review-password-for-test',
   staticDir: path.join(process.cwd(), 'dist'),
   config: {
     businessName: 'Loud + Cana Local Membership Test',
@@ -192,11 +195,12 @@ def run():
                     gallery.get_by_role("button", name="Close dialog").click()
 
                 page.goto(base + "/signup", wait_until="networkidle")
-                page.get_by_role("button", name=re.compile("Create.*account|Join", re.I)).click()
-                assert form_field(page, "Full name").evaluate("input => !input.validity.valid"), "Signup must require a name."
+                page.get_by_role("button", name="Continue", exact=True).click()
+                expect(page.locator(".auth-field-error").first).to_be_visible()
                 form_field(page, "Full name").fill("Local Browser Member")
                 form_field(page, "Email address").fill("not-an-email")
-                assert form_field(page, "Email address").evaluate("input => !input.validity.valid"), "Signup must validate the email format."
+                page.get_by_role("button", name="Continue", exact=True).click()
+                expect(page.locator(".auth-field-error").first).to_be_visible()
                 form_field(page, "Email address").fill(email)
                 form_field(page, "Password").fill(PASSWORD)
                 page.get_by_role("button", name="Show password", exact=True).click()
@@ -204,32 +208,72 @@ def run():
                 page.get_by_role("button", name="Hide password", exact=True).click()
                 expect(form_field(page, "Password")).to_have_attribute("type", "password")
                 form_field(page, "Confirm password").fill("a-different-local-password")
-                page.get_by_role("button", name="Create account", exact=True).click()
+                page.get_by_role("button", name="Continue", exact=True).click()
                 expect(page.get_by_text("Your passwords do not match.", exact=True)).to_be_visible()
                 form_field(page, "Confirm password").fill(PASSWORD)
-                page.get_by_role("checkbox", name=re.compile("21")).check()
+                page.get_by_role("button", name="Continue", exact=True).click()
+                form_field(page, "Date of birth").fill("2015-01-01")
+                page.get_by_role("checkbox", name=re.compile("I confirm I am 18")).check()
+                page.get_by_role("checkbox", name=re.compile("I consent to my date of birth")).check()
+                page.get_by_role("button", name="Continue", exact=True).click()
+                expect(page.locator(".auth-field-error").first).to_be_visible()
+                assert member_state(page, base) is None, "An under-18 declaration must not create an account."
+                form_field(page, "Date of birth").fill(ADULT_BIRTH_DATE)
+                page.get_by_role("button", name="Continue", exact=True).click()
+                expect(page.locator("fieldset.age-question")).to_have_count(3)
+                before = page.locator("fieldset.age-question").evaluate_all("items => items.map(item => [item.querySelector('input').name, ...Array.from(item.querySelectorAll('input')).map(r => r.value)])")
+                with page.expect_response(lambda response: "/api/members/signup-challenge" in response.url and response.request.method == "GET") as refreshed:
+                    page.get_by_role("button", name="Get new questions", exact=True).click()
+                assert refreshed.value.status == 200
+                expected_questions = [["answer-" + question["id"], *[choice["id"] for choice in question["choices"]]] for question in refreshed.value.json()["questions"]]
+                page.wait_for_function("expected => JSON.stringify(Array.from(document.querySelectorAll('fieldset.age-question')).map(item => [item.querySelector('input').name, ...Array.from(item.querySelectorAll('input')).map(r => r.value)])) === JSON.stringify(expected)", arg=expected_questions)
+                assert before != expected_questions, "A new challenge should rotate the question/choice order."
+                fill_questions(page, correct=False)
                 page.get_by_role("checkbox", name=re.compile("terms|privacy", re.I)).check()
+                with page.expect_response(lambda response: response.url == base + "/api/members/signup" and response.request.method == "POST") as rejected_quiz:
+                    page.get_by_role("button", name="Create account", exact=True).click()
+                assert rejected_quiz.value.status == 422, rejected_quiz.value.text()
+                assert member_state(page, base) is None
+                fill_questions(page)
                 page.screenshot(path="/tmp/cana-membership-signup.png", full_page=True)
                 with page.expect_response(lambda response: response.url == base + "/api/members/signup" and response.request.method == "POST") as signup:
-                    page.get_by_role("button", name=re.compile("Create.*account|Join", re.I)).click()
+                    page.get_by_role("button", name="Create account", exact=True).click()
                 assert signup.value.status == 201, signup.value.text()
                 expect(page).to_have_url(base + "/account")
                 expect(form_field(page, "Full name")).to_have_value("Local Browser Member")
                 member = member_state(page, base)
                 assert member["email"] == email
+                assert member["ageVerification"]["status"] == "pending"
+                assert "birthDate" not in member
+                expect(page.get_by_text("ID check pending", exact=True)).to_be_visible()
+                expect(page.get_by_text("18+ ID checked", exact=True)).to_have_count(0)
                 assert not any(key in member for key in ("password", "passwordHash", "password_hash")), member
-                session_cookies = [cookie for cookie in context.cookies() if cookie["path"].startswith("/api/members")]
+                session_cookies = [cookie for cookie in context.cookies() if cookie["name"] == "lc_member" and cookie["path"] == "/api"]
                 assert session_cookies and all(cookie["httpOnly"] for cookie in session_cookies), "Member sessions must use HttpOnly cookies."
                 page.reload(wait_until="networkidle")
                 expect(page).to_have_url(base + "/account")
                 expect(page.locator("main")).to_contain_text(email)
-                print("PASS validated signup, real server account/session, protected account and refresh persistence", flush=True)
+                print("PASS adult date checks, random fresh questionnaire, wrong-answer rejection, pending account and real cookie session", flush=True)
 
                 form_field(page, "Full name").fill("Updated Browser Member")
                 with page.expect_response(lambda response: response.url == base + "/api/members/me" and response.request.method == "PATCH") as profile:
                     page.get_by_role("button", name=re.compile("Save profile|Save changes", re.I)).click()
                 assert profile.value.status == 200, profile.value.text()
                 assert member_state(page, base)["name"] == "Updated Browser Member"
+                assert member_state(page, base)["ageVerification"]["status"] == "required", "Changing the identity name must invalidate the previous age submission."
+                page.get_by_role("button", name="Complete age check", exact=True).click()
+                form_field(page, "Date of birth").fill(ADULT_BIRTH_DATE)
+                page.get_by_role("checkbox", name=re.compile("I confirm I am 18")).check()
+                page.get_by_role("checkbox", name=re.compile("I consent to my date of birth")).check()
+                fill_questions(page)
+                with page.expect_response(lambda response: response.url == base + "/api/members/age-verification" and response.request.method == "POST") as renewed:
+                    page.get_by_role("button", name="Submit for ID review", exact=True).click()
+                assert renewed.value.status == 200, renewed.value.text()
+                expect(page.get_by_text("ID check pending", exact=True)).to_be_visible()
+                approve_member_ui(browser, base, email, ADMIN_PASSWORD)
+                page.reload(wait_until="networkidle")
+                expect(page.get_by_text("18+ ID checked", exact=True)).to_be_visible()
+                assert member_state(page, base)["ageVerification"]["status"] == "verified"
                 page.goto(base + "/shop", wait_until="networkidle")
                 expect(page.locator(".product-card")).to_have_count(28)
                 for category, count in (("Flower", 6), ("Pre-rolls", 5), ("Edibles", 5), ("Vapes", 4), ("Drinks", 4), ("Accessories", 4)):

@@ -17,6 +17,7 @@ import time
 import urllib.request
 
 from playwright.sync_api import sync_playwright, expect
+from browser_age_helpers import register_member, approve_member
 
 ROOT = Path(__file__).resolve().parents[1]
 TEST_PASSWORD = "local-test-password-for-api-only"
@@ -75,12 +76,15 @@ def run():
                 customer_context = browser.new_context(viewport={"width": 1440, "height": 1000})
                 page = customer_context.new_page()
                 page.on("pageerror", lambda error: browser_errors.append(str(error)))
+                member = register_member(customer_context, base, "Local age-verified order password")
+                approve_member(playwright, base, member["id"], TEST_PASSWORD)
                 page.goto(base, wait_until="networkidle")
                 page.get_by_role("navigation", name="Main navigation").get_by_role("link", name="Shop", exact=True).click()
                 expect(page.locator("#shop")).to_be_visible()
                 expect(page.locator(".product-card")).to_have_count(28)
                 page.get_by_role("button", name="Add Sunset Sherbet to bag", exact=True).click()
-                page.get_by_role("button", name="I’m 21 or older", exact=True).click()
+                if page.get_by_role("dialog", name="Confirm your age").is_visible():
+                    page.get_by_role("button", name="I’m 18 or older", exact=True).click()
                 page.get_by_role("button", name="Open bag, 1 items").click()
                 page.get_by_label("Promo code").fill("LOUD15")
                 page.get_by_role("button", name="Apply", exact=True).click()

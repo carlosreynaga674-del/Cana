@@ -1,6 +1,10 @@
 import React, { useEffect, useRef, useState } from "react";
 import {
   ArrowRight,
+  ArrowLeft,
+  CalendarDays,
+  RefreshCw,
+  Clock3,
   ArrowUpRight,
   Check,
   CheckCircle2,
@@ -36,6 +40,7 @@ function MemberLink({ to, onNavigate, children, ...props }) {
       onClick={(event) => {
         if (
           onNavigate &&
+          props.target !== "_blank" &&
           event.button === 0 &&
           !event.metaKey &&
           !event.ctrlKey &&
@@ -115,7 +120,11 @@ function PasswordField({
 
 function focusInvalid(form, errors) {
   const first = Object.keys(errors)[0];
-  if (first) form?.elements.namedItem(first)?.focus();
+  if (!first) return;
+  const field = form?.elements.namedItem(first);
+  if (typeof field?.focus === "function") field.focus();
+  else if (field?.[0]) field[0].focus();
+  else form?.querySelector(".age-questionnaire")?.focus();
 }
 
 function formatMemberDate(value) {
@@ -179,7 +188,7 @@ export default function Membership({
     if (signup && fields.confirmPassword !== fields.password)
       nextErrors.confirmPassword = "Your passwords do not match.";
     if (signup && !fields.ageConfirmed)
-      nextErrors.ageConfirmed = "Please confirm that you are 21 or older.";
+      nextErrors.ageConfirmed = "Please confirm that you are 18 or older.";
     if (signup && !fields.termsAccepted)
       nextErrors.termsAccepted = "Please accept the terms and privacy notice.";
     setErrors(nextErrors);
@@ -275,7 +284,7 @@ export default function Membership({
               )}
             </div>
             <small className="member-note">
-              Free to join. For adults 21 and older.
+              Free to join. For adults 18 and older.
             </small>
           </div>
           <div className="member-hero-visual" aria-hidden="true">
@@ -317,8 +326,8 @@ export default function Membership({
         <div className="member-bottom-note container">
           <Check size={18} />
           <p>
-            Your account keeps your favourites and profile in one place.
-            Product availability and ordering status are shown in the shop.
+            Your account keeps your favourites and profile in one place. Product
+            availability and ordering status are shown in the shop.
           </p>
         </div>
       </section>
@@ -368,6 +377,7 @@ export default function Membership({
         member={member}
         onSessionChange={onSessionChange}
         onNavigate={onNavigate}
+        store={store}
       />
     ) : (
       <section className="membership-page container">
@@ -415,6 +425,12 @@ export default function Membership({
           </MemberLink>
         </div>
       </section>
+    );
+  }
+
+  if (signup) {
+    return (
+      <SignupWizard onSessionChange={onSessionChange} onNavigate={onNavigate} />
     );
   }
 
@@ -543,7 +559,7 @@ export default function Membership({
                         errors.ageConfirmed ? "ageConfirmed-error" : undefined
                       }
                     />
-                    <span>I confirm I am 21 or older.</span>
+                    <span>I confirm I am 18 or older.</span>
                   </label>
                   <FieldError name="ageConfirmed" error={errors.ageConfirmed} />
                 </div>
@@ -631,7 +647,951 @@ export default function Membership({
   );
 }
 
-function MemberAccount({ member, onSessionChange, onNavigate }) {
+const EMPTY_ELIGIBILITY = {
+  birthDate: "",
+  ageConfirmed: false,
+  verificationConsent: false,
+};
+
+function southAfricanToday() {
+  const parts = new Intl.DateTimeFormat("en-ZA", {
+    timeZone: "Africa/Johannesburg",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+  return Object.fromEntries(
+    parts
+      .filter((part) => ["year", "month", "day"].includes(part.type))
+      .map((part) => [part.type, part.value]),
+  );
+}
+
+function eligibilityErrors(fields) {
+  const errors = {};
+  const value = fields.birthDate;
+  const parsed = /^\d{4}-\d{2}-\d{2}$/.test(value)
+    ? new Date(`${value}T00:00:00Z`)
+    : null;
+  const today = southAfricanToday();
+  const currentDay = `${today.year}-${today.month}-${today.day}`;
+  const cutoff = `${Number(today.year) - 18}-${today.month}-${today.day}`;
+  if (
+    !parsed ||
+    Number.isNaN(parsed.getTime()) ||
+    parsed.toISOString().slice(0, 10) !== value ||
+    value > currentDay
+  )
+    errors.birthDate = "Enter a valid date of birth.";
+  else if (value > cutoff)
+    errors.birthDate = "You must be at least 18 to create a member account.";
+  if (!fields.ageConfirmed)
+    errors.ageConfirmed = "Confirm that you are 18 or older.";
+  if (!fields.verificationConsent)
+    errors.verificationConsent =
+      "Please consent to the adult-eligibility and in-person ID check.";
+  return errors;
+}
+
+function useSignupQuestions(enabled) {
+  const [challenge, setChallenge] = useState(null);
+  const [answers, setAnswers] = useState({});
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [clock, setClock] = useState(Date.now());
+  const controller = useRef(null);
+  async function refresh() {
+    controller.current?.abort();
+    const current = new AbortController();
+    controller.current = current;
+    setLoading(true);
+    setError("");
+    setChallenge(null);
+    setAnswers({});
+    try {
+      const result = await request("/api/members/signup-challenge", {
+        signal: current.signal,
+      });
+      if (
+        !result.challengeId ||
+        !Array.isArray(result.questions) ||
+        !result.questions.length
+      )
+        throw new Error("Questions are unavailable. Please request a new set.");
+      if (controller.current !== current || current.signal.aborted) return;
+      setChallenge(result);
+      setClock(Date.now());
+    } catch (failure) {
+      if (!current.signal.aborted)
+        setError(
+          failure.message || "Questions could not be loaded. Please try again.",
+        );
+    } finally {
+      if (controller.current === current && !current.signal.aborted)
+        setLoading(false);
+    }
+  }
+  useEffect(() => {
+    if (!enabled) return;
+    // Delay the request so React's development remount cannot replace the
+    // HttpOnly challenge cookie with an abandoned first request.
+    const timer = setTimeout(refresh, 0);
+    const tick = setInterval(() => setClock(Date.now()), 15000);
+    return () => {
+      clearTimeout(timer);
+      clearInterval(tick);
+      controller.current?.abort();
+    };
+  }, [enabled]);
+  const expired = Boolean(
+    challenge && Date.parse(challenge.expiresAt) <= clock,
+  );
+  return { challenge, answers, setAnswers, loading, error, expired, refresh };
+}
+
+function questionError(quiz) {
+  if (!quiz.challenge) return "Load a new set of questions before continuing.";
+  if (Date.parse(quiz.challenge.expiresAt) <= Date.now())
+    return "These questions have expired. Get new questions to continue.";
+  if (
+    quiz.challenge.questions.some(
+      (question) =>
+        !question.choices.some(
+          (choice) => choice.id === quiz.answers[question.id],
+        ),
+    )
+  )
+    return "Choose one answer for each question.";
+  return "";
+}
+
+function answersPayload(quiz) {
+  return quiz.challenge.questions.map((question) => ({
+    questionId: question.id,
+    choiceId: quiz.answers[question.id],
+  }));
+}
+
+function AgeEligibilityFields({ fields, onChange, errors, busy, onNavigate }) {
+  const today = southAfricanToday();
+  return (
+    <>
+      <div className="age-eligibility-note">
+        <CalendarDays size={22} />
+        <div>
+          <strong>For adults 18 and older.</strong>
+          <p>
+            Your date of birth is a declaration. Your account stays pending
+            until a staff member checks your original valid photo ID.
+          </p>
+        </div>
+      </div>
+      <div className="auth-field">
+        <label htmlFor="birthDate">Date of birth</label>
+        <input
+          id="birthDate"
+          name="birthDate"
+          type="date"
+          autoComplete="bday"
+          max={`${today.year}-${today.month}-${today.day}`}
+          value={fields.birthDate}
+          onChange={onChange("birthDate")}
+          disabled={busy}
+          required
+          aria-invalid={!!errors.birthDate}
+          aria-describedby={`birthDate-hint${errors.birthDate ? " birthDate-error" : ""}`}
+        />
+        <small className="auth-hint" id="birthDate-hint">
+          Used to assess whether you are 18 or older. The server checks your age
+          using the date in South Africa.
+        </small>
+        <FieldError name="birthDate" error={errors.birthDate} />
+      </div>
+      <div className="auth-check">
+        <label>
+          <input
+            type="checkbox"
+            name="ageConfirmed"
+            checked={fields.ageConfirmed}
+            onChange={onChange("ageConfirmed")}
+            disabled={busy}
+            aria-invalid={!!errors.ageConfirmed}
+            aria-describedby={
+              errors.ageConfirmed ? "ageConfirmed-error" : undefined
+            }
+          />
+          <span>I confirm I am 18 or older.</span>
+        </label>
+        <FieldError name="ageConfirmed" error={errors.ageConfirmed} />
+      </div>
+      <div className="auth-check">
+        <label>
+          <input
+            type="checkbox"
+            name="verificationConsent"
+            checked={fields.verificationConsent}
+            onChange={onChange("verificationConsent")}
+            disabled={busy}
+            aria-invalid={!!errors.verificationConsent}
+            aria-describedby={
+              errors.verificationConsent
+                ? "verificationConsent-error"
+                : undefined
+            }
+          />
+          <span>
+            I consent to my date of birth being used to assess adult eligibility
+            and to an in-person identity check.
+          </span>
+        </label>
+        <FieldError
+          name="verificationConsent"
+          error={errors.verificationConsent}
+        />
+      </div>
+      <p className="age-data-note">
+        No ID number, ID photograph, or document upload is requested here.
+        Pending dates of birth are removed after the review or after 30 days.
+        See our{" "}
+        <MemberLink
+          to="/privacy"
+          onNavigate={onNavigate}
+          target="_blank"
+          rel="noreferrer"
+        >
+          Privacy Notice
+        </MemberLink>
+        .
+      </p>
+    </>
+  );
+}
+
+function SignupQuestions({ quiz, busy, error, onAnswer }) {
+  return (
+    <div
+      className="age-questionnaire"
+      tabIndex={-1}
+      aria-label="Responsible-use questions"
+      aria-invalid={!!error}
+      aria-describedby={error ? "age-questions-error" : undefined}
+    >
+      <div className="age-questionnaire-heading">
+        <div>
+          <span className="eyebrow">A FEW THINGS TO KNOW</span>
+          <h3>Responsible-use questions</h3>
+        </div>
+        <button
+          className="text-link age-refresh"
+          type="button"
+          onClick={quiz.refresh}
+          disabled={busy || quiz.loading}
+        >
+          <RefreshCw size={15} />
+          Get new questions
+        </button>
+      </div>
+      <p className="age-questionnaire-intro">
+        A fresh set is selected for each signup. This is an awareness check;
+        answering correctly does not prove your age or identity.
+      </p>
+      {quiz.loading ? (
+        <p className="age-question-loading" role="status">
+          <LoaderCircle size={19} className="member-spinner" />
+          Loading your questions…
+        </p>
+      ) : quiz.error ? (
+        <p className="auth-error" role="alert">
+          {quiz.error}
+        </p>
+      ) : (
+        quiz.challenge && (
+          <>
+            {quiz.expired && (
+              <p className="auth-error" role="alert">
+                These questions have expired. Get new questions to continue.
+              </p>
+            )}
+            {quiz.challenge.questions.map((question, index) => (
+              <fieldset
+                className="age-question"
+                key={question.id}
+                disabled={busy || quiz.expired}
+              >
+                <legend>
+                  <span>
+                    {index + 1} / {quiz.challenge.questions.length}
+                  </span>
+                  {question.prompt}
+                </legend>
+                <div>
+                  {question.choices.map((choice) => (
+                    <label
+                      key={choice.id}
+                      className={
+                        quiz.answers[question.id] === choice.id
+                          ? "selected"
+                          : ""
+                      }
+                    >
+                      <input
+                        type="radio"
+                        name={`answer-${question.id}`}
+                        value={choice.id}
+                        checked={quiz.answers[question.id] === choice.id}
+                        onChange={() => {
+                          quiz.setAnswers((current) => ({
+                            ...current,
+                            [question.id]: choice.id,
+                          }));
+                          onAnswer?.();
+                        }}
+                        required
+                      />
+                      <span>{choice.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+            ))}
+            <p className="age-expiry-note">
+              <Clock3 size={14} />
+              These questions are valid for 15 minutes. You can request a new
+              set.
+            </p>
+          </>
+        )
+      )}
+      {error && (
+        <p className="auth-field-error" id="age-questions-error" role="alert">
+          {error}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function SignupWizard({ onSessionChange, onNavigate }) {
+  const [fields, setFields] = useState({
+    ...EMPTY_SIGNUP,
+    ...EMPTY_ELIGIBILITY,
+  });
+  const [step, setStep] = useState(0);
+  const [errors, setErrors] = useState({});
+  const [serverError, setServerError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const quiz = useSignupQuestions(true);
+  const formRef = useRef(null);
+  const titleRef = useRef(null);
+  useEffect(() => {
+    titleRef.current?.focus({ preventScroll: true });
+  }, [step]);
+  const change = (name) => (event) => {
+    setFields((current) => ({
+      ...current,
+      [name]:
+        event.target.type === "checkbox"
+          ? event.target.checked
+          : event.target.value,
+    }));
+    setErrors((current) => ({ ...current, [name]: "" }));
+    setServerError("");
+  };
+  function detailsErrors() {
+    const found = {};
+    if (fields.name.trim().length < 2 || fields.name.trim().length > 80)
+      found.name = "Enter your name using 2 to 80 characters.";
+    if (!EMAIL.test(fields.email.trim()) || fields.email.trim().length > 254)
+      found.email = "Enter a valid email address.";
+    if (fields.password.length < 12 || fields.password.length > 128)
+      found.password = "Use a password with 12 to 128 characters.";
+    if (fields.confirmPassword !== fields.password)
+      found.confirmPassword = "Your passwords do not match.";
+    return found;
+  }
+  async function submit(event) {
+    event.preventDefault();
+    if (busy) return;
+    const found =
+      step === 0
+        ? detailsErrors()
+        : step === 1
+          ? eligibilityErrors(fields)
+          : {};
+    if (step === 2) {
+      const issue = questionError(quiz);
+      if (issue) found.questions = issue;
+      if (!fields.termsAccepted)
+        found.termsAccepted = "Please accept the terms and privacy notice.";
+    }
+    setErrors(found);
+    if (Object.keys(found).length) {
+      focusInvalid(formRef.current, found);
+      return;
+    }
+    if (step < 2) {
+      setStep(step + 1);
+      setServerError("");
+      return;
+    }
+    // Repeat eligibility validation at final submission so changing steps or
+    // leaving a form open never bypasses the server's authoritative checks.
+    const invalidDetails = detailsErrors();
+    const invalidAge = eligibilityErrors(fields);
+    if (Object.keys(invalidDetails).length) {
+      setErrors(invalidDetails);
+      setStep(0);
+      return;
+    }
+    if (Object.keys(invalidAge).length) {
+      setErrors(invalidAge);
+      setStep(1);
+      return;
+    }
+    setBusy(true);
+    setServerError("");
+    try {
+      const { member } = await request("/api/members/signup", {
+        method: "POST",
+        body: {
+          name: fields.name.trim(),
+          email: fields.email.trim().toLowerCase(),
+          password: fields.password,
+          birthDate: fields.birthDate,
+          ageConfirmed: fields.ageConfirmed,
+          termsAccepted: fields.termsAccepted,
+          verificationConsent: fields.verificationConsent,
+          challengeId: quiz.challenge.challengeId,
+          answers: answersPayload(quiz),
+        },
+      });
+      if (!member)
+        throw new Error("Your account could not be created. Please try again.");
+      setFields({ ...EMPTY_SIGNUP, ...EMPTY_ELIGIBILITY });
+      onSessionChange(member);
+      onNavigate("/account");
+    } catch (error) {
+      const message =
+        error.message || "Your account could not be created. Please try again.";
+      if (
+        /request new questions|questions have expired|challenge.*expired|already used/i.test(
+          message,
+        )
+      ) {
+        quiz.refresh();
+        setServerError(
+          "This set of questions expired or changed. Answer the new questions below and try again.",
+        );
+      } else setServerError(message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  const steps = ["Details", "Adult eligibility", "Responsible use"];
+  return (
+    <section className="membership-page container">
+      <div className="auth-layout signup-layout">
+        <div className="auth-intro">
+          <span className="eyebrow">LOUD +CANA MEMBERS · 18+</span>
+          <h1>
+            Make yourself
+            <br />
+            <span className="lime-text">at home.</span>
+          </h1>
+          <p>
+            A free account for adults. Tell us who you are, complete the
+            awareness questions, and arrange your original-ID check.
+          </p>
+          <div className="auth-trust">
+            <ShieldCheck size={22} />
+            <span>
+              Your date of birth and quiz answers do not verify identity. A
+              staff member must check your original photo ID before the account
+              is marked age-verified.
+            </span>
+          </div>
+          <MemberLink
+            className="text-link"
+            to="/responsible-use"
+            onNavigate={onNavigate}
+            target="_blank"
+            rel="noreferrer"
+          >
+            Read the responsible-use guide <ArrowUpRight size={15} />
+          </MemberLink>
+        </div>
+        <div className="member-panel auth-panel">
+          <span className="eyebrow">FREE MEMBERSHIP</span>
+          <ol className="signup-progress" aria-label="Signup progress">
+            {steps.map((label, index) => (
+              <li
+                key={label}
+                className={
+                  step === index ? "current" : step > index ? "complete" : ""
+                }
+                aria-current={step === index ? "step" : undefined}
+              >
+                <span>{step > index ? <Check size={13} /> : index + 1}</span>
+                <strong>{label}</strong>
+              </li>
+            ))}
+          </ol>
+          <h2 className="signup-step-title" tabIndex={-1} ref={titleRef}>
+            {step === 0
+              ? "Your account details"
+              : step === 1
+                ? "Adult eligibility"
+                : "A responsible start"}
+          </h2>
+          <form
+            className="auth-form signup-form"
+            ref={formRef}
+            onSubmit={submit}
+            noValidate
+          >
+            {step === 0 && (
+              <>
+                <div className="auth-field">
+                  <label htmlFor="member-name">Full name</label>
+                  <input
+                    id="member-name"
+                    name="name"
+                    autoComplete="name"
+                    value={fields.name}
+                    onChange={change("name")}
+                    minLength={2}
+                    maxLength={80}
+                    required
+                    disabled={busy}
+                    aria-invalid={!!errors.name}
+                    aria-describedby={
+                      errors.name ? "member-name-error" : undefined
+                    }
+                  />
+                  <small className="auth-hint">
+                    Use the full name shown on the original photo ID you will
+                    present.
+                  </small>
+                  <FieldError name="member-name" error={errors.name} />
+                </div>
+                <div className="auth-field">
+                  <label htmlFor="member-email">Email address</label>
+                  <input
+                    id="member-email"
+                    name="email"
+                    type="email"
+                    autoComplete="email"
+                    inputMode="email"
+                    autoCapitalize="none"
+                    spellCheck={false}
+                    value={fields.email}
+                    onChange={change("email")}
+                    maxLength={254}
+                    required
+                    disabled={busy}
+                    aria-invalid={!!errors.email}
+                  />
+                  <FieldError name="member-email" error={errors.email} />
+                </div>
+                <PasswordField
+                  name="password"
+                  label="Password"
+                  value={fields.password}
+                  onChange={change("password")}
+                  error={errors.password}
+                  autoComplete="new-password"
+                  hint="At least 12 characters. A unique passphrase works well."
+                  disabled={busy}
+                />
+                <PasswordField
+                  name="confirmPassword"
+                  label="Confirm password"
+                  value={fields.confirmPassword}
+                  onChange={change("confirmPassword")}
+                  error={errors.confirmPassword}
+                  autoComplete="new-password"
+                  disabled={busy}
+                />
+              </>
+            )}
+            {step === 1 && (
+              <AgeEligibilityFields
+                fields={fields}
+                onChange={change}
+                errors={errors}
+                busy={busy}
+                onNavigate={onNavigate}
+              />
+            )}
+            {step === 2 && (
+              <>
+                <SignupQuestions
+                  quiz={quiz}
+                  busy={busy}
+                  error={errors.questions}
+                  onAnswer={() => {
+                    setErrors((current) => ({ ...current, questions: "" }));
+                    setServerError("");
+                  }}
+                />
+                <div className="auth-check">
+                  <label>
+                    <input
+                      type="checkbox"
+                      name="termsAccepted"
+                      checked={fields.termsAccepted}
+                      onChange={change("termsAccepted")}
+                      disabled={busy}
+                      aria-invalid={!!errors.termsAccepted}
+                    />
+                    <span>
+                      I accept the{" "}
+                      <MemberLink
+                        to="/terms"
+                        onNavigate={onNavigate}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        Terms of Use
+                      </MemberLink>{" "}
+                      and have read the{" "}
+                      <MemberLink
+                        to="/privacy"
+                        onNavigate={onNavigate}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        Privacy Notice
+                      </MemberLink>
+                      .
+                    </span>
+                  </label>
+                  <FieldError
+                    name="termsAccepted"
+                    error={errors.termsAccepted}
+                  />
+                </div>
+              </>
+            )}
+            {serverError && (
+              <p className="auth-error" role="alert">
+                {serverError}
+              </p>
+            )}
+            <div className="signup-actions">
+              {step > 0 && (
+                <button
+                  type="button"
+                  className="button outline"
+                  disabled={busy}
+                  onClick={() => {
+                    setStep(step - 1);
+                    setServerError("");
+                  }}
+                >
+                  <ArrowLeft size={15} />
+                  Back
+                </button>
+              )}
+              <button
+                type="submit"
+                className="button lime auth-submit"
+                disabled={
+                  busy ||
+                  (step === 2 &&
+                    (quiz.loading || !quiz.challenge || quiz.expired))
+                }
+              >
+                {busy ? (
+                  <>
+                    <LoaderCircle size={17} className="member-spinner" />
+                    Creating your account…
+                  </>
+                ) : (
+                  <>
+                    {step === 2 ? "Create account" : "Continue"}
+                    <ArrowRight size={17} />
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+          <p className="auth-switch">
+            Already part of the community?{" "}
+            <MemberLink to="/login" onNavigate={onNavigate}>
+              Sign in
+            </MemberLink>
+          </p>
+          <p className="auth-footnote">
+            Membership is free. New accounts start with an ID check pending.
+            Creating an account does not place an order or subscribe you to
+            marketing emails.
+          </p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function AgeVerificationCard({ member, store, onSessionChange, onNavigate }) {
+  const verification = member.ageVerification || {
+    status: "required",
+    minimumAge: 18,
+  };
+  const status = verification.status;
+  const [expanded, setExpanded] = useState(false);
+  const [fields, setFields] = useState({ ...EMPTY_ELIGIBILITY });
+  const [errors, setErrors] = useState({});
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const form = useRef(null);
+  const quiz = useSignupQuestions(
+    expanded && ["required", "rejected"].includes(status),
+  );
+  const change = (name) => (event) => {
+    setFields((current) => ({
+      ...current,
+      [name]:
+        event.target.type === "checkbox"
+          ? event.target.checked
+          : event.target.value,
+    }));
+    setErrors((current) => ({ ...current, [name]: "" }));
+    setError("");
+  };
+  async function refreshStatus() {
+    if (busy) return;
+    setBusy(true);
+    setError("");
+    try {
+      const result = await request("/api/members/me");
+      onSessionChange(result.member);
+    } catch (failure) {
+      setError(
+        failure.message ||
+          "Your ID-check status could not be refreshed. Please try again.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function submit(event) {
+    event.preventDefault();
+    if (busy) return;
+    const found = eligibilityErrors(fields);
+    const issue = questionError(quiz);
+    if (issue) found.questions = issue;
+    setErrors(found);
+    if (Object.keys(found).length) {
+      focusInvalid(form.current, found);
+      return;
+    }
+    setBusy(true);
+    setError("");
+    try {
+      const result = await request("/api/members/age-verification", {
+        method: "POST",
+        body: {
+          birthDate: fields.birthDate,
+          ageConfirmed: fields.ageConfirmed,
+          verificationConsent: fields.verificationConsent,
+          challengeId: quiz.challenge.challengeId,
+          answers: answersPayload(quiz),
+        },
+      });
+      onSessionChange(result.member);
+      setFields({ ...EMPTY_ELIGIBILITY });
+      setExpanded(false);
+    } catch (failure) {
+      const message =
+        failure.message ||
+        "Your age check could not be submitted. Please try again.";
+      setError(message);
+      if (
+        /request new questions|questions have expired|challenge.*expired|already used/i.test(
+          message,
+        )
+      )
+        quiz.refresh();
+    } finally {
+      setBusy(false);
+    }
+  }
+  const reasons = {
+    identity_not_confirmed:
+      "The original photo ID could not be confirmed. Contact the store before submitting a new check.",
+    details_mismatch:
+      "The details presented did not match the application. Check your full name and date of birth before submitting again.",
+    unable_to_verify:
+      "The store could not complete the original-ID check. Contact the store to arrange another review.",
+  };
+  return (
+    <section
+      className={`age-verification-card age-status-${status}`}
+      aria-labelledby="age-verification-title"
+    >
+      <div className="age-verification-summary">
+        <ShieldCheck size={29} />
+        <div>
+          <span className="eyebrow">ADULT MEMBERSHIP</span>
+          <h2 id="age-verification-title">Age verification</h2>
+          <strong className="age-status-badge">
+            {status === "verified"
+              ? "18+ ID checked"
+              : status === "pending"
+                ? "ID check pending"
+                : status === "rejected"
+                  ? "ID check needs attention"
+                  : "ID check required"}
+          </strong>
+        </div>
+      </div>
+      {status === "verified" ? (
+        <p>
+          Your original photo ID was checked in person
+          {verification.verifiedAt &&
+          !Number.isNaN(new Date(verification.verifiedAt).getTime())
+            ? ` on ${new Intl.DateTimeFormat("en-ZA", { day: "numeric", month: "long", year: "numeric", timeZone: "Africa/Johannesburg" }).format(new Date(verification.verifiedAt))}`
+            : ""}
+          . Keep your original ID available for any eligibility check required
+          at fulfilment.
+        </p>
+      ) : status === "pending" ? (
+        <>
+          <p>
+            Your date-of-birth declaration and awareness questions are complete.
+            A staff member must still check your original valid photo ID against
+            your full name, date of birth, and identity in person.
+          </p>
+          <div className="age-check-next">
+            <strong>What to bring</strong>
+            <p>
+              An original valid photo identity document, such as your South
+              African ID or passport. Do not email an ID copy or enter an ID
+              number on this website.
+            </p>
+            {store?.pickupAddress && (
+              <p>
+                <strong>Store location:</strong> {store.pickupAddress}
+              </p>
+            )}
+            {store?.contactEmail ? (
+              <a
+                className="text-link"
+                href={`mailto:${store.contactEmail}?subject=${encodeURIComponent("Arrange an adult ID check")}`}
+              >
+                Contact the store to arrange your ID check{" "}
+                <ArrowUpRight size={15} />
+              </a>
+            ) : (
+              <MemberLink
+                className="text-link"
+                to="/contact"
+                onNavigate={onNavigate}
+              >
+                See contact and ID-check arrangements <ArrowRight size={15} />
+              </MemberLink>
+            )}
+          </div>
+          <p className="age-data-note">
+            Your account remains pending until the ID check is completed.
+            Pending dates of birth are removed after 30 days if the review is
+            not completed; you can submit again.
+          </p>
+          <button
+            className="button outline"
+            type="button"
+            onClick={refreshStatus}
+            disabled={busy}
+          >
+            <RefreshCw
+              size={15}
+              className={busy ? "member-spinner" : undefined}
+            />
+            {busy ? "Checking status…" : "Refresh ID status"}
+          </button>
+          {error && (
+            <p className="auth-error" role="alert">
+              {error}
+            </p>
+          )}
+        </>
+      ) : (
+        <>
+          <p>
+            {status === "rejected"
+              ? reasons[verification.reason] ||
+                "Your ID check could not be completed. Review your details and contact the store before submitting again."
+              : "Complete an adult-eligibility declaration and a fresh set of awareness questions. A staff member will then need to check your original photo ID in person."}
+          </p>
+          {!expanded && (
+            <button
+              className="button outline"
+              type="button"
+              onClick={() => setExpanded(true)}
+            >
+              Complete age check <ArrowRight size={16} />
+            </button>
+          )}
+        </>
+      )}
+      {expanded && ["required", "rejected"].includes(status) && (
+        <form
+          className="auth-form age-review-form"
+          ref={form}
+          onSubmit={submit}
+          noValidate
+        >
+          <AgeEligibilityFields
+            fields={fields}
+            onChange={change}
+            errors={errors}
+            busy={busy}
+            onNavigate={onNavigate}
+          />
+          <SignupQuestions
+            quiz={quiz}
+            busy={busy}
+            error={errors.questions}
+            onAnswer={() =>
+              setErrors((current) => ({ ...current, questions: "" }))
+            }
+          />
+          {error && (
+            <p className="auth-error" role="alert">
+              {error}
+            </p>
+          )}
+          <div className="signup-actions">
+            <button
+              type="button"
+              className="button outline"
+              onClick={() => setExpanded(false)}
+              disabled={busy}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="button lime"
+              disabled={busy || quiz.loading || !quiz.challenge || quiz.expired}
+            >
+              {busy ? "Submitting…" : "Submit for ID review"}
+              <ArrowRight size={16} />
+            </button>
+          </div>
+        </form>
+      )}
+      <p className="age-verification-limits">
+        Only a completed original-ID check can mark this account age-verified.
+        The awareness questions alone do not verify age. Membership does not
+        authorize cannabis sales.
+      </p>
+    </section>
+  );
+}
+
+function MemberAccount({ member, onSessionChange, onNavigate, store }) {
   const [name, setName] = useState(member.name);
   const [profileState, setProfileState] = useState({
     busy: false,
@@ -797,6 +1757,12 @@ function MemberAccount({ member, onSessionChange, onNavigate }) {
           {logoutState.error}
         </p>
       )}
+      <AgeVerificationCard
+        member={member}
+        store={store}
+        onSessionChange={onSessionChange}
+        onNavigate={onNavigate}
+      />
       <div className="account-grid">
         <section className="account-card account-favourites">
           <Heart size={27} />
@@ -849,6 +1815,11 @@ function MemberAccount({ member, onSessionChange, onNavigate }) {
                 }
               />
             </div>
+            {member.ageVerification?.status === "verified" && (
+              <p className="auth-hint">
+                Changing your name will require a new ID check.
+              </p>
+            )}
             <div className="account-meta">
               <span>Account email</span>
               <strong>{member.email}</strong>

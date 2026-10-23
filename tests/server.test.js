@@ -6,6 +6,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createServer } from "../server/app.mjs";
 import { products } from "../src/lib/products.js";
+import { verifiedMemberCookie } from "./helpers/age-fixture.mjs";
 
 // These are fictitious, local-only fixtures. Tests do not create real orders.
 const adminPassword = "local-test-password-for-api-only";
@@ -61,7 +62,7 @@ async function start(t, options = {}) {
     );
   };
   t.after(stop);
-  const request = async (path, { body, ...init } = {}) => {
+  const rawRequest = async (path, { body, ...init } = {}) => {
     const response = await fetch(`${base}${path}`, {
       ...init,
       headers: {
@@ -71,6 +72,21 @@ async function start(t, options = {}) {
       ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
     });
     return response;
+  };
+  let orderCookie;
+  const request = async (path, options = {}) => {
+    if (
+      path === "/api/orders" &&
+      options.method === "POST" &&
+      !options.headers?.Cookie
+    ) {
+      orderCookie ||= await verifiedMemberCookie(rawRequest, adminPassword);
+      return rawRequest(path, {
+        ...options,
+        headers: { ...options.headers, Cookie: orderCookie },
+      });
+    }
+    return rawRequest(path, options);
   };
   return { base, server, stop, request };
 }

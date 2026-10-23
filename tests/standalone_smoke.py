@@ -45,7 +45,7 @@ def exercise(app):
     expect(app.get_by_role("dialog")).to_contain_text("Peach State")
     app.get_by_role("button", name="Close dialog", exact=True).click()
     app.get_by_role("button", name="Add Peach State to bag", exact=True).click()
-    app.get_by_role("button", name="I’m 21 or older", exact=True).click()
+    app.get_by_role("button", name="I’m 18 or older", exact=True).click()
     app.get_by_role("button", name="Open bag, 1 items").click()
     expect(app.locator(".total-line")).to_contain_text("R")
     app.get_by_role("button", name="Increase Peach State quantity").click()

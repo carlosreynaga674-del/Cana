@@ -548,3 +548,99 @@
   .account-danger > div { padding: 0 20px 23px; }
 }
 @media (prefers-reduced-motion: reduce) { .member-spinner { animation: none; } }
+
+/* Adult eligibility, randomly selected awareness questions and original-ID review. */
+.signup-progress { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; list-style: none; margin: 23px 0 27px; padding: 0; }
+.signup-progress li { display: flex; align-items: flex-start; gap: 8px; color: #87987a; padding-bottom: 15px; border-bottom: 2px solid #304025; min-width: 0; }
+.signup-progress li > span { height: 22px; width: 22px; flex-shrink: 0; display: grid; place-items: center; border: 1px solid #5a6a49; border-radius: 50%; font-size: 10px; }
+.signup-progress li > strong { font-size: 10px; line-height: 1.45; font-weight: 600; padding-top: 3px; }
+.signup-progress li.current { color: #f0f7e7; border-bottom-color: var(--lime); }
+.signup-progress li.current > span, .signup-progress li.complete > span { background: var(--lime); border-color: var(--lime); color: #0b1005; }
+.signup-progress li.complete { color: #bbcea9; border-bottom-color: #688b40; }
+.signup-step-title:focus { outline: none; }
+.signup-actions { display: flex; gap: 12px; align-items: center; margin-top: 8px; }
+.signup-actions > .button { width: auto; min-width: 0; min-height: 46px; flex: 1; font-size: 11px; padding-inline: 17px; }
+.signup-actions > .button.auth-submit { width: auto; }
+.signup-actions > .button.outline { flex: 0 0 auto; min-width: 105px; }
+.age-eligibility-note { display: flex; align-items: flex-start; gap: 12px; padding: 17px; border: 1px solid #405a2a; border-radius: 8px; background: #17240e; }
+.age-eligibility-note > svg { color: var(--lime); flex-shrink: 0; margin-top: 3px; }
+.age-eligibility-note strong { display: block; color: #edf5e3; font-size: 14px; line-height: 1.6; }
+.age-eligibility-note p { color: #b7c9a4; font-size: 12px; line-height: 1.75; margin-top: 7px; }
+.age-data-note { color: #a4b594; font-size: 12px; line-height: 1.8; }
+.age-data-note a { color: var(--lime); text-underline-offset: 3px; text-decoration: underline; }
+.auth-field input[type="date"] { color-scheme: dark; min-width: 0; width: 100%; min-height: 48px; }
+.age-questionnaire { min-width: 0; margin-top: 2px; }
+.age-questionnaire:focus { outline: none; }
+.age-questionnaire-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.age-questionnaire-heading .eyebrow { color: var(--lime); font-size: 8px; letter-spacing: 1.1px; }
+.age-questionnaire-heading h3 { color: #f0f6e8; font-size: 19px; font-weight: 700; line-height: 1.35; margin-top: 7px; letter-spacing: -.4px; }
+.age-questionnaire-heading .age-refresh { display: inline-flex; align-items: center; gap: 6px; color: #c9dfa8; font-size: 11px; font-weight: 500; text-align: left; min-height: 42px; padding: 5px 0; flex-shrink: 0; }
+.age-refresh:disabled { opacity: .5; cursor: wait; }
+.age-questionnaire-intro { color: #afc09d; font-size: 12px; line-height: 1.8; margin: 15px 0 21px; }
+.age-question-loading { display: flex; align-items: center; gap: 10px; padding: 24px 0; color: #c1d3ad; font-size: 13px; }
+.age-question { min-width: 0; padding: 0; border: 0; margin: 23px 0; }
+.age-question > legend { display: block; color: #edf5e4; font-size: 14px; font-weight: 600; line-height: 1.75; padding: 0; margin-bottom: 12px; width: 100%; }
+.age-question > legend > span { display: block; color: #a9c781; font-size: 9px; font-weight: 500; letter-spacing: 1px; margin-bottom: 4px; }
+.age-question > div { display: grid; gap: 9px; }
+.age-question label { display: flex; align-items: flex-start; gap: 11px; border: 1px solid #35482a; background: #0c1309; color: #bacba9; border-radius: 7px; padding: 13px 14px; font-size: 13px; line-height: 1.65; min-height: 47px; cursor: pointer; transition: background .15s, border-color .15s; }
+.age-question label:hover { border-color: #72934d; background: #182211; }
+.age-question label.selected { border-color: #9ecb55; background: #233415; color: #f0f7e6; }
+.age-question input[type="radio"] { accent-color: var(--lime); appearance: auto; width: 16px; height: 16px; min-width: 16px; min-height: 16px; padding: 0; border: 0; margin: 3px 0 0; flex-shrink: 0; }
+.age-question:disabled { opacity: .55; }
+.age-question label:has(input:focus-visible) { outline: 2px solid var(--lime); outline-offset: 3px; }
+.age-expiry-note { display: flex; align-items: flex-start; gap: 8px; color: #9eaf8e; font-size: 11px; line-height: 1.75; margin-top: -3px; }
+.age-expiry-note > svg { margin-top: 3px; flex-shrink: 0; }
+.age-verification-card { margin: 25px 0 31px; padding: 30px; border: 1px solid #4a5c35; border-radius: 12px; background: linear-gradient(130deg, #17230e, #0c1309); }
+.age-verification-summary { display: flex; align-items: flex-start; gap: 15px; margin-bottom: 19px; }
+.age-verification-summary > svg { color: var(--lime); flex-shrink: 0; margin-top: 2px; }
+.age-verification-summary .eyebrow { color: #bfd59f; font-size: 9px; letter-spacing: 1.3px; }
+.age-verification-summary h2 { font-size: 25px; letter-spacing: -.65px; margin: 6px 0 12px; color: #f2f7eb; }
+.age-status-badge { display: inline-flex; border: 1px solid #809a4e; border-radius: 999px; padding: 6px 11px; color: #d8e8ba; font-size: 11px; font-weight: 600; line-height: 1.5; }
+.age-status-verified { border-color: #6d9845; background: linear-gradient(130deg, #1b2e10, #0c1409); }
+.age-status-verified .age-status-badge { background: var(--lime); border-color: var(--lime); color: #182006; }
+.age-status-rejected { border-color: #755649; }
+.age-status-rejected .age-status-badge { border-color: #9b7463; color: #f2cdb8; }
+.age-verification-card > p { color: #b8cba4; font-size: 14px; line-height: 1.85; max-width: 930px; margin: 16px 0; }
+.age-verification-card > .button { margin-top: 5px; min-height: 44px; font-size: 11px; }
+.age-check-next { border: 1px solid #3b4e2d; background: #0b1208; border-radius: 8px; padding: 20px 22px; margin-top: 20px; max-width: 850px; }
+.age-check-next > strong { display: block; color: #e0efd1; font-size: 14px; }
+.age-check-next p { color: #a9bc97; font-size: 13px; line-height: 1.85; margin-top: 10px; }
+.age-check-next strong { color: #d9e8ca; }
+.age-check-next .text-link { display: inline-flex; color: var(--lime); font-size: 12px; margin-top: 12px; }
+.age-verification-card > p.age-verification-limits { font-size: 12px; color: #91a37d; margin-top: 22px; margin-bottom: 0; padding-top: 17px; border-top: 1px solid #33462a; }
+.age-review-form { max-width: 780px; margin-top: 23px; padding-top: 25px; border-top: 1px solid #34462b; }
+.age-review-form .age-questionnaire { margin-block: 12px; }
+.age-review-form .age-questionnaire-heading h3 { font-size: 23px; }
+@media (max-width: 800px) {
+  .signup-layout .auth-intro { max-width: 650px; }
+  .age-review-form { max-width: none; }
+}
+@media (max-width: 520px) {
+  .signup-progress { gap: 9px; margin-top: 22px; margin-bottom: 24px; }
+  .signup-progress li { display: block; padding-bottom: 12px; }
+  .signup-progress li > span { margin-bottom: 7px; height: 24px; width: 24px; font-size: 11px; }
+  .signup-progress li > strong { font-size: 10px; line-height: 1.5; }
+  .signup-actions { gap: 10px; }
+  .signup-actions > .button { padding-inline: 13px; font-size: 10px; }
+  .signup-actions > .button.outline { min-width: 84px; }
+  .age-eligibility-note { padding: 16px 14px; gap: 10px; }
+  .age-eligibility-note strong { font-size: 14px; }
+  .age-eligibility-note p { font-size: 13px; }
+  .age-data-note { font-size: 12px; }
+  .age-questionnaire-heading { display: block; }
+  .age-questionnaire-heading h3 { font-size: 21px; }
+  .age-questionnaire-heading .age-refresh { font-size: 12px; margin-top: 5px; }
+  .age-questionnaire-intro { font-size: 13px; margin-top: 8px; }
+  .age-question > legend { font-size: 14px; line-height: 1.7; }
+  .age-question label { font-size: 14px; min-height: 49px; padding: 13px; }
+  .age-question input[type="radio"] { margin-top: 4px; }
+  .age-verification-card { padding: 22px 20px; margin-top: 22px; }
+  .age-verification-summary { gap: 11px; }
+  .age-verification-summary h2 { font-size: 23px; }
+  .age-verification-card > p { font-size: 14px; }
+  .age-check-next { padding: 17px; }
+  .age-check-next p { font-size: 14px; }
+  .age-check-next .text-link { font-size: 12px; line-height: 1.7; }
+  .age-review-form .signup-actions { flex-direction: column-reverse; align-items: stretch; }
+  .age-review-form .signup-actions > .button.outline { flex: auto; }
+}

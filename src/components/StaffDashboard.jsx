@@ -1,8 +1,17 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   ArrowLeft,
   ArrowRight,
   ArrowUpRight,
+  BadgeCheck,
+  CalendarDays,
+  IdCard,
   Check,
   CheckCircle2,
   ChevronDown,
@@ -104,7 +113,7 @@ async function request(path, options = {}) {
     });
   } catch {
     throw new ApiError(
-      "The order service could not be reached. Check your connection and try again.",
+      "The staff service could not be reached. Check your connection and try again.",
       0,
     );
   }
@@ -389,8 +398,512 @@ function OrderDetail({ order, onUpdate, saving, updateError }) {
   );
 }
 
+const ageStatusLabels = {
+  required: "Member submission needed",
+  pending: "Pending ID check",
+  verified: "18+ ID checked",
+  rejected: "Not verified",
+};
+
+const rejectionReasons = {
+  identity_not_confirmed:
+    "The original ID could not confirm the applicant's identity.",
+  details_mismatch: "The original ID did not match the submitted details.",
+  unable_to_verify: "The in-person age check could not be completed.",
+};
+
+function birthDateLabel(value) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value || "")) return "Not retained";
+  const date = new Date(`${value}T12:00:00Z`);
+  return Number.isNaN(date.getTime())
+    ? "Not available"
+    : date.toLocaleDateString("en-ZA", {
+        timeZone: "Africa/Johannesburg",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      });
+}
+
+function AgeReviewCard({ member, saving, blocked = false, error, onReview }) {
+  const status = member.ageVerification?.status || "required";
+  const submittedAt = member.ageVerification?.submittedAt;
+  const [reviewedSubmissionAt, setReviewedSubmissionAt] = useState(submittedAt);
+  const [expanded, setExpanded] = useState(false);
+  const [identityChecked, setIdentityChecked] = useState(false);
+  const [ageChecked, setAgeChecked] = useState(false);
+  const [decision, setDecision] = useState("");
+  const [reason, setReason] = useState("");
+  useEffect(() => {
+    setIdentityChecked(false);
+    setAgeChecked(false);
+    setDecision("");
+    setReason("");
+    setReviewedSubmissionAt(submittedAt);
+  }, [member.id, status, submittedAt, member.name, member.birthDate]);
+  const pending = status === "pending";
+  const canVerify =
+    pending &&
+    Boolean(member.birthDate) &&
+    Boolean(reviewedSubmissionAt) &&
+    reviewedSubmissionAt === submittedAt &&
+    identityChecked &&
+    ageChecked;
+  return (
+    <article className={`staff-age-card ${expanded ? "is-expanded" : ""}`}>
+      <button
+        className="staff-age-summary"
+        aria-expanded={expanded}
+        aria-controls={`age-detail-${member.id}`}
+        onClick={() => setExpanded(!expanded)}
+      >
+        <span className="staff-age-person">
+          <strong>{member.name}</strong>
+          <span>{member.email}</span>
+        </span>
+        <span className={`staff-age-status staff-age-status-${status}`}>
+          {ageStatusLabels[status]}
+        </span>
+        <ChevronRight size={18} className="staff-expand-icon" />
+      </button>
+      {expanded && (
+        <div className="staff-age-detail" id={`age-detail-${member.id}`}>
+          <dl className="staff-age-facts">
+            <div>
+              <dt>
+                <CalendarDays size={15} /> Declared date of birth
+              </dt>
+              <dd>{birthDateLabel(member.birthDate)}</dd>
+            </div>
+            <div>
+              <dt>Minimum age</dt>
+              <dd>18 years</dd>
+            </div>
+            <div>
+              <dt>Submitted</dt>
+              <dd>
+                {member.ageVerification?.submittedAt
+                  ? readableDate(member.ageVerification.submittedAt, true)
+                  : "Not submitted"}
+              </dd>
+            </div>
+            {member.ageVerification?.verifiedAt && (
+              <div>
+                <dt>ID checked</dt>
+                <dd>{readableDate(member.ageVerification.verifiedAt, true)}</dd>
+              </div>
+            )}
+          </dl>
+          {pending ? (
+            <>
+              <div className="staff-age-method">
+                <IdCard size={21} />
+                <div>
+                  <strong>In-person check of the original photo ID</strong>
+                  <p>
+                    Compare the government-issued ID with the person present.
+                    Check the photograph, full name and date of birth against
+                    this application. A date declaration or quiz result does not
+                    verify identity.
+                  </p>
+                </div>
+              </div>
+              <fieldset
+                className="staff-age-checks"
+                disabled={saving || blocked}
+              >
+                <legend>Checks you have completed</legend>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={identityChecked}
+                    onChange={(event) => {
+                      setIdentityChecked(event.target.checked);
+                      setDecision("");
+                    }}
+                  />
+                  <span>
+                    I checked the original valid government-issued photo ID and
+                    confirmed that its photograph, full name and date of birth
+                    match the person and application.
+                  </span>
+                </label>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={ageChecked}
+                    onChange={(event) => {
+                      setAgeChecked(event.target.checked);
+                      setDecision("");
+                    }}
+                  />
+                  <span>
+                    The original ID confirms this person is 18 years or older
+                    today.
+                  </span>
+                </label>
+              </fieldset>
+              <p className="staff-age-privacy">
+                Do not photograph, upload, copy or record an ID number here.
+                Once reviewed, the submitted date of birth is removed; only the
+                review outcome and audit details are retained.
+              </p>
+              <div className="staff-age-actions">
+                <button
+                  className="staff-action-button"
+                  disabled={saving || blocked || !canVerify}
+                  onClick={() => setDecision("verified")}
+                >
+                  <BadgeCheck size={17} /> Verify 18+ ID check
+                </button>
+                <button
+                  className="staff-secondary-button"
+                  disabled={saving || blocked}
+                  onClick={() => setDecision("rejected")}
+                >
+                  Do not verify
+                </button>
+              </div>
+              {decision && (
+                <div
+                  className="staff-age-confirm"
+                  role="region"
+                  aria-label="Confirm age check decision"
+                >
+                  <strong>
+                    {decision === "verified"
+                      ? "Record this completed in-person ID check?"
+                      : "Record that this application could not be verified?"}
+                  </strong>
+                  {decision === "verified" ? (
+                    <p>
+                      The member's age status will become “18+ ID checked”. This
+                      confirms the age check only; it does not authorize
+                      commercial sales.
+                    </p>
+                  ) : (
+                    <label className="staff-age-reason">
+                      Reason for not verifying
+                      <select
+                        value={reason}
+                        onChange={(event) => setReason(event.target.value)}
+                        disabled={saving || blocked}
+                        required
+                      >
+                        <option value="">Choose a reason</option>
+                        {Object.entries(rejectionReasons).map(
+                          ([value, label]) => (
+                            <option value={value} key={value}>
+                              {label}
+                            </option>
+                          ),
+                        )}
+                      </select>
+                    </label>
+                  )}
+                  <div className="staff-age-actions">
+                    <button
+                      className="staff-secondary-button"
+                      disabled={saving || blocked}
+                      onClick={() => setDecision("")}
+                    >
+                      Go back
+                    </button>
+                    <button
+                      className={`staff-action-button ${decision === "rejected" ? "staff-action-danger" : ""}`}
+                      disabled={
+                        saving ||
+                        blocked ||
+                        (decision === "verified" ? !canVerify : !reason)
+                      }
+                      onClick={() =>
+                        onReview(
+                          member.id,
+                          decision === "verified"
+                            ? {
+                                decision,
+                                method: "in_person",
+                                expectedSubmittedAt: reviewedSubmissionAt,
+                                identityChecked,
+                                ageChecked,
+                              }
+                            : {
+                                decision,
+                                method: "in_person",
+                                expectedSubmittedAt: reviewedSubmissionAt,
+                                reason,
+                              },
+                        )
+                      }
+                    >
+                      {saving ? (
+                        <LoaderCircle size={16} className="staff-spin" />
+                      ) : (
+                        <Check size={16} />
+                      )}
+                      {saving
+                        ? "Saving check…"
+                        : decision === "verified"
+                          ? "Confirm completed ID check"
+                          : "Confirm not verified"}
+                    </button>
+                  </div>
+                </div>
+              )}
+              {error && (
+                <p className="staff-error-message" role="alert">
+                  {error}
+                </p>
+              )}
+            </>
+          ) : (
+            <div className="staff-age-outcome">
+              <ShieldCheck size={20} />
+              <p>
+                {status === "verified"
+                  ? "An in-person 18+ ID check was recorded. The submitted date of birth is no longer retained."
+                  : status === "rejected"
+                    ? rejectionReasons[member.ageVerification?.reason] ||
+                      "The application was not verified. The member must submit a new age-check request from their account before staff can review it again."
+                    : "The member must submit their date of birth, consent and responsible-use questions from their account before an in-person ID check can be reviewed here."}
+                {status === "rejected" &&
+                  " The member can submit a new request from their account."}
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+    </article>
+  );
+}
+
+function AgeVerificationQueue({ onSessionExpired, onNotice }) {
+  const [members, setMembers] = useState([]);
+  const [status, setStatus] = useState("pending");
+  const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [savingId, setSavingId] = useState(null);
+  const [reviewError, setReviewError] = useState("");
+  const [reviewErrorId, setReviewErrorId] = useState(null);
+  const [updatedAt, setUpdatedAt] = useState(null);
+  const loadId = useRef(0);
+  const load = useCallback(
+    async ({ quiet = false } = {}) => {
+      const currentLoad = ++loadId.current;
+      if (!quiet) setLoading(true);
+      try {
+        const data = await request(
+          `/api/admin/members/age-verifications?status=${encodeURIComponent(status)}`,
+        );
+        if (currentLoad !== loadId.current) return;
+        if (!Array.isArray(data.members))
+          throw new ApiError(
+            "The server returned an invalid age-check list. Please refresh.",
+            502,
+          );
+        setMembers(data.members);
+        setError("");
+        setUpdatedAt(new Date());
+      } catch (problem) {
+        if (currentLoad !== loadId.current) return;
+        if (problem.status === 401) onSessionExpired();
+        else setError(problem.message);
+      } finally {
+        if (currentLoad === loadId.current) setLoading(false);
+      }
+    },
+    [status, onSessionExpired],
+  );
+  useEffect(() => {
+    load();
+  }, [load]);
+  useEffect(() => {
+    const timer = setInterval(() => {
+      if (!document.hidden) load({ quiet: true });
+    }, 30000);
+    return () => clearInterval(timer);
+  }, [load]);
+  const displayed = members.filter((member) =>
+    `${member.name} ${member.email}`
+      .toLowerCase()
+      .includes(search.trim().toLowerCase()),
+  );
+  async function review(id, payload) {
+    if (savingId) return;
+    setSavingId(id);
+    setReviewError("");
+    setReviewErrorId(id);
+    try {
+      const data = await request(
+        `/api/admin/members/${encodeURIComponent(id)}/age-verification`,
+        { method: "POST", body: JSON.stringify(payload) },
+      );
+      if (data.member?.ageVerification?.status !== payload.decision)
+        throw new ApiError(
+          "The server did not confirm the review outcome. Refresh the list before retrying.",
+          502,
+        );
+      setMembers((current) => current.filter((member) => member.id !== id));
+      onNotice(
+        payload.decision === "verified"
+          ? "Completed in-person 18+ ID check recorded"
+          : "Application marked not verified",
+      );
+      await load({ quiet: true });
+    } catch (problem) {
+      if (problem.status === 401) onSessionExpired();
+      else {
+        setReviewError(problem.message);
+        if (problem.status === 409) {
+          await load({ quiet: true });
+          setError(
+            problem.message ||
+              "This application changed. Review the latest details before recording an ID check.",
+          );
+        }
+      }
+    } finally {
+      setSavingId(null);
+    }
+  }
+  return (
+    <section
+      className="staff-age-workspace"
+      aria-labelledby="staff-age-heading"
+    >
+      <div className="staff-age-heading">
+        <div>
+          <span className="staff-eyebrow">MEMBER AGE VERIFICATION</span>
+          <h2 id="staff-age-heading">Review original photo ID.</h2>
+          <p>
+            Review adult eligibility with the person present. Question answers
+            and date declarations are not identity proof.
+          </p>
+        </div>
+        <button
+          className="staff-secondary-button"
+          disabled={loading}
+          onClick={() => load()}
+        >
+          <RefreshCw size={16} className={loading ? "staff-spin" : ""} />
+          {loading ? "Refreshing…" : "Refresh age checks"}
+        </button>
+      </div>
+      <div className="staff-age-toolbar">
+        <div
+          className="staff-filter-tabs"
+          role="group"
+          aria-label="Filter age checks"
+        >
+          {[
+            ["pending", "Pending"],
+            ["required", "Submission needed"],
+            ["verified", "Verified"],
+            ["rejected", "Not verified"],
+          ].map(([value, label]) => (
+            <button
+              key={value}
+              className={status === value ? "selected" : ""}
+              aria-pressed={status === value}
+              disabled={Boolean(savingId)}
+              onClick={() => {
+                loadId.current += 1;
+                setStatus(value);
+                setMembers([]);
+                setReviewError("");
+                setReviewErrorId(null);
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <label className="staff-search">
+          <Search size={17} />
+          <input
+            aria-label="Search member age checks"
+            type="search"
+            placeholder="Find a member by name or email"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+          />
+        </label>
+      </div>
+      {error && (
+        <div className="staff-service-error" role="alert">
+          <span>{error}</span>
+          <button onClick={() => load()}>
+            Try again <RefreshCw size={14} />
+          </button>
+        </div>
+      )}
+      {loading && members.length === 0 ? (
+        <div className="staff-age-loading" role="status">
+          <LoaderCircle size={22} className="staff-spin" />
+          Loading member age checks…
+        </div>
+      ) : displayed.length ? (
+        <div className="staff-age-list">
+          {displayed.map((member) => (
+            <AgeReviewCard
+              key={member.id}
+              member={member}
+              saving={savingId === member.id}
+              blocked={Boolean(savingId) && savingId !== member.id}
+              error={reviewErrorId === member.id ? reviewError : ""}
+              onReview={review}
+            />
+          ))}
+        </div>
+      ) : (
+        !error && (
+          <div className="staff-empty staff-age-empty">
+            <span>
+              <IdCard size={30} />
+            </span>
+            <h3>
+              {search
+                ? "No members match your search."
+                : status === "pending"
+                  ? "No pending ID checks."
+                  : "No members in this status."}
+            </h3>
+            <p>
+              {search
+                ? "Try a different name or clear the search."
+                : status === "pending"
+                  ? "New adult age-check submissions will appear here. Members complete their date declaration and questions before staff review an original photo ID."
+                  : "Choose another age-check status to view its members."}
+            </p>
+            {search && (
+              <button
+                className="staff-secondary-button"
+                onClick={() => setSearch("")}
+              >
+                Clear search <X size={15} />
+              </button>
+            )}
+          </div>
+        )
+      )}
+      <div className="staff-age-list-footer">
+        <span>
+          {displayed.length} member{displayed.length === 1 ? "" : "s"}
+        </span>
+        <span>
+          {updatedAt
+            ? `Updated ${updatedAt.toLocaleTimeString("en-ZA", { timeZone: "Africa/Johannesburg", hour: "2-digit", minute: "2-digit" })} SAST`
+            : "Updates every 30 seconds"}
+        </span>
+      </div>
+    </section>
+  );
+}
+
 export default function StaffDashboard() {
   const [auth, setAuth] = useState("checking");
+  const [workspace, setWorkspace] = useState("orders");
   const [orders, setOrders] = useState([]);
   const [config, setConfig] = useState(null);
   const [password, setPassword] = useState("");
@@ -406,6 +919,11 @@ export default function StaffDashboard() {
   const [updateError, setUpdateError] = useState("");
   const [notice, setNotice] = useState("");
   const [updatedAt, setUpdatedAt] = useState(null);
+
+  const sessionExpired = useCallback(() => {
+    setAuth("login");
+    setOrders([]);
+  }, []);
 
   const loadOrders = useCallback(async ({ quiet = false } = {}) => {
     if (!quiet) setLoading(true);
@@ -737,14 +1255,22 @@ export default function StaffDashboard() {
         <span className="staff-workspace-label">THE STAFF WORKSPACE</span>
         <nav aria-label="Staff navigation">
           <button
-            className="staff-nav-active"
+            className={workspace === "orders" ? "staff-nav-active" : ""}
             onClick={() => {
+              setWorkspace("orders");
               setFilter("all");
               setSearch("");
             }}
           >
             <ClipboardList size={17} />
             Order requests<span>{orders.length}</span>
+          </button>
+          <button
+            className={workspace === "age" ? "staff-nav-active" : ""}
+            onClick={() => setWorkspace("age")}
+          >
+            <IdCard size={17} />
+            Age checks
           </button>
           <a href="/">
             <ShoppingBag size={17} />
@@ -791,261 +1317,343 @@ export default function StaffDashboard() {
           <div className="staff-page-heading">
             <div>
               <span className="staff-eyebrow">GOOD THINGS TO TAKE CARE OF</span>
-              <h1>Every request. A little care.</h1>
+              <h1>
+                {workspace === "age"
+                  ? "Adult age checks. A little care."
+                  : "Every request. A little care."}
+              </h1>
               <p>
-                Review requests, verify the details, and keep your team in step.
+                {workspace === "age"
+                  ? "Check original photo ID and record a clear, private review outcome."
+                  : "Review requests, verify the details, and keep your team in step."}
               </p>
             </div>
+            {workspace === "orders" && (
+              <button
+                className="staff-secondary-button staff-refresh"
+                onClick={() => loadOrders()}
+                disabled={loading}
+              >
+                <RefreshCw size={15} className={loading ? "staff-spin" : ""} />
+                {loading ? "Refreshing…" : "Refresh"}
+              </button>
+            )}
+          </div>
+          <div
+            className="staff-workspace-tabs"
+            role="tablist"
+            aria-label="Staff workspace"
+            onKeyDown={(event) => {
+              if (
+                !["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)
+              )
+                return;
+              event.preventDefault();
+              const next =
+                event.key === "Home"
+                  ? "orders"
+                  : event.key === "End"
+                    ? "age"
+                    : workspace === "orders"
+                      ? "age"
+                      : "orders";
+              setWorkspace(next);
+              document
+                .getElementById(
+                  next === "orders" ? "staff-orders-tab" : "staff-age-tab",
+                )
+                ?.focus();
+            }}
+          >
             <button
-              className="staff-secondary-button staff-refresh"
-              onClick={() => loadOrders()}
-              disabled={loading}
+              id="staff-orders-tab"
+              role="tab"
+              aria-selected={workspace === "orders"}
+              tabIndex={workspace === "orders" ? 0 : -1}
+              aria-controls="staff-orders-panel"
+              onClick={() => setWorkspace("orders")}
             >
-              <RefreshCw size={15} className={loading ? "staff-spin" : ""} />
-              {loading ? "Refreshing…" : "Refresh"}
+              <ClipboardList size={17} />
+              Order requests
+            </button>
+            <button
+              id="staff-age-tab"
+              role="tab"
+              aria-selected={workspace === "age"}
+              tabIndex={workspace === "age" ? 0 : -1}
+              aria-controls="staff-age-panel"
+              onClick={() => setWorkspace("age")}
+            >
+              <IdCard size={17} />
+              Age checks
             </button>
           </div>
-          {!isLive && (
-            <section className="staff-readiness-notice">
-              <ShieldCheck size={21} />
-              <div>
-                <strong>Live intake is not enabled.</strong>
-                <p>
-                  {missing.length
-                    ? `Configure ${missing.join(", ")} before accepting live requests.`
-                    : "Configure the business’s lawful sales authorization, store details, delivery coverage, and live-intake setting before launch."}
-                </p>
-                <small>
-                  Commercial cannabis sales require appropriate authorization.
-                  This workspace does not verify that authorization for you.
-                </small>
-              </div>
-            </section>
-          )}
-          {serviceError && (
-            <div className="staff-service-error" role="alert">
-              <span>{serviceError}</span>
-              <button onClick={() => loadOrders()}>
-                Try again <RefreshCw size={13} />
-              </button>
-            </div>
-          )}
-          <section className="staff-stats" aria-label="Request overview">
-            {[
-              {
-                name: "New requests",
-                count: counts.pending,
-                icon: Clock3,
-                filter: "pending",
-                color: "orange",
-              },
-              {
-                name: "In progress",
-                count: counts.active,
-                icon: Truck,
-                filter: "active",
-                color: "green",
-              },
-              {
-                name: "Completed",
-                count: counts.completed,
-                icon: PackageCheck,
-                filter: "completed",
-                color: "olive",
-              },
-              {
-                name: "All requests",
-                count: orders.length,
-                icon: ClipboardList,
-                filter: "all",
-                color: "neutral",
-              },
-            ].map(({ name, count, icon: Icon, filter: nextFilter, color }) => (
-              <button
-                key={name}
-                className={`staff-stat ${filter === nextFilter ? "is-selected" : ""}`}
-                onClick={() => setFilter(nextFilter)}
-              >
+          <div
+            id="staff-orders-panel"
+            role="tabpanel"
+            aria-labelledby="staff-orders-tab"
+            hidden={workspace !== "orders"}
+          >
+            {!isLive && (
+              <section className="staff-readiness-notice">
+                <ShieldCheck size={21} />
                 <div>
-                  <span>{name}</span>
-                  <strong>{count}</strong>
+                  <strong>Live intake is not enabled.</strong>
+                  <p>
+                    {missing.length
+                      ? `Configure ${missing.join(", ")} before accepting live requests.`
+                      : "Configure the business’s lawful sales authorization, store details, delivery coverage, and live-intake setting before launch."}
+                  </p>
+                  <small>
+                    Commercial cannabis sales require appropriate authorization.
+                    This workspace does not verify that authorization for you.
+                  </small>
                 </div>
-                <span className={`staff-stat-icon ${color}`}>
-                  <Icon size={20} />
-                </span>
-              </button>
-            ))}
-          </section>
-          <section className="staff-requests">
-            <div className="staff-request-section-heading">
-              <h2>
-                The daily good<span>.</span>
-              </h2>
-              <p>
-                {updatedAt
-                  ? `Updated ${updatedAt.toLocaleTimeString("en-ZA", { timeZone: "Africa/Johannesburg", hour: "2-digit", minute: "2-digit" })} SAST`
-                  : "Updates every 30 seconds"}
-              </p>
-            </div>
-            <div className="staff-request-toolbar">
-              <div
-                className="staff-filter-tabs"
-                role="group"
-                aria-label="Filter requests"
-              >
-                {[
-                  ["all", "All requests"],
-                  ["pending", "New"],
-                  ["active", "In progress"],
-                  ["completed", "Completed"],
-                  ["cancelled", "Cancelled"],
-                ].map(([value, label]) => (
-                  <button
-                    key={value}
-                    className={filter === value ? "selected" : ""}
-                    onClick={() => setFilter(value)}
-                  >
-                    {label}
-                    {value === "pending" && counts.pending > 0 && (
-                      <span>{counts.pending}</span>
-                    )}
-                  </button>
-                ))}
-              </div>
-              <div className="staff-request-tools">
-                <label className="staff-search">
-                  <Search size={16} />
-                  <input
-                    aria-label="Search order requests"
-                    type="search"
-                    value={search}
-                    onChange={(event) => setSearch(event.target.value)}
-                    placeholder="Find an order or customer"
-                  />
-                </label>
-                <div className="staff-select-wrap">
-                  <select
-                    aria-label="Filter fulfillment"
-                    value={fulfillment}
-                    onChange={(event) => setFulfillment(event.target.value)}
-                  >
-                    <option value="all">All fulfillment</option>
-                    <option value="delivery">Delivery</option>
-                    <option value="pickup">Pickup</option>
-                  </select>
-                  <ChevronDown size={13} />
-                </div>
-              </div>
-            </div>
-            <div className="staff-list-header" aria-hidden="true">
-              <span>REQUEST / CUSTOMER</span>
-              <span>FULFILLMENT</span>
-              <span>STATUS</span>
-              <span>TOTAL</span>
-              <span />
-            </div>
-            {displayedOrders.length ? (
-              <div className="staff-order-list">
-                {displayedOrders.map((order) => {
-                  const expanded = expandedId === order.id;
-                  const quantity = (order.items || []).reduce(
-                    (sum, item) => sum + item.quantity,
-                    0,
-                  );
-                  return (
-                    <article
-                      className={`staff-order ${expanded ? "is-expanded" : ""}`}
-                      key={order.id}
-                    >
-                      <button
-                        className="staff-order-summary"
-                        aria-expanded={expanded}
-                        aria-controls={`detail-${order.id}`}
-                        onClick={() => {
-                          setExpandedId(expanded ? null : order.id);
-                          setUpdateError("");
-                        }}
-                      >
-                        <div className="staff-order-identity">
-                          <strong>{order.id}</strong>
-                          <span>
-                            {order.customer?.name || "Customer"}{" "}
-                            <span className="staff-dot-separator">·</span>{" "}
-                            {quantity} item{quantity === 1 ? "" : "s"}
-                          </span>
-                          <small>{readableDate(order.createdAt)}</small>
-                        </div>
-                        <div className="staff-fulfillment">
-                          {order.fulfillment === "pickup" ? (
-                            <ShoppingBag size={15} />
-                          ) : (
-                            <Truck size={16} />
-                          )}
-                          <span>
-                            {order.fulfillment === "pickup"
-                              ? "Pickup"
-                              : "Delivery"}
-                          </span>
-                        </div>
-                        <Status value={order.status} />
-                        <strong className="staff-order-amount">
-                          {formatMoney(order.totals?.total || 0)}
-                        </strong>
-                        <ChevronRight className="staff-expand-icon" size={17} />
-                      </button>
-                      {expanded && (
-                        <div id={`detail-${order.id}`}>
-                          <OrderDetail
-                            order={order}
-                            onUpdate={updateOrder}
-                            saving={savingId === order.id}
-                            updateError={updateError}
-                          />
-                        </div>
-                      )}
-                    </article>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="staff-empty">
-                <span>
-                  <ClipboardList size={30} />
-                </span>
-                <h3>
-                  {orders.length
-                    ? "No requests match that search."
-                    : "A fresh start. Good things ahead."}
-                </h3>
-                <p>
-                  {orders.length
-                    ? "Try another name, order number, or filter."
-                    : "New customer requests will appear here when live intake is configured and enabled."}
-                </p>
-                {orders.length > 0 && (
-                  <button
-                    className="staff-secondary-button"
-                    onClick={() => {
-                      setFilter("all");
-                      setFulfillment("all");
-                      setSearch("");
-                    }}
-                  >
-                    Clear filters <X size={14} />
-                  </button>
-                )}
+              </section>
+            )}
+            {serviceError && (
+              <div className="staff-service-error" role="alert">
+                <span>{serviceError}</span>
+                <button onClick={() => loadOrders()}>
+                  Try again <RefreshCw size={13} />
+                </button>
               </div>
             )}
-            <div className="staff-list-footer">
-              <span>
-                {displayedOrders.length} of {orders.length} requests
-              </span>
-              <span>
-                <ShieldCheck size={12} />
-                Manual review. Thoughtful fulfillment.
-              </span>
-            </div>
-          </section>
+            <section className="staff-stats" aria-label="Request overview">
+              {[
+                {
+                  name: "New requests",
+                  count: counts.pending,
+                  icon: Clock3,
+                  filter: "pending",
+                  color: "orange",
+                },
+                {
+                  name: "In progress",
+                  count: counts.active,
+                  icon: Truck,
+                  filter: "active",
+                  color: "green",
+                },
+                {
+                  name: "Completed",
+                  count: counts.completed,
+                  icon: PackageCheck,
+                  filter: "completed",
+                  color: "olive",
+                },
+                {
+                  name: "All requests",
+                  count: orders.length,
+                  icon: ClipboardList,
+                  filter: "all",
+                  color: "neutral",
+                },
+              ].map(
+                ({ name, count, icon: Icon, filter: nextFilter, color }) => (
+                  <button
+                    key={name}
+                    className={`staff-stat ${filter === nextFilter ? "is-selected" : ""}`}
+                    onClick={() => setFilter(nextFilter)}
+                  >
+                    <div>
+                      <span>{name}</span>
+                      <strong>{count}</strong>
+                    </div>
+                    <span className={`staff-stat-icon ${color}`}>
+                      <Icon size={20} />
+                    </span>
+                  </button>
+                ),
+              )}
+            </section>
+            <section className="staff-requests">
+              <div className="staff-request-section-heading">
+                <h2>
+                  The daily good<span>.</span>
+                </h2>
+                <p>
+                  {updatedAt
+                    ? `Updated ${updatedAt.toLocaleTimeString("en-ZA", { timeZone: "Africa/Johannesburg", hour: "2-digit", minute: "2-digit" })} SAST`
+                    : "Updates every 30 seconds"}
+                </p>
+              </div>
+              <div className="staff-request-toolbar">
+                <div
+                  className="staff-filter-tabs"
+                  role="group"
+                  aria-label="Filter requests"
+                >
+                  {[
+                    ["all", "All requests"],
+                    ["pending", "New"],
+                    ["active", "In progress"],
+                    ["completed", "Completed"],
+                    ["cancelled", "Cancelled"],
+                  ].map(([value, label]) => (
+                    <button
+                      key={value}
+                      className={filter === value ? "selected" : ""}
+                      onClick={() => setFilter(value)}
+                    >
+                      {label}
+                      {value === "pending" && counts.pending > 0 && (
+                        <span>{counts.pending}</span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+                <div className="staff-request-tools">
+                  <label className="staff-search">
+                    <Search size={16} />
+                    <input
+                      aria-label="Search order requests"
+                      type="search"
+                      value={search}
+                      onChange={(event) => setSearch(event.target.value)}
+                      placeholder="Find an order or customer"
+                    />
+                  </label>
+                  <div className="staff-select-wrap">
+                    <select
+                      aria-label="Filter fulfillment"
+                      value={fulfillment}
+                      onChange={(event) => setFulfillment(event.target.value)}
+                    >
+                      <option value="all">All fulfillment</option>
+                      <option value="delivery">Delivery</option>
+                      <option value="pickup">Pickup</option>
+                    </select>
+                    <ChevronDown size={13} />
+                  </div>
+                </div>
+              </div>
+              <div className="staff-list-header" aria-hidden="true">
+                <span>REQUEST / CUSTOMER</span>
+                <span>FULFILLMENT</span>
+                <span>STATUS</span>
+                <span>TOTAL</span>
+                <span />
+              </div>
+              {displayedOrders.length ? (
+                <div className="staff-order-list">
+                  {displayedOrders.map((order) => {
+                    const expanded = expandedId === order.id;
+                    const quantity = (order.items || []).reduce(
+                      (sum, item) => sum + item.quantity,
+                      0,
+                    );
+                    return (
+                      <article
+                        className={`staff-order ${expanded ? "is-expanded" : ""}`}
+                        key={order.id}
+                      >
+                        <button
+                          className="staff-order-summary"
+                          aria-expanded={expanded}
+                          aria-controls={`detail-${order.id}`}
+                          onClick={() => {
+                            setExpandedId(expanded ? null : order.id);
+                            setUpdateError("");
+                          }}
+                        >
+                          <div className="staff-order-identity">
+                            <strong>{order.id}</strong>
+                            <span>
+                              {order.customer?.name || "Customer"}{" "}
+                              <span className="staff-dot-separator">·</span>{" "}
+                              {quantity} item{quantity === 1 ? "" : "s"}
+                            </span>
+                            <small>{readableDate(order.createdAt)}</small>
+                          </div>
+                          <div className="staff-fulfillment">
+                            {order.fulfillment === "pickup" ? (
+                              <ShoppingBag size={15} />
+                            ) : (
+                              <Truck size={16} />
+                            )}
+                            <span>
+                              {order.fulfillment === "pickup"
+                                ? "Pickup"
+                                : "Delivery"}
+                            </span>
+                          </div>
+                          <Status value={order.status} />
+                          <strong className="staff-order-amount">
+                            {formatMoney(order.totals?.total || 0)}
+                          </strong>
+                          <ChevronRight
+                            className="staff-expand-icon"
+                            size={17}
+                          />
+                        </button>
+                        {expanded && (
+                          <div id={`detail-${order.id}`}>
+                            <OrderDetail
+                              order={order}
+                              onUpdate={updateOrder}
+                              saving={savingId === order.id}
+                              updateError={updateError}
+                            />
+                          </div>
+                        )}
+                      </article>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="staff-empty">
+                  <span>
+                    <ClipboardList size={30} />
+                  </span>
+                  <h3>
+                    {orders.length
+                      ? "No requests match that search."
+                      : "A fresh start. Good things ahead."}
+                  </h3>
+                  <p>
+                    {orders.length
+                      ? "Try another name, order number, or filter."
+                      : "New customer requests will appear here when live intake is configured and enabled."}
+                  </p>
+                  {orders.length > 0 && (
+                    <button
+                      className="staff-secondary-button"
+                      onClick={() => {
+                        setFilter("all");
+                        setFulfillment("all");
+                        setSearch("");
+                      }}
+                    >
+                      Clear filters <X size={14} />
+                    </button>
+                  )}
+                </div>
+              )}
+              <div className="staff-list-footer">
+                <span>
+                  {displayedOrders.length} of {orders.length} requests
+                </span>
+                <span>
+                  <ShieldCheck size={12} />
+                  Manual review. Thoughtful fulfillment.
+                </span>
+              </div>
+            </section>
+          </div>
+          <div
+            id="staff-age-panel"
+            role="tabpanel"
+            aria-labelledby="staff-age-tab"
+            hidden={workspace !== "age"}
+          >
+            {workspace === "age" && (
+              <AgeVerificationQueue
+                onSessionExpired={sessionExpired}
+                onNotice={setNotice}
+              />
+            )}
+          </div>
         </main>
         <footer className="staff-dashboard-footer">
           <span>

@@ -347,7 +347,7 @@ function Storefront() {
     [],
     cleanFavorites,
   );
-  const [ageVerified, setAgeVerified] = useSavedState(
+  const [ageAcknowledged, setAgeAcknowledged] = useSavedState(
     "lc-age-confirmed",
     false,
     (value) => value === true,
@@ -507,8 +507,12 @@ function Storefront() {
   useEffect(() => {
     document.title = `Loud + Cana — ${PAGE_TITLES[page]}`;
     const canonical = `https://loud-cana.onrender.com${routePath === "/" ? "/" : routePath}`;
-    document.querySelector('link[rel="canonical"]')?.setAttribute("href", canonical);
-    document.querySelector('meta[property="og:url"]')?.setAttribute("content", canonical);
+    document
+      .querySelector('link[rel="canonical"]')
+      ?.setAttribute("href", canonical);
+    document
+      .querySelector('meta[property="og:url"]')
+      ?.setAttribute("content", canonical);
     setMenuOpen(false);
     setModal(null);
     window.scrollTo({ top: 0, behavior: "instant" });
@@ -572,7 +576,7 @@ function Storefront() {
   };
 
   function addToCart(product, quantity = 1, sizeIndex = 0) {
-    if (!ageVerified) {
+    if (!ageAcknowledged) {
       setPendingAdd({ product, quantity, sizeIndex });
       setModal("age");
       return;
@@ -642,6 +646,18 @@ function Storefront() {
       setModal("cart");
       return;
     }
+    if (!member) {
+      goToPage("/signup");
+      notify(
+        "Create a member account and complete an ID age check before ordering.",
+      );
+      return;
+    }
+    if (member.ageVerification?.status !== "verified") {
+      goToPage("/account");
+      notify("Complete your ID age check before submitting an order.");
+      return;
+    }
     setCheckout((values) => ({
       ...values,
       address: values.address || location.address,
@@ -664,9 +680,15 @@ function Storefront() {
   async function placeOrder(event) {
     event.preventDefault();
     if (submitting || !live) return;
+    if (!member || member.ageVerification?.status !== "verified") {
+      setCheckoutError(
+        "An ID age check is required before an order can be submitted. Visit your account to complete it.",
+      );
+      return;
+    }
     const nextErrors = validateCheckout(checkout, mode);
-    if (!checkout.confirmed || !ageVerified)
-      nextErrors.confirmed = "Please confirm you are 21 or older.";
+    if (!checkout.confirmed || !ageAcknowledged)
+      nextErrors.confirmed = "Please confirm you are 18 or older.";
     if (
       live &&
       mode === "delivery" &&
@@ -973,7 +995,7 @@ function Storefront() {
                   </div>
                 </div>
                 <span className="hero-age">
-                  21+<small>ADULTS ONLY</small>
+                  18+<small>ADULTS ONLY</small>
                 </span>
               </div>
             </section>
@@ -1545,8 +1567,8 @@ function Storefront() {
           </div>
         </div>
         <div className="footer-bottom container">
-          <span className="responsible-age">21+</span>
-          <p>For adults 21 years and older. Please consume responsibly.</p>
+          <span className="responsible-age">18+</span>
+          <p>For adults 18 years and older. Please consume responsibly.</p>
           <Link to="/terms">Terms & Conditions</Link>
           <Link to="/privacy">Privacy Policy</Link>
           <Link to="/responsible-use">Responsible Use</Link>
@@ -1696,7 +1718,7 @@ function Storefront() {
                   className="button dark"
                   onClick={() => {
                     addToCart(selectedProduct, productQuantity, selectedSize);
-                    if (ageVerified) setModal(null);
+                    if (ageAcknowledged) setModal(null);
                   }}
                 >
                   {live ? "Add to bag" : "Add to selection"} ·{" "}
@@ -1716,7 +1738,7 @@ function Storefront() {
         <Modal onClose={closeModal} title="Confirm your age">
           <div className="age-dialog">
             <span className="age-symbol">
-              21<span>+</span>
+              18<span>+</span>
             </span>
             <span className="eyebrow">GOOD THINGS. FOR GROWN-UPS.</span>
             <h2>
@@ -1725,14 +1747,14 @@ function Storefront() {
               come with age.
             </h2>
             <p>
-              Loud + Cana is for adults 21 and older.
+              Loud + Cana is for adults 18 and older.
               <br />
-              Please confirm your age to continue shopping.
+              Please confirm you are 18 or older to explore the collection.
             </p>
             <button
               className="button dark"
               onClick={() => {
-                setAgeVerified(true);
+                setAgeAcknowledged(true);
                 if (pendingAdd)
                   commitAdd(
                     pendingAdd.product,
@@ -1743,7 +1765,7 @@ function Storefront() {
                 setModal(null);
               }}
             >
-              I’m 21 or older <ArrowRight size={18} />
+              I’m 18 or older <ArrowRight size={18} />
             </button>
             <button
               className="underage-button"
@@ -1752,10 +1774,11 @@ function Storefront() {
                 setModal("underage");
               }}
             >
-              I’m under 21
+              I’m under 18
             </button>
             <small>
-              Valid government-issued ID is required for any real delivery.
+              This declaration does not verify identity. An original photo ID
+              must be checked before ordering.
               <br />
               {live
                 ? "Orders require store acceptance and eligibility verification."
@@ -1774,7 +1797,7 @@ function Storefront() {
               for later.
             </h2>
             <p>
-              This shop is for adults 21 and older. You won’t be able to add
+              This shop is for adults 18 and older. You won’t be able to add
               products or place an order.
             </p>
             <button className="button dark" onClick={closeModal}>
@@ -1903,7 +1926,7 @@ function Storefront() {
                 )}
                 <p className="cart-note">
                   {live
-                    ? "Adults 21+ · Store-reviewed requests"
+                    ? "Adults 18+ · Store-reviewed requests"
                     : "Collection only · No order or payment has been submitted"}
                 </p>
               </>
@@ -2086,8 +2109,9 @@ function Storefront() {
                   }}
                 />
                 <span>
-                  I confirm I am 21 or older. I understand the store must verify
-                  eligibility before fulfilling any real order.
+                  I confirm I am 18 or older. My account must have a completed
+                  ID age check, and the store must confirm eligibility before
+                  fulfilment.
                 </span>
               </label>
               {errors.confirmed && (
@@ -2361,7 +2385,7 @@ function Storefront() {
                     <strong>How does this app work?</strong>
                     <p>
                       {live
-                        ? "Browse products, confirm you’re 21+, and submit an order request. The store reviews eligibility and availability before accepting the request."
+                        ? "Browse products, confirm you’re 18+, and submit an order request. The store reviews eligibility and availability before accepting the request."
                         : "Explore the collection, save your favourites, and build a personal selection. Online ordering is not yet open; no order or payment is submitted from the catalog."}
                     </p>
                   </div>
@@ -2429,7 +2453,7 @@ function Storefront() {
                     Product selection, pricing, potency, and availability
                     require business approval. No verified stock or
                     commercial-sales authorization is represented by this
-                    catalog. Adults 21+ only.
+                    catalog. Adults 18+ only.
                   </p>
                 )}
               </>

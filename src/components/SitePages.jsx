@@ -346,7 +346,7 @@ function ContactPage({ store, onNavigate }) {
   );
 }
 
-function PrivacyPage({ onNavigate }) {
+function PrivacyPage({ onNavigate, store = {} }) {
   return (
     <div className="page-shell container legal-page">
       <PageIntro kicker="YOUR INFORMATION" title="Privacy, explained.">
@@ -363,9 +363,35 @@ function PrivacyPage({ onNavigate }) {
             unique salt; the service does not store your original password.
           </p>
           <p>
-            An account does not establish identity, eligibility to purchase, or
-            verified ownership of an email address. Membership currently
-            provides a free website account, not a paid subscription.
+            Your date of birth is checked against the 18-year adult threshold
+            using the South African date. A declaration and awareness quiz do
+            not prove identity. New accounts remain pending until authorised
+            staff check an original photo ID against the person, full name, and
+            date of birth. Email ownership is not independently verified.
+            Membership is a free account, not a paid subscription.
+          </p>
+        </section>
+        <section className="legal-section">
+          <h2>Date of birth and ID age checks</h2>
+          <p>
+            We use your birth date only to assess adult eligibility and support
+            the staff ID check you request. Applicants under 18 cannot create an
+            account; their birth date is not saved as a member record. Pending
+            dates are removed after a review or when the 30-day submission
+            expires. An expired application needs a fresh check.
+          </p>
+          <p>
+            Do not upload or send ID numbers, ID photos, or document copies
+            through signup. The service records the check's status, method,
+            time, and a staff audit reference. It does not retain the original
+            document. A name change requires a new ID check. Random questions
+            record completion of awareness steps; they do not verify age.
+          </p>
+          <p>
+            You can stop before submitting or close your account later. If you
+            decline the necessary age-check processing, ID verification and
+            order submission are unavailable. Browsing does not require an ID
+            upload.
           </p>
         </section>
         <section className="legal-section">
@@ -413,9 +439,9 @@ function PrivacyPage({ onNavigate }) {
           <p>
             You can edit your profile, change your password, and manage your
             member account from the account page. Account deletion removes the
-            member profile, saved favourites, and sign-in sessions. Existing
-            order records are separate business records and may require a
-            retention or deletion review by the business.
+            member profile, saved favourites, age-check information, and sign-in
+            sessions. Existing order records are separate business records and
+            may require a retention or deletion review by the business.
           </p>
           <PageLink to="/account" onNavigate={onNavigate}>
             Manage your account <ArrowRight size={16} />
@@ -424,11 +450,14 @@ function PrivacyPage({ onNavigate }) {
         <section className="legal-section">
           <h2>Privacy requests</h2>
           <p>
-            Use the business contact details on the contact page for questions
-            about access, correction, retention, or deletion of personal
-            information. Hosting and database retention are managed by the
-            business. The business should confirm its applicable privacy
-            obligations and operating policy before taking customer orders.
+            {store.businessName || "Loud + Cana"} is responsible for the member
+            information it processes. The operating address and public contact
+            details are on the contact page. Use those details to request
+            access, correction, or deletion, or to ask about retention and
+            hosting operators. Hosting may involve processing outside South
+            Africa; ask the business about its applicable transfer safeguards.
+            You may also raise a concern with South Africa's Information
+            Regulator.
           </p>
           <PageLink to="/contact" onNavigate={onNavigate}>
             Contact the business <ArrowRight size={16} />
@@ -448,12 +477,15 @@ function TermsPage({ onNavigate }) {
       </PageIntro>
       <div className="page-prose legal-content">
         <section className="legal-section">
-          <h2>Adults 21 and older</h2>
+          <h2>Adults 18 and older</h2>
           <p>
-            This website is intended for adults aged 21 or older. An age
-            acknowledgement or member account is not proof of identity or
-            purchase eligibility. The business must complete its applicable
-            checks before any real fulfilment.
+            This website is intended for adults aged 18 or older. Signup checks
+            your declared date of birth and includes random awareness questions.
+            These steps do not prove identity. Your account's ID status remains
+            pending until staff check your original valid photo ID in person. A
+            verified adult account is required for an order request, and the
+            business must separately confirm lawful eligibility and
+            availability.
           </p>
         </section>
         <section className="legal-section">
@@ -544,7 +576,7 @@ function ResponsiblePage({ onNavigate }) {
           <ShieldCheck className="page-icon" size={28} />
           <h2>For adults only.</h2>
           <p>
-            Loud + Cana is for adults 21 and older. Keep products secured and
+            Loud + Cana is for adults 18 and older. Keep products secured and
             out of reach of children and pets. An age tick box is not an
             identity check.
           </p>
@@ -569,6 +601,26 @@ function ResponsiblePage({ onNavigate }) {
         </article>
       </div>
       <section className="page-section page-prose">
+        <h2>Adult access and South African guidance.</h2>
+        <p>
+          South African government guidance defines adults as people aged 18 or
+          older. Permission for private adult use does not itself authorise
+          buying, selling, or commercial delivery. Membership and passing our
+          awareness questions do not change those rules or prove identity.
+        </p>
+        <p>
+          Our account age check requires an authorised staff member to inspect
+          an original valid photo ID in person. Do not send an ID number or a
+          document image through the signup form.
+        </p>
+        <a
+          href="https://www.gov.za/news/media-statements/justice-and-constitutional-development-draft-regulations-under-cannabis"
+          target="_blank"
+          rel="noreferrer"
+          className="text-link"
+        >
+          Read the government guidance <ArrowUpRight size={16} />
+        </a>
         <h2>Understand the format.</h2>
         <p>
           Edibles and infused drinks can take longer to have an effect and can
@@ -610,8 +662,10 @@ function HelpPage({ store, onNavigate }) {
       "How do I create a member account?",
       <>
         Choose Membership, then create a free account using your name, email
-        address, and a password of at least 12 characters. Confirm you are 21 or
-        older and accept the terms and privacy information.{" "}
+        address, and a password of at least 12 characters. Provide your date of
+        birth, confirm you are 18 or older, accept the age-check notice, and
+        answer three randomly selected awareness questions. Your account can
+        save favourites while its original-photo-ID check is pending.{" "}
         <PageLink to="/signup" onNavigate={onNavigate}>
           Create an account <ArrowRight size={15} />
         </PageLink>

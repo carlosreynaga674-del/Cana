@@ -6,6 +6,7 @@ import {
   timingSafeEqual,
 } from "node:crypto";
 import { promisify } from "node:util";
+import { createOnboarding, ONBOARDING_POLICY_VERSION } from "./onboarding.mjs";
 
 const deriveKey = promisify(scrypt);
 const SESSION_SECONDS = 30 * 24 * 60 * 60;
@@ -52,6 +53,7 @@ export function createMemberHandlers({
     CREATE INDEX IF NOT EXISTS member_sessions_member ON member_sessions(member_id);
     CREATE INDEX IF NOT EXISTS member_sessions_expiry ON member_sessions(expires_at);
   `);
+  const onboarding = createOnboarding({ db, production, HttpError });
   const byId = db.prepare("SELECT * FROM members WHERE id = ?");
   const byEmail = db.prepare("SELECT * FROM members WHERE email = ?");
   const sessionByHash = db.prepare(
@@ -65,7 +67,21 @@ export function createMemberHandlers({
   );
 
   function cookie(value, seconds = SESSION_SECONDS) {
-    return `${COOKIE_NAME}=${value}; Path=/api/members; HttpOnly; SameSite=Strict; Max-Age=${seconds}${production ? "; Secure" : ""}`;
+    return `${COOKIE_NAME}=${value}; Path=/api; HttpOnly; SameSite=Strict; Max-Age=${seconds}${production ? "; Secure" : ""}`;
+  }
+  function setMemberCookie(res, value, seconds = SESSION_SECONDS) {
+    const existing = res.getHeader("Set-Cookie");
+    const cookies = Array.isArray(existing)
+      ? existing
+      : existing
+        ? [existing]
+        : [];
+    // Remove the older narrow-path cookie so it cannot shadow the new order-capable session.
+    res.setHeader("Set-Cookie", [
+      cookie(value, seconds),
+      `lc_member=; Path=/api/members; HttpOnly; SameSite=Strict; Max-Age=0${production ? "; Secure" : ""}`,
+      ...cookies,
+    ]);
   }
   function incomingToken(req) {
     const raw =
@@ -88,6 +104,7 @@ export function createMemberHandlers({
       name: row.name,
       email: row.email,
       createdAt: row.created_at,
+      ageVerification: onboarding.publicAge(row.id),
       favorites: Array.isArray(favorites)
         ? [...new Set(favorites.filter((id) => knownProducts.has(id)))]
         : [],
@@ -103,7 +120,7 @@ export function createMemberHandlers({
       return null;
     }
     const member = byId.get(session.member_id);
-    return member ? { member, tokenHash } : null;
+    return member ? { member, tokenHash, expiresAt: session.expires_at } : null;
   }
   function authenticate(req) {
     const session = sessionMember(req);
@@ -128,7 +145,7 @@ export function createMemberHandlers({
       `DELETE FROM member_sessions WHERE member_id = ? AND token_hash NOT IN
       (SELECT token_hash FROM member_sessions WHERE member_id = ? ORDER BY created_at DESC, rowid DESC LIMIT 5)`,
     ).run(memberId, memberId);
-    res.setHeader("Set-Cookie", cookie(token));
+    setMemberCookie(res, token);
   }
   async function passwordKey(password, salt) {
     // Bound work in flight instead of accumulating an unbounded crypto queue.
@@ -170,13 +187,43 @@ export function createMemberHandlers({
     return body;
   }
 
-  return async function handleMembers(req, res, pathname) {
+  const handleMembers = async function handleMembers(req, res, pathname) {
     if (!pathname.startsWith("/api/members/")) return false;
     if (pathname === "/api/members/me" && req.method === "GET") {
       const session = sessionMember(req);
-      if (!session && incomingToken(req))
-        res.setHeader("Set-Cookie", cookie("", 0));
+      if (session)
+        setMemberCookie(
+          res,
+          incomingToken(req),
+          Math.max(1, Math.ceil((session.expiresAt - Date.now()) / 1000)),
+        );
+      else if (incomingToken(req)) setMemberCookie(res, "", 0);
       send(res, 200, { member: session ? publicMember(session.member) : null });
+      return true;
+    }
+    if (pathname === "/api/members/signup-challenge" && req.method === "GET") {
+      rateLimit(req, "member-signup-challenge", 240, 60 * 60 * 1000);
+      send(res, 200, onboarding.createChallenge(req, res));
+      return true;
+    }
+    if (pathname === "/api/members/age-verification" && req.method === "POST") {
+      const { member } = authenticate(req);
+      rateLimit(req, `member-age-submission:${member.id}`, 12, 60 * 60 * 1000);
+      if (onboarding.publicAge(member.id).status === "verified")
+        throw new HttpError(409, "Your age check is already verified.");
+      const body = await bodyObject(req);
+      const submission = onboarding.validateSubmission(req, body);
+      db.exec("BEGIN IMMEDIATE");
+      try {
+        if (!byId.get(member.id))
+          throw new HttpError(401, "Please sign in again.");
+        onboarding.recordSubmission(member.id, submission, res);
+        db.exec("COMMIT");
+      } catch (error) {
+        db.exec("ROLLBACK");
+        throw error;
+      }
+      send(res, 200, { member: publicMember(byId.get(member.id)) });
       return true;
     }
     if (pathname === "/api/members/signup" && req.method === "POST") {
@@ -197,11 +244,12 @@ export function createMemberHandlers({
       )
         errors.confirmPassword = "The passwords do not match.";
       if (body.ageConfirmed !== true)
-        errors.ageConfirmed = "Confirm that you are 21 or older.";
+        errors.ageConfirmed = "Confirm that you are 18 or older.";
       if (body.termsAccepted !== true)
         errors.termsAccepted =
           "Accept the membership terms and privacy policy.";
       if (Object.keys(errors).length) fieldsError(errors);
+      const submission = onboarding.validateSubmission(req, body);
       rateLimit(
         req,
         `member-signup-email:${hashToken(email)}`,
@@ -229,8 +277,9 @@ export function createMemberHandlers({
           now,
           now,
           now,
-          "2026-10-22",
+          ONBOARDING_POLICY_VERSION,
         );
+        onboarding.recordSubmission(id, submission, res);
         issueSession(res, id);
         db.exec("COMMIT");
       } catch (error) {
@@ -272,7 +321,7 @@ export function createMemberHandlers({
     if (pathname === "/api/members/logout" && req.method === "POST") {
       const token = incomingToken(req);
       if (token) revokeSession.run(hashToken(token));
-      res.setHeader("Set-Cookie", cookie("", 0));
+      setMemberCookie(res, "", 0);
       send(res, 200, { ok: true });
       return true;
     }
@@ -313,6 +362,8 @@ export function createMemberHandlers({
         new Date().toISOString(),
         member.id,
       );
+      if (body.name !== undefined && name !== current.name)
+        onboarding.invalidateName(member.id);
       send(res, 200, { member: publicMember(byId.get(member.id)) });
       return true;
     }
@@ -372,7 +423,7 @@ export function createMemberHandlers({
           401,
           "Your security settings changed. Please sign in again.",
         );
-      res.setHeader("Set-Cookie", cookie("", 0));
+      setMemberCookie(res, "", 0);
       send(res, 200, { ok: true });
       return true;
     }
@@ -382,6 +433,8 @@ export function createMemberHandlers({
       "/api/members/logout",
       "/api/members/me",
       "/api/members/password",
+      "/api/members/signup-challenge",
+      "/api/members/age-verification",
     ]);
     throw new HttpError(
       knownPaths.has(pathname) ? 405 : 404,
@@ -390,4 +443,16 @@ export function createMemberHandlers({
         : "Membership endpoint not found.",
     );
   };
+  handleMembers.requireVerifiedMember = (req) => {
+    const { member } = authenticate(req);
+    onboarding.requireVerified(member.id);
+    return publicMember(member);
+  };
+  handleMembers.ageQueue = (status) => onboarding.queue(status);
+  handleMembers.reviewAge = (id, body, reviewerRef) => {
+    onboarding.review(id, body, reviewerRef);
+    return publicMember(byId.get(id));
+  };
+  handleMembers.close = () => onboarding.close();
+  return handleMembers;
 }

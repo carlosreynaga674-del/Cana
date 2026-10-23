@@ -163,7 +163,7 @@ function validateOrder(body, config) {
   if (!isRecord(body)) throw new HttpError(400, "Please submit a valid order.");
   const errors = {};
   if (body.ageConfirmed !== true)
-    errors.ageConfirmed = "You must confirm you are at least 21 years old.";
+    errors.ageConfirmed = "You must confirm you are at least 18 years old.";
   if (!["delivery", "pickup"].includes(body.fulfillment))
     errors.fulfillment = "Choose delivery or pickup.";
   const rawCustomer = isRecord(body.customer) ? body.customer : {};
@@ -533,7 +533,10 @@ export function createServer({
             503,
             "Live order requests are not enabled. The business must complete the launch requirements before accepting orders.",
           );
+        handleMembers.requireVerifiedMember(req);
         const body = await readJson(req);
+        // Body reads yield: a session may be revoked or identity details changed in the meantime.
+        handleMembers.requireVerifiedMember(req);
         const canonical = validateOrder(body, settings);
         const rawKey = clean(req.headers["idempotency-key"]);
         if (
@@ -571,6 +574,7 @@ export function createServer({
         );
         db.exec("BEGIN IMMEDIATE");
         try {
+          handleMembers.requireVerifiedMember(req);
           insert.run(
             id,
             now,
@@ -646,6 +650,28 @@ export function createServer({
         authenticate(req);
         return send(res, 200, { authenticated: true });
       }
+      if (
+        pathname === "/api/admin/members/age-verifications" &&
+        req.method === "GET"
+      ) {
+        authenticate(req);
+        return send(res, 200, {
+          members: handleMembers.ageQueue(url.searchParams.get("status")),
+        });
+      }
+      const ageReviewMatch = pathname.match(
+        /^\/api\/admin\/members\/([a-f0-9-]+)\/age-verification$/,
+      );
+      if (ageReviewMatch && req.method === "POST") {
+        const reviewer = authenticate(req);
+        rateLimit(req, "staff-age-review", 120, 15 * 60 * 1000);
+        const body = await readJson(req);
+        if (!isRecord(body))
+          throw new HttpError(400, "Please submit a valid age-check decision.");
+        return send(res, 200, {
+          member: handleMembers.reviewAge(ageReviewMatch[1], body, reviewer),
+        });
+      }
       if (pathname === "/api/admin/orders" && req.method === "GET") {
         authenticate(req);
         return send(res, 200, {
@@ -701,6 +727,7 @@ export function createServer({
   server.headersTimeout = 10000;
   server.on("close", () => {
     if (!databaseClosed) {
+      handleMembers.close();
       db.close();
       databaseClosed = true;
     }

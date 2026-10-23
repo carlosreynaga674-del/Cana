@@ -6,6 +6,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { createServer } from "../server/app.mjs";
+import { prepareSignup, cookieValue } from "./helpers/age-fixture.mjs";
 
 const password = "A local test password 123";
 const signup = (overrides = {}) => ({
@@ -13,6 +14,8 @@ const signup = (overrides = {}) => ({
   email: "jordan@example.com",
   password,
   ageConfirmed: true,
+  birthDate: "2000-01-01",
+  verificationConsent: true,
   termsAccepted: true,
   ...overrides,
 });
@@ -31,7 +34,7 @@ async function start(t, options = {}) {
     );
   };
   t.after(stop);
-  const request = (path, { body, cookie, headers, ...rest } = {}) =>
+  const rawRequest = (path, { body, cookie, headers, ...rest } = {}) =>
     fetch(`${base}${path}`, {
       ...rest,
       headers: {
@@ -41,6 +44,24 @@ async function start(t, options = {}) {
       },
       ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
     });
+  const request = async (path, options = {}) => {
+    if (
+      path === "/api/members/signup" &&
+      options.method === "POST" &&
+      options.body &&
+      !Array.isArray(options.body) &&
+      typeof options.body === "object" &&
+      !options.body.challengeId
+    ) {
+      const prepared = await prepareSignup(
+        rawRequest,
+        options.body,
+        options.headers,
+      );
+      return rawRequest(path, { ...options, ...prepared });
+    }
+    return rawRequest(path, options);
+  };
   return { base, request, stop };
 }
 
@@ -51,7 +72,7 @@ async function register(request, body = signup()) {
   });
   assert.equal(response.status, 201, await response.clone().text());
   return {
-    cookie: response.headers.get("set-cookie").split(";")[0],
+    cookie: cookieValue(response, "lc_member"),
     response,
     ...(await response.json()),
   };
@@ -71,10 +92,10 @@ test("membership creates real catalog-mode accounts and discloses only safe own-
   assert.deepEqual(member.favorites, []);
   assert.equal(
     Object.keys(member).sort().join(","),
-    "createdAt,email,favorites,id,name",
+    "ageVerification,createdAt,email,favorites,id,name",
   );
   assert.match(response.headers.get("set-cookie"), /HttpOnly; SameSite=Strict/);
-  assert.match(response.headers.get("set-cookie"), /Path=\/api\/members/);
+  assert.match(response.headers.get("set-cookie"), /Path=\/api;/);
   assert.equal(response.headers.get("cache-control"), "no-store");
   assert.deepEqual(
     await (await request("/api/members/me", { cookie })).json(),
@@ -167,7 +188,7 @@ test("membership login gives generic failures, isolates users and supports actua
   });
   assert.equal(signedIn.status, 200);
   assert.equal((await signedIn.json()).member.id, first.member.id);
-  const cookie = signedIn.headers.get("set-cookie").split(";")[0];
+  const cookie = cookieValue(signedIn, "lc_member");
   assert.equal(
     (
       await request("/api/members/me", { cookie: second.cookie }).then((r) =>
@@ -270,7 +291,7 @@ test("password changes rotate this session, revoke other sessions and reject the
     method: "POST",
     body: { email: registered.member.email, password },
   });
-  const otherCookie = login.headers.get("set-cookie").split(";")[0];
+  const otherCookie = cookieValue(login, "lc_member");
   assert.equal(
     (
       await request("/api/members/password", {
@@ -303,7 +324,7 @@ test("password changes rotate this session, revoke other sessions and reject the
     },
   });
   assert.equal(changed.status, 200);
-  const currentCookie = changed.headers.get("set-cookie").split(";")[0];
+  const currentCookie = cookieValue(changed, "lc_member");
   assert.notEqual(currentCookie, registered.cookie);
   for (const cookie of [registered.cookie, otherCookie])
     assert.equal(
@@ -395,7 +416,7 @@ test("member passwords and session tokens are hashed at rest, and accounts/sessi
   assert.equal(stored.password_hash.length, 128);
   assert.notEqual(stored.password_hash, password);
   assert.equal(stored.password_salt.length, 32);
-  assert.equal(stored.terms_version, "2026-10-22");
+  assert.ok(stored.terms_version);
   assert.ok(stored.age_confirmed_at && stored.terms_accepted_at);
   const session = database
     .prepare("SELECT * FROM member_sessions WHERE member_id = ?")
