@@ -115,15 +115,32 @@ def run():
                 staff.get_by_label("Price (ZAR)", exact=True).fill("180.50")
                 staff.get_by_label("Size or pack", exact=True).fill("One grinder")
                 staff.locator('textarea[name="description"]').fill("A local automated browser fixture, never a production product.")
+                staff.get_by_label("Choose product photo", exact=True).set_input_files({
+                    "name": "local-synthetic-product-photo.png", "mimeType": "image/png", "buffer": images["document"],
+                })
+                selected_photo = staff.get_by_alt_text("Selected product photo", exact=True)
+                expect(selected_photo).to_be_visible()
+                assert selected_photo.evaluate("async image => { await image.decode(); return image.naturalWidth >= 200; }")
+                expect(staff.get_by_role("button", name="Save draft", exact=True)).to_be_disabled()
+                with staff.expect_response(lambda response: response.url == base + "/api/admin/product-images" and response.request.method == "POST") as uploaded_photo:
+                    staff.get_by_role("button", name="Upload photo", exact=True).click()
+                assert uploaded_photo.value.status == 201, uploaded_photo.value.text()
+                media = uploaded_photo.value.json()["image"]
+                preview = staff.get_by_alt_text("Product photo preview", exact=True)
+                expect(preview).to_be_visible()
+                assert preview.evaluate("async image => { await image.decode(); return image.naturalWidth > 0; }")
+                assert customer.request.get(base + media["url"]).status == 404, "Draft photos must not be public."
                 assert_no_overflow(staff)
                 staff.screenshot(path="/tmp/cana-staff-product-editor-mobile.png", full_page=True)
                 with staff.expect_response(lambda response: response.url == base + "/api/admin/products" and response.request.method == "POST") as saved:
                     staff.get_by_role("button", name="Save draft", exact=True).click()
                 assert saved.value.status == 201, saved.value.text()
                 product = saved.value.json()["product"]
+                assert product["imageUrl"] == media["url"]
                 staff.get_by_label("Search staff products", exact=True).fill(name)
                 row = staff.get_by_role("list", name="Managed products").get_by_role("listitem").filter(has_text=name)
                 expect(row).to_contain_text("Draft")
+                assert row.locator("img").first.evaluate("async image => { await image.decode(); return image.naturalWidth > 0; }"), "Staff must be able to preview a draft's private uploaded photo."
                 assert_no_overflow(staff)
                 public.reload(wait_until="networkidle")
                 public.get_by_label("Search products", exact=True).fill(name)
@@ -136,8 +153,11 @@ def run():
                 public.get_by_label("Search products", exact=True).fill(name)
                 expect(public.locator(".product-card")).to_have_count(1)
                 expect(public.locator(".product-card")).to_contain_text(re.compile(r"R\s*180[.,]50"))
+                product_photo = public.locator(".product-card img").first
+                expect(product_photo).to_have_attribute("src", media["url"])
+                assert product_photo.evaluate("async image => { await image.decode(); return image.naturalWidth > 0; }")
                 staff.screenshot(path="/tmp/cana-staff-products-mobile.png", full_page=True)
-                print("PASS staff draft creation, publication confirmation and immediate public storefront publication", flush=True)
+                print("PASS direct product-photo selection/upload, private draft preview and published storefront photo", flush=True)
 
                 staff.get_by_role("button", name=f"Edit {name}", exact=True).click()
                 staff.get_by_label("Price (ZAR)", exact=True).fill("199.00")
@@ -154,8 +174,15 @@ def run():
                 public.reload(wait_until="networkidle")
                 public.get_by_label("Search products", exact=True).fill(name)
                 expect(public.locator(".product-card")).to_have_count(0)
+                assert customer.request.get(base + media["url"]).status == 404, "Archived product photos must not stay publicly accessible."
                 assert_no_overflow(staff)
                 print("PASS staff price edit, archive confirmation and removal from current storefront", flush=True)
+
+                worker.get_by_role("tab", name="Members", exact=True).click()
+                worker.get_by_label("Search registered members", exact=True).fill(email)
+                expect(worker.get_by_role("list", name="Registered members").get_by_role("listitem")).to_have_count(1)
+                expect(worker.get_by_role("button", name=re.compile(r"^Delete member"))).to_have_count(0)
+                assert worker.request.delete(base + f"/api/admin/members/{member['id']}", data={"confirmEmail": email, "expectedUpdatedAt": "stale"}).status == 403
 
                 worker.get_by_role("tab", name="Order requests", exact=True).click()
                 expect(worker.get_by_role("tab", name="Overview", exact=True)).to_have_count(0)
@@ -189,6 +216,25 @@ def run():
                 assert_no_overflow(staff)
                 staff.screenshot(path="/tmp/cana-admin-staff-accounts-mobile.png", full_page=True)
                 print("PASS admin password reset and disable revoke employee sessions immediately while retaining administrator access", flush=True)
+
+                staff.get_by_role("tab", name="Members", exact=True).click()
+                staff.get_by_label("Search registered members", exact=True).fill(email)
+                staff.get_by_role("button", name=f"Delete member {email}", exact=True).click()
+                deletion = staff.get_by_role("region", name="Delete member confirmation")
+                delete_button = deletion.get_by_role("button", name="Delete member permanently", exact=True)
+                expect(delete_button).to_be_disabled()
+                staff.get_by_label("Confirm member email for deletion", exact=True).fill("wrong@example.test")
+                expect(delete_button).to_be_disabled()
+                staff.get_by_label("Confirm member email for deletion", exact=True).fill(email)
+                with staff.expect_response(lambda response: response.url.endswith(f"/api/admin/members/{member['id']}") and response.request.method == "DELETE") as deleted_member:
+                    delete_button.click()
+                assert deleted_member.value.status == 200, deleted_member.value.text()
+                expect(staff.get_by_role("list", name="Registered members").get_by_role("listitem")).to_have_count(0)
+                assert customer.request.get(base + "/api/members/me").json()["member"] is None
+                assert customer.request.post(base + "/api/auth/login", data={"identifier": email, "password": "Local directory browser account password"}).status == 401
+                assert_no_overflow(staff)
+                staff.screenshot(path="/tmp/cana-member-deleted-mobile.png", full_page=True)
+                print("PASS admin-only typed-email account deletion removes the member and revokes login while staff cannot delete", flush=True)
                 browser.close()
                 assert not errors, errors
                 print("PASS zero uncaught browser errors", flush=True)

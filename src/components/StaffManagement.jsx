@@ -15,12 +15,14 @@ import {
   KeyRound,
   UserRoundCheck,
   UserRoundX,
+  Upload,
   Trash2,
   Users,
   X,
 } from "lucide-react";
 import { categories } from "../lib/products.js";
 import { formatMoney } from "../lib/order.js";
+import { safeProductImage } from "../lib/catalog.js";
 
 const ageLabels = {
   pending: "ID check pending",
@@ -42,8 +44,14 @@ const visuals = {
   Drinks: "drink",
   Accessories: "accessory",
 };
+const uploadedPhotoId = (value) =>
+  /^\/media\/products\/([a-f0-9-]{36})\.webp$/.exec(value || "")?.[1];
+const privateProductPhoto = (value) => {
+  const id = uploadedPhotoId(value);
+  return id ? `/api/admin/product-images/${id}` : safeProductImage(value);
+};
 const photoFor = (product) =>
-  product.imageUrl ||
+  privateProductPhoto(product.imageUrl) ||
   (product.visual === "drink"
     ? "/images/product-drink.webp"
     : `/images/reference-${product.visual || visuals[product.category] || "flower"}.webp`);
@@ -236,6 +244,27 @@ export function AdminOverview({
                       : "Configuration needed"}
                   </dd>
                 </div>
+                {typeof summary.setup.welcomeEmailConfigured === "boolean" && (
+                  <div>
+                    <dt>Welcome emails</dt>
+                    <dd
+                      className={
+                        summary.setup.welcomeEmailConfigured
+                          ? "is-ready"
+                          : "is-pending"
+                      }
+                    >
+                      {summary.setup.welcomeEmailConfigured
+                        ? "Sender connected"
+                        : "Sender not connected"}
+                    </dd>
+                    <small className="staff-mail-setup-note">
+                      {summary.setup.welcomeEmailConfigured
+                        ? "Check member email status for queued, accepted or failed messages."
+                        : "Connect a sending account in the host’s private settings. New welcome emails remain queued until it is ready."}
+                    </small>
+                  </div>
+                )}
               </dl>
               <p>
                 Configuration status does not establish lawful sales
@@ -965,39 +994,55 @@ function Pager({ page, pageSize, total, loading, onPage }) {
   );
 }
 
-export function MemberDirectory({ request, onSessionExpired, onOpenAge }) {
+export function MemberDirectory({
+  request,
+  onSessionExpired,
+  onOpenAge,
+  canDelete = false,
+  onNotice = () => {},
+}) {
   const [members, setMembers] = useState([]);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [deleting, setDeleting] = useState(false);
+  const [deleteMember, setDeleteMember] = useState(null);
+  const [confirmEmail, setConfirmEmail] = useState("");
+  const [deleteError, setDeleteError] = useState("");
+  const [retryingEmail, setRetryingEmail] = useState(null);
+  const [emailError, setEmailError] = useState("");
+  const deleteInput = useRef(null);
   const generation = useRef(0);
-  const load = useCallback(async () => {
-    const current = ++generation.current;
-    setLoading(true);
-    setError("");
-    try {
-      const data = await request(
-        `/api/admin/members?q=${encodeURIComponent(search.trim())}&page=${page}&limit=20`,
-      );
-      if (current !== generation.current) return;
-      if (!Array.isArray(data.members) || !Number.isInteger(data.total))
-        throw new Error(
-          "The member directory could not be loaded. Please refresh.",
+  const load = useCallback(
+    async ({ quiet = false } = {}) => {
+      const current = ++generation.current;
+      if (!quiet) setLoading(true);
+      setError("");
+      try {
+        const data = await request(
+          `/api/admin/members?q=${encodeURIComponent(search.trim())}&page=${page}&limit=20`,
         );
-      setMembers(data.members);
-      setTotal(data.total);
-      if (page > 1 && !data.members.length)
-        setPage(Math.max(1, Math.ceil(data.total / 20)));
-    } catch (problem) {
-      if (current !== generation.current) return;
-      if (problem.status === 401) onSessionExpired();
-      else setError(problem.message);
-    } finally {
-      if (current === generation.current) setLoading(false);
-    }
-  }, [page, search, request, onSessionExpired]);
+        if (current !== generation.current) return;
+        if (!Array.isArray(data.members) || !Number.isInteger(data.total))
+          throw new Error(
+            "The member directory could not be loaded. Please refresh.",
+          );
+        setMembers(data.members);
+        setTotal(data.total);
+        if (page > 1 && !data.members.length)
+          setPage(Math.max(1, Math.ceil(data.total / 20)));
+      } catch (problem) {
+        if (current !== generation.current) return;
+        if (problem.status === 401) onSessionExpired();
+        else setError(problem.message);
+      } finally {
+        if (current === generation.current && !quiet) setLoading(false);
+      }
+    },
+    [page, search, request, onSessionExpired],
+  );
   useEffect(() => {
     const timer = setTimeout(load, 200);
     return () => {
@@ -1005,6 +1050,109 @@ export function MemberDirectory({ request, onSessionExpired, onOpenAge }) {
       generation.current += 1;
     };
   }, [load]);
+  useEffect(() => {
+    const timer = setInterval(() => {
+      if (!document.hidden && !deleting && !retryingEmail)
+        load({ quiet: true });
+    }, 30000);
+    return () => clearInterval(timer);
+  }, [load, deleting, retryingEmail]);
+  useEffect(() => {
+    if (deleteMember) deleteInput.current?.focus();
+  }, [deleteMember]);
+  async function removeMember() {
+    if (
+      !canDelete ||
+      !deleteMember ||
+      deleting ||
+      confirmEmail.trim().toLowerCase() !== deleteMember.email.toLowerCase()
+    )
+      return;
+    if (!deleteMember.updatedAt) {
+      setDeleteError(
+        "Refresh the member directory before deleting this account.",
+      );
+      return;
+    }
+    setDeleting(true);
+    setDeleteError("");
+    try {
+      const result = await request(
+        `/api/admin/members/${encodeURIComponent(deleteMember.id)}`,
+        {
+          method: "DELETE",
+          body: JSON.stringify({
+            expectedUpdatedAt: deleteMember.updatedAt,
+            confirmEmail: confirmEmail.trim(),
+          }),
+        },
+      );
+      if (result?.ok !== true)
+        throw new Error(
+          "The server did not confirm deletion. Refresh the member directory before trying again.",
+        );
+      setDeleteMember(null);
+      setConfirmEmail("");
+      onNotice("Member account deleted and sign-in sessions ended");
+      await load();
+    } catch (problem) {
+      if (problem.status === 401) onSessionExpired();
+      else if ([404, 409].includes(problem.status)) {
+        setDeleteMember(null);
+        setConfirmEmail("");
+        await load();
+        setError(
+          problem.status === 409
+            ? "This member changed. Review the latest details before deleting the account."
+            : "The member account is no longer available.",
+        );
+      } else
+        setDeleteError(
+          problem.message ||
+            "This member could not be deleted. Please try again.",
+        );
+    } finally {
+      setDeleting(false);
+    }
+  }
+  async function retryWelcome(member) {
+    if (!canDelete || deleting || retryingEmail) return;
+    setRetryingEmail(member.id);
+    setEmailError("");
+    try {
+      const data = await request(
+        `/api/admin/members/${encodeURIComponent(member.id)}/welcome-email/retry`,
+        { method: "POST", body: "{}" },
+      );
+      if (
+        !data.welcomeEmail ||
+        !["pending", "sending", "sent"].includes(data.welcomeEmail.status)
+      )
+        throw new Error(
+          "The mail service did not confirm the retry. Refresh the member directory before trying again.",
+        );
+      setMembers((current) =>
+        current.map((row) =>
+          row.id === member.id
+            ? { ...row, welcomeEmail: data.welcomeEmail }
+            : row,
+        ),
+      );
+      onNotice(
+        data.welcomeEmail.status === "sent"
+          ? "Welcome email accepted by the mail service"
+          : "Welcome email queued for retry",
+      );
+    } catch (problem) {
+      if (problem.status === 401) onSessionExpired();
+      else
+        setEmailError(
+          problem.message || "The welcome email could not be retried.",
+        );
+    } finally {
+      setRetryingEmail(null);
+    }
+  }
   return (
     <section
       className="staff-management"
@@ -1018,7 +1166,7 @@ export function MemberDirectory({ request, onSessionExpired, onOpenAge }) {
         </div>
         <button
           className="staff-secondary-button"
-          disabled={loading}
+          disabled={loading || deleting}
           onClick={load}
         >
           <RefreshCw size={16} className={loading ? "staff-spin" : ""} />
@@ -1031,6 +1179,7 @@ export function MemberDirectory({ request, onSessionExpired, onOpenAge }) {
           <input
             type="search"
             aria-label="Search registered members"
+            disabled={deleting}
             placeholder="Search name or email"
             value={search}
             onChange={(event) => {
@@ -1045,6 +1194,76 @@ export function MemberDirectory({ request, onSessionExpired, onOpenAge }) {
         </span>
       </div>
       <ErrorNotice error={error} onRetry={load} />
+      <ErrorNotice error={emailError} />
+      {canDelete && deleteMember && (
+        <section
+          className="staff-member-delete-confirm"
+          role="region"
+          aria-label="Delete member confirmation"
+        >
+          <span className="staff-eyebrow">PERMANENT ACCOUNT DELETION</span>
+          <h3>Delete {deleteMember.name}?</h3>
+          <p>
+            This removes the member account, saved favourites, private ID/selfie
+            records, pending welcome emails, and sign-in sessions. Existing
+            order records remain separate business records. This action cannot
+            be undone.
+          </p>
+          <label className="staff-product-field">
+            <span>Type the member’s email to confirm</span>
+            <input
+              ref={deleteInput}
+              type="email"
+              aria-label="Confirm member email for deletion"
+              value={confirmEmail}
+              maxLength={254}
+              autoComplete="off"
+              spellCheck={false}
+              disabled={deleting}
+              onChange={(event) => {
+                setConfirmEmail(event.target.value);
+                setDeleteError("");
+              }}
+            />
+            <small>{deleteMember.email}</small>
+          </label>
+          {deleteError && (
+            <p className="staff-error-message" role="alert">
+              {deleteError}
+            </p>
+          )}
+          <div className="staff-member-delete-actions">
+            <button
+              className="staff-secondary-button"
+              disabled={deleting}
+              onClick={() => {
+                setDeleteMember(null);
+                setConfirmEmail("");
+                setDeleteError("");
+              }}
+            >
+              Keep member
+            </button>
+            <button
+              className="staff-action-button staff-action-danger"
+              disabled={
+                deleting ||
+                confirmEmail.trim().toLowerCase() !==
+                  deleteMember.email.toLowerCase() ||
+                !deleteMember.updatedAt
+              }
+              onClick={removeMember}
+            >
+              {deleting ? (
+                <LoaderCircle size={16} className="staff-spin" />
+              ) : (
+                <Trash2 size={16} />
+              )}
+              {deleting ? "Deleting…" : "Delete member permanently"}
+            </button>
+          </div>
+        </section>
+      )}
       {loading ? (
         <div className="staff-management-loading" role="status">
           <LoaderCircle size={22} className="staff-spin" />
@@ -1071,14 +1290,60 @@ export function MemberDirectory({ request, onSessionExpired, onOpenAge }) {
                   <h3>{member.name}</h3>
                   <p>{member.email}</p>
                   <small>Joined {dateLabel(member.createdAt)}</small>
+                  {member.welcomeEmail && (
+                    <small
+                      className={`staff-welcome-status is-${member.welcomeEmail.status}`}
+                    >
+                      {{
+                        pending: "Welcome email queued",
+                        sending: "Welcome email sending",
+                        sent: "Welcome email accepted by mail service",
+                        failed: "Welcome email needs attention",
+                        not_queued: "No welcome email queued",
+                      }[member.welcomeEmail.status] || "Welcome email not sent"}
+                    </small>
+                  )}
                 </div>
                 <MemberVerification member={member} />
-                <button
-                  className="staff-secondary-button"
-                  onClick={() => onOpenAge(member)}
-                >
-                  Age checks <ArrowRight size={14} />
-                </button>
+                <div className="staff-member-row-actions">
+                  <button
+                    className="staff-secondary-button"
+                    onClick={() => onOpenAge(member)}
+                    disabled={deleting}
+                  >
+                    Age checks <ArrowRight size={14} />
+                  </button>
+                  {canDelete && (
+                    <button
+                      className="staff-secondary-button staff-member-delete-button"
+                      aria-label={`Delete member ${member.email}`}
+                      disabled={deleting}
+                      onClick={() => {
+                        setDeleteMember({ ...member });
+                        setConfirmEmail("");
+                        setDeleteError("");
+                      }}
+                    >
+                      <Trash2 size={14} />
+                      Delete member
+                    </button>
+                  )}
+                  {canDelete && member.welcomeEmail?.status === "failed" && (
+                    <button
+                      className="staff-secondary-button"
+                      aria-label={`Retry welcome email for ${member.email}`}
+                      disabled={deleting || Boolean(retryingEmail)}
+                      onClick={() => retryWelcome(member)}
+                    >
+                      {retryingEmail === member.id ? (
+                        <LoaderCircle size={14} className="staff-spin" />
+                      ) : (
+                        <RefreshCw size={14} />
+                      )}
+                      Retry welcome email
+                    </button>
+                  )}
+                </div>
               </article>
             ))}
           </div>
@@ -1113,7 +1378,7 @@ export function MemberDirectory({ request, onSessionExpired, onOpenAge }) {
         page={page}
         pageSize={20}
         total={total}
-        loading={loading}
+        loading={loading || deleting}
         onPage={setPage}
       />
       <p className="staff-management-privacy">
@@ -1165,7 +1430,27 @@ function ProductEditor({
   const [error, setError] = useState("");
   const [confirm, setConfirm] = useState("");
   const [dirty, setDirty] = useState(false);
+  const [photoFile, setPhotoFile] = useState(null);
+  const [photoPreview, setPhotoPreview] = useState("");
+  const [photoUploading, setPhotoUploading] = useState(false);
+  const [photoError, setPhotoError] = useState("");
+  const [previewFailed, setPreviewFailed] = useState(false);
+  const photoInput = useRef(null);
+  const photoSection = useRef(null);
   const heading = useRef(null);
+  const imagePreview = photoPreview || privateProductPhoto(fields.imageUrl);
+  useEffect(() => {
+    if (!photoFile) {
+      setPhotoPreview("");
+      return;
+    }
+    const url = URL.createObjectURL(photoFile);
+    setPhotoPreview(url);
+    return () => URL.revokeObjectURL(url);
+  }, [photoFile]);
+  useEffect(() => {
+    setPreviewFailed(false);
+  }, [imagePreview]);
   useEffect(() => {
     heading.current?.focus();
   }, []);
@@ -1175,11 +1460,99 @@ function ProductEditor({
     setConfirm("");
   };
   const close = () => {
+    if (saving || photoUploading) return;
     if (dirty) setConfirm("discard");
     else onClose();
   };
+  function selectPhoto(event) {
+    const file = event.target.files?.[0] || null;
+    setPhotoError("");
+    if (!file) {
+      setPhotoFile(null);
+      return;
+    }
+    if (
+      !["image/jpeg", "image/png", "image/webp"].includes(file.type) ||
+      file.size > 6 * 1024 * 1024 ||
+      !file.size
+    ) {
+      setPhotoError("Choose a JPEG, PNG or WebP photograph of at most 6 MB.");
+      setPhotoFile(null);
+      event.target.value = "";
+      return;
+    }
+    setPhotoFile(file);
+    setDirty(true);
+    setConfirm("");
+  }
+  async function uploadPhoto() {
+    if (!photoFile || photoUploading || saving) return;
+    const file = photoFile;
+    setPhotoUploading(true);
+    setPhotoError("");
+    try {
+      const data = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () =>
+          typeof reader.result === "string" && reader.result.includes(",")
+            ? resolve(reader.result.slice(reader.result.indexOf(",") + 1))
+            : reject(
+                new Error(
+                  "This photo could not be read. Please choose it again.",
+                ),
+              );
+        reader.onerror = () =>
+          reject(
+            new Error("This photo could not be read. Please choose it again."),
+          );
+        reader.readAsDataURL(file);
+      });
+      const result = await request("/api/admin/product-images", {
+        method: "POST",
+        body: JSON.stringify({ image: { data } }),
+      });
+      if (
+        !result.image?.id ||
+        uploadedPhotoId(result.image.url) !== result.image.id ||
+        result.image.previewUrl !==
+          `/api/admin/product-images/${result.image.id}`
+      )
+        throw new Error(
+          "The photo upload was not confirmed. Please try again.",
+        );
+      edit("imageUrl", result.image.url);
+      setPhotoFile(null);
+      if (photoInput.current) photoInput.current.value = "";
+    } catch (problem) {
+      if (problem.status === 401) onSessionExpired();
+      else
+        setPhotoError(
+          problem.message ||
+            "The photo could not be uploaded. Please try again.",
+        );
+    } finally {
+      setPhotoUploading(false);
+    }
+  }
+  function removePhoto() {
+    setPhotoFile(null);
+    setPhotoError("");
+    if (photoInput.current) photoInput.current.value = "";
+    edit("imageUrl", "");
+  }
   async function save(event) {
     event.preventDefault();
+    if (saving || photoUploading) return;
+    if (photoFile) {
+      setPhotoError(
+        "Upload the selected photo before saving the product, or remove the selection.",
+      );
+      photoSection.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+      return;
+    }
     const price = parsePrice(fields.price);
     if (price === null) {
       setError(
@@ -1252,7 +1625,7 @@ function ProductEditor({
         name={name}
         value={fields[name]}
         onChange={(event) => edit(name, event.target.value)}
-        disabled={saving}
+        disabled={saving || photoUploading}
         {...options}
       />
     </label>
@@ -1280,7 +1653,7 @@ function ProductEditor({
         </div>
         <button
           className="staff-secondary-button"
-          disabled={saving}
+          disabled={saving || photoUploading}
           onClick={close}
         >
           <X size={16} />
@@ -1335,7 +1708,7 @@ function ProductEditor({
                       : "Hybrid",
                   );
               }}
-              disabled={saving}
+              disabled={saving || photoUploading}
             >
               {categories.slice(1).map((category) => (
                 <option key={category}>{category}</option>
@@ -1348,7 +1721,7 @@ function ProductEditor({
               aria-label="Collection"
               value={fields.collection}
               onChange={(event) => edit("collection", event.target.value)}
-              disabled={saving}
+              disabled={saving || photoUploading}
             >
               {["Signature", "Ritual", "Reserve"].map((collection) => (
                 <option key={collection}>{collection}</option>
@@ -1386,7 +1759,7 @@ function ProductEditor({
               minLength={10}
               maxLength={4000}
               required
-              disabled={saving}
+              disabled={saving || photoUploading}
             />
             <small>
               Use accurate product details. Avoid unsupported health, potency,
@@ -1397,17 +1770,111 @@ function ProductEditor({
             maxLength: 160,
             wide: true,
           })}
-          {field("imageUrl", "Product image URL (optional)", {
-            maxLength: 2048,
-            placeholder: "https://…/product.webp",
-            wide: true,
-          })}
-          <p className="staff-product-field-help is-wide">
-            <Image size={15} />
-            Use a secure JPG, PNG, WebP or AVIF image URL. Leave this blank to
-            use the category presentation. The image must be suitable for public
-            display.
-          </p>
+          <section
+            className="staff-product-photo is-wide"
+            aria-labelledby="staff-product-photo-heading"
+            ref={photoSection}
+          >
+            <div className="staff-product-photo-copy">
+              <h3 id="staff-product-photo-heading">Product photo</h3>
+              <p>
+                Upload a clear product photograph from your phone or computer.
+                JPEG, PNG or WebP, up to 6 MB, at least 64 × 64 pixels. Use an
+                image approved for public display.
+              </p>
+              <label className="staff-product-field">
+                <span>Choose product photo</span>
+                <input
+                  ref={photoInput}
+                  type="file"
+                  name="productPhoto"
+                  accept="image/jpeg,image/png,image/webp"
+                  aria-label="Choose product photo"
+                  disabled={saving || photoUploading}
+                  onChange={selectPhoto}
+                />
+              </label>
+              <div className="staff-product-photo-actions">
+                <button
+                  type="button"
+                  className="staff-action-button"
+                  onClick={uploadPhoto}
+                  disabled={saving || photoUploading || !photoFile}
+                >
+                  {photoUploading ? (
+                    <LoaderCircle size={16} className="staff-spin" />
+                  ) : (
+                    <Upload size={16} />
+                  )}
+                  {photoUploading ? "Uploading photo…" : "Upload photo"}
+                </button>
+                {(photoFile || fields.imageUrl) && (
+                  <button
+                    type="button"
+                    className="staff-secondary-button"
+                    disabled={saving || photoUploading}
+                    onClick={removePhoto}
+                  >
+                    <X size={15} />
+                    Remove photo
+                  </button>
+                )}
+              </div>
+              <p className="staff-product-photo-status" role="status">
+                {photoUploading
+                  ? "Uploading and preparing your photo…"
+                  : photoFile
+                    ? "Photo selected. Upload it before saving the product."
+                    : uploadedPhotoId(fields.imageUrl)
+                      ? "Photo uploaded. Save the product to use it. Draft photos stay private until publication."
+                      : "Upload a photo or keep the category presentation."}
+              </p>
+              {photoError && (
+                <p className="staff-error-message" role="alert">
+                  {photoError}
+                </p>
+              )}
+            </div>
+            <div className="staff-product-photo-preview">
+              {imagePreview && !previewFailed ? (
+                <img
+                  src={imagePreview}
+                  alt={
+                    photoFile
+                      ? "Selected product photo"
+                      : "Product photo preview"
+                  }
+                  onError={() => setPreviewFailed(true)}
+                />
+              ) : (
+                <div>
+                  <Image size={38} />
+                  <span>
+                    {previewFailed
+                      ? "Photo preview unavailable"
+                      : "Your product photo"}
+                  </span>
+                </div>
+              )}
+            </div>
+          </section>
+          <details
+            className="staff-product-image-link is-wide"
+            open={Boolean(fields.imageUrl && !uploadedPhotoId(fields.imageUrl))}
+          >
+            <summary>Use an image URL instead (optional)</summary>
+            {field("imageUrl", "Product image URL (optional)", {
+              maxLength: 2048,
+              placeholder: "https://…/product.webp",
+              wide: true,
+              disabled: saving || photoUploading || Boolean(photoFile),
+            })}
+            <p className="staff-product-field-help">
+              <Image size={15} />
+              Use a direct secure product-image URL. Uploaded photos are saved
+              automatically in the image field.
+            </p>
+          </details>
         </div>
         <div className="staff-product-sizes">
           <h3>Additional sizes</h3>
@@ -1424,7 +1891,7 @@ function ProductEditor({
                   value={size.label}
                   maxLength={80}
                   required
-                  disabled={saving}
+                  disabled={saving || photoUploading}
                   onChange={(event) =>
                     edit(
                       "additionalSizes",
@@ -1444,7 +1911,7 @@ function ProductEditor({
                   inputMode="decimal"
                   value={size.price}
                   required
-                  disabled={saving}
+                  disabled={saving || photoUploading}
                   onChange={(event) =>
                     edit(
                       "additionalSizes",
@@ -1461,7 +1928,7 @@ function ProductEditor({
                 className="staff-secondary-button"
                 type="button"
                 aria-label={`Remove additional size ${index + 1}`}
-                disabled={saving}
+                disabled={saving || photoUploading}
                 onClick={() =>
                   edit(
                     "additionalSizes",
@@ -1495,7 +1962,7 @@ function ProductEditor({
             type="checkbox"
             checked={fields.featured}
             onChange={(event) => edit("featured", event.target.checked)}
-            disabled={saving}
+            disabled={saving || photoUploading}
           />
           <span>Feature this product on the home page</span>
         </label>
@@ -1512,7 +1979,7 @@ function ProductEditor({
               onChange={(event) =>
                 edit("catalogApproved", event.target.checked)
               }
-              disabled={saving}
+              disabled={saving || photoUploading}
             />
             <span>Product details approved by the store</span>
           </label>
@@ -1521,7 +1988,7 @@ function ProductEditor({
               type="checkbox"
               checked={fields.priceConfirmed}
               onChange={(event) => edit("priceConfirmed", event.target.checked)}
-              disabled={saving}
+              disabled={saving || photoUploading}
             />
             <span>Price confirmed by the store</span>
           </label>
@@ -1531,14 +1998,14 @@ function ProductEditor({
           <button
             className="staff-secondary-button"
             type="button"
-            disabled={saving}
+            disabled={saving || photoUploading}
             onClick={close}
           >
             Cancel
           </button>
           <button
             className="staff-action-button"
-            disabled={saving}
+            disabled={saving || photoUploading || Boolean(photoFile)}
             type="submit"
           >
             {saving ? (

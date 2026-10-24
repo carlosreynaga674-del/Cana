@@ -3169,6 +3169,160 @@
   margin-top: 5px;
   line-height: 1.7;
 }
+.staff-member-info .staff-welcome-status {
+  margin-top: 7px;
+  font-size: 10px;
+  color: #687957;
+}
+.staff-member-info .staff-welcome-status.is-failed {
+  color: #9b5339;
+}
+.staff-member-row-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  min-width: 125px;
+}
+.staff-member-row-actions > button {
+  justify-content: center;
+  font-size: 10px;
+  padding: 10px 12px;
+}
+.staff-member-delete-button {
+  color: #9c4b36;
+  border-color: #e4cbbb;
+}
+.staff-member-delete-confirm {
+  margin: 0 27px 24px;
+  padding: 23px;
+  background: #fff8f2;
+  border: 1px solid #e5c8b7;
+  border-radius: 7px;
+  color: #684333;
+}
+.staff-member-delete-confirm h3 {
+  margin-top: 9px;
+  overflow-wrap: anywhere;
+  font-size: 20px;
+}
+.staff-member-delete-confirm > p {
+  margin: 12px 0 18px;
+  font-size: 12px;
+  line-height: 1.8;
+}
+.staff-member-delete-confirm .staff-product-field {
+  max-width: 480px;
+}
+.staff-member-delete-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 21px;
+  flex-wrap: wrap;
+}
+.staff-mail-setup-note {
+  display: block;
+  margin-top: 9px;
+  max-width: 340px;
+  color: #69785c;
+  font-size: 11px;
+  line-height: 1.7;
+}
+.staff-product-photo {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(180px, 0.65fr);
+  gap: 22px;
+  padding: 22px;
+  border: 1px solid #dce5ce;
+  border-radius: 8px;
+  background: #f5f8ee;
+  min-width: 0;
+}
+.staff-product-photo-copy,
+.staff-product-photo-preview {
+  min-width: 0;
+}
+.staff-product-photo-copy h3 {
+  color: #34492b;
+  font-size: 16px;
+}
+.staff-product-photo-copy > p {
+  color: #67765c;
+  font-size: 11px;
+  line-height: 1.8;
+  margin: 10px 0 15px;
+}
+.staff-product-photo input[type="file"] {
+  max-width: 100%;
+  min-width: 0;
+  width: 100%;
+  font-size: 12px;
+  padding: 10px;
+  background: #fff;
+}
+.staff-product-photo input[type="file"]::file-selector-button {
+  padding: 8px 10px;
+  background: #e6edd9;
+  border: 0;
+  border-radius: 4px;
+  color: #405533;
+  margin-right: 9px;
+  font: inherit;
+  cursor: pointer;
+}
+.staff-product-photo-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  margin-top: 16px;
+}
+.staff-product-photo-actions > button {
+  font-size: 11px;
+  min-height: 42px;
+}
+.staff-product-photo-copy > .staff-product-photo-status {
+  font-size: 10px;
+  margin-bottom: 0;
+}
+.staff-product-photo-preview {
+  min-height: 220px;
+  max-height: 310px;
+  background: #e8eddf;
+  border: 1px solid #d9e2cb;
+  border-radius: 6px;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+}
+.staff-product-photo-preview > img {
+  width: 100%;
+  height: 100%;
+  max-height: 310px;
+  min-height: 220px;
+  object-fit: contain;
+  display: block;
+}
+.staff-product-photo-preview > div {
+  display: grid;
+  place-items: center;
+  gap: 13px;
+  color: #8a9a76;
+  padding: 25px;
+  font-size: 11px;
+  text-align: center;
+}
+.staff-product-image-link {
+  padding-top: 3px;
+}
+.staff-product-image-link > summary {
+  color: #5f7250;
+  font-size: 11px;
+  cursor: pointer;
+  margin-bottom: 15px;
+}
+.staff-product-image-link .staff-product-field-help {
+  margin-top: 10px;
+}
 .staff-management-pagination {
   display: flex;
   justify-content: space-between;
@@ -3434,6 +3588,10 @@
     grid-column: 3;
     grid-row: 1 / 3;
   }
+  .staff-member-record > .staff-member-row-actions {
+    grid-column: 3;
+    grid-row: 1 / 3;
+  }
   .staff-management-heading {
     flex-direction: column;
     gap: 18px;
@@ -3514,6 +3672,36 @@
     grid-row: auto;
     justify-self: start;
     font-size: 11px;
+  }
+  .staff-member-record > .staff-member-row-actions {
+    grid-column: 2;
+    grid-row: auto;
+    justify-self: stretch;
+    flex-direction: row;
+    flex-wrap: wrap;
+    min-width: 0;
+  }
+  .staff-member-row-actions > button {
+    min-height: 42px;
+  }
+  .staff-member-delete-confirm {
+    margin: 0 17px 21px;
+    padding: 17px;
+  }
+  .staff-member-delete-actions > button {
+    flex: 1 1 auto;
+    min-height: 44px;
+  }
+  .staff-product-photo {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 17px;
+    gap: 18px;
+  }
+  .staff-product-photo input[type="file"] {
+    font-size: 12px;
+  }
+  .staff-product-photo-actions > button {
+    flex: 1 1 auto;
   }
   .staff-member-info h3 {
     font-size: 14px;

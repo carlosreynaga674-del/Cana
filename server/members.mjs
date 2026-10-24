@@ -8,6 +8,7 @@ import {
 import { promisify } from "node:util";
 import { createOnboarding, ONBOARDING_POLICY_VERSION } from "./onboarding.mjs";
 import { createIdentityService } from "./identity.mjs";
+import { createWelcomeMailer } from "./welcome-mail.mjs";
 
 const deriveKey = promisify(scrypt);
 const SESSION_SECONDS = 30 * 24 * 60 * 60;
@@ -31,6 +32,9 @@ export function createMemberHandlers({
   productIds,
   identityConfig = {},
   onMemberAuthenticated = () => {},
+  mailConfig = {},
+  mailTransport,
+  mailFetch,
 }) {
   const knownProducts = () => new Set(typeof productIds === "function" ? productIds() : productIds);
   let activeDerivations = 0;
@@ -57,6 +61,10 @@ export function createMemberHandlers({
     );
     CREATE INDEX IF NOT EXISTS member_sessions_member ON member_sessions(member_id);
     CREATE INDEX IF NOT EXISTS member_sessions_expiry ON member_sessions(expires_at);
+    CREATE TABLE IF NOT EXISTS member_admin_audit (
+      id TEXT PRIMARY KEY, target_ref TEXT NOT NULL, actor_ref TEXT NOT NULL,
+      action TEXT NOT NULL, created_at TEXT NOT NULL
+    );
   `);
   const onboarding = createOnboarding({ db, production, HttpError });
   const byId = db.prepare("SELECT * FROM members WHERE id = ?");
@@ -78,6 +86,11 @@ export function createMemberHandlers({
       return member && application ? { ...application, name: member.name } : null;
     },
     recordDecision: (decision) => onboarding.recordIdentityDecision(decision),
+  });
+  const mailer = createWelcomeMailer({
+    db, HttpError, config: { ...mailConfig, production },
+    ...(mailTransport ? { transport: mailTransport } : {}),
+    ...(mailFetch ? { fetchImpl: mailFetch } : {}),
   });
 
   function cookie(value, seconds = SESSION_SECONDS) {
@@ -339,6 +352,7 @@ export function createMemberHandlers({
           ONBOARDING_POLICY_VERSION,
         );
         onboarding.recordSubmission(id, submission, res, true);
+        mailer.enqueue(id);
         issueSession(res, id);
         db.exec("COMMIT");
       } catch (error) {
@@ -511,11 +525,33 @@ export function createMemberHandlers({
     const rows = db.prepare(`SELECT * FROM members ${where} ORDER BY created_at DESC,id LIMIT ? OFFSET ?`).all(query, query, pageSize, (pageNumber - 1) * pageSize);
     return { members: rows.map((row) => {
       const member = publicMember(row);
-      return { id: member.id, name: member.name, email: member.email, createdAt: member.createdAt, ageVerification: member.ageVerification, identityVerification: member.identityVerification };
+      return { id: member.id, name: member.name, email: member.email, createdAt: member.createdAt, updatedAt: row.updated_at, ageVerification: member.ageVerification, identityVerification: member.identityVerification, welcomeEmail: mailer.status(member.id) };
     }), total, page: pageNumber, limit: pageSize };
   };
   handleMembers.identityImage = (id, kind, uploadId) => identity.image(id, kind, uploadId);
   handleMembers.identityConfiguration = () => identity.configStatus();
+  handleMembers.mailConfiguration = () => mailer.configStatus();
+  handleMembers.retryWelcomeEmail = (id) => {
+    if (!byId.get(id)) throw new HttpError(404, "Member not found.");
+    return mailer.retry(id);
+  };
+  handleMembers.deleteMember = (id, body, actor) => {
+    if (!record(body)) throw new HttpError(400, "Confirm the registered member you want to delete.");
+    db.exec("BEGIN IMMEDIATE");
+    try {
+      const member = byId.get(id);
+      if (!member) throw new HttpError(404, "Member not found.");
+      if (emailAddress(body.confirmEmail) !== member.email)
+        throw new HttpError(422, "Type this member's email address to confirm permanent deletion.");
+      if (body.expectedUpdatedAt !== member.updated_at)
+        throw new HttpError(409, "This member changed. Refresh the directory and confirm deletion again.");
+      db.prepare("INSERT INTO member_admin_audit (id,target_ref,actor_ref,action,created_at) VALUES (?,?,?,'account_deleted',?)")
+        .run(randomUUID(), hashToken(id), hashToken(String(actor)), new Date().toISOString());
+      db.prepare("DELETE FROM members WHERE id=?").run(id);
+      db.exec("COMMIT");
+    } catch (error) { db.exec("ROLLBACK"); throw error; }
+    return { ok: true };
+  };
   handleMembers.reviewAge = (id, body, reviewerRef) => {
     if (onboarding.providerApplication(id)?.identityRequired) {
       if (body.method !== "uploaded_id_selfie")
@@ -524,6 +560,7 @@ export function createMemberHandlers({
     } else onboarding.review(id, body, reviewerRef);
     return publicMember(byId.get(id));
   };
-  handleMembers.close = () => { identity.dispose(); onboarding.close(); };
+  handleMembers.start = () => mailer.start();
+  handleMembers.close = () => { mailer.close(); identity.dispose(); onboarding.close(); };
   return handleMembers;
 }

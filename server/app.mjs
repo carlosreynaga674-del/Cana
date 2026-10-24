@@ -22,6 +22,7 @@ import { calculateTotals, validateCheckout } from "../src/lib/order.js";
 import { createMemberHandlers } from "./members.mjs";
 import { createCatalog } from "./catalog.mjs";
 import { createWorkforce } from "./workforce.mjs";
+import { createProductMedia } from "./product-media.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const SESSION_AGE_MS = 8 * 60 * 60 * 1000;
@@ -334,6 +335,9 @@ export function createServer({
   staffPassword = "",
   staticDir = path.join(ROOT, "dist"),
   identityConfig = {},
+  mailConfig = {},
+  mailTransport,
+  mailFetch,
 } = {}) {
   const settings = normalizeConfig(config, adminPassword);
   if (dbPath !== ":memory:")
@@ -354,6 +358,7 @@ export function createServer({
     CREATE INDEX IF NOT EXISTS orders_created ON orders(created_at DESC);
   `);
   const catalog = createCatalog({ db, ErrorType: HttpError });
+  const productMedia = createProductMedia({ db, HttpError });
   const workforce = createWorkforce({ db, HttpError });
   if (dbPath !== ":memory:")
     for (const file of [dbPath, `${dbPath}-wal`, `${dbPath}-shm`]) {
@@ -377,6 +382,7 @@ export function createServer({
   const sessions = new Map();
   const rates = new Map();
   let databaseClosed = false;
+  let activeProductImageRequests = 0;
   const send = (res, status, data) => {
     res.writeHead(status, {
       "Content-Type": "application/json; charset=utf-8",
@@ -535,6 +541,9 @@ export function createServer({
     productIds: () => catalog.productIds(),
     identityConfig: { ...identityConfig, publicOrigin: identityConfig.publicOrigin || settings.publicOrigin },
     onMemberAuthenticated: clearWorkforceSession,
+    mailConfig: { ...mailConfig, publicOrigin: mailConfig.publicOrigin || settings.publicOrigin },
+    mailTransport,
+    mailFetch,
   });
   const server = http.createServer(async (req, res) => {
     res.setHeader("X-Content-Type-Options", "nosniff");
@@ -559,6 +568,13 @@ export function createServer({
         res.setHeader("Cache-Control", "no-store");
       if (!["GET", "HEAD", "OPTIONS"].includes(req.method)) checkOrigin(req);
       if (await handleMembers(req, res, pathname)) return;
+      const publicProductImage = pathname.match(/^\/media\/products\/([a-f0-9-]{36})\.webp$/);
+      if (publicProductImage && ["GET", "HEAD"].includes(req.method)) {
+        const image = productMedia.get(publicProductImage[1], { publicOnly: true });
+        res.writeHead(200, { "Content-Type": image.contentType, "Content-Length": image.bytes.length,
+          "Cache-Control": "no-store", "Cross-Origin-Resource-Policy": "same-origin" });
+        return res.end(req.method === "HEAD" ? undefined : image.bytes);
+      }
       if (pathname === "/api/auth/login" && req.method === "POST") {
         rateLimit(req, "shared-login", 60, 15 * 60 * 1000);
         const body = await readJson(req);
@@ -592,7 +608,7 @@ export function createServer({
           mode: settings.readiness.ready ? "live" : "demo",
         });
       if (pathname === "/api/config" && req.method === "GET")
-        return send(res, 200, { ...publicConfig(settings), identityVerification: handleMembers.identityConfiguration() });
+        return send(res, 200, { ...publicConfig(settings), identityVerification: handleMembers.identityConfiguration(), welcomeEmail: handleMembers.mailConfiguration() });
       if (pathname === "/api/products" && req.method === "GET")
         return send(res, 200, { products: catalog.listPublic() });
       if (pathname === "/api/orders" && req.method === "POST") {
@@ -727,7 +743,8 @@ export function createServer({
           members: { total: total("members"), pending: count("member_age_checks", "pending"), verified: count("member_age_checks", "verified") },
           products: { total: total("catalog_products"), published: count("catalog_products", "published"), draft: count("catalog_products", "draft"), archived: count("catalog_products", "archived") },
           orders: { total: total("orders"), pending: count("orders", "pending") },
-          setup: { staffConfigured: staffConfigured || workforce.countActive() > 0, identityStorageConfigured: handleMembers.identityConfiguration().configured },
+          setup: { staffConfigured: staffConfigured || workforce.countActive() > 0, identityStorageConfigured: handleMembers.identityConfiguration().configured, welcomeEmailConfigured: handleMembers.mailConfiguration().configured },
+          welcomeEmail: handleMembers.mailConfiguration(),
         });
       }
       if (pathname === "/api/admin/staff" && req.method === "GET") {
@@ -760,6 +777,41 @@ export function createServer({
         return send(res, 200, handleMembers.listMembers({
           q: url.searchParams.get("q") || "", page: url.searchParams.get("page") || "1", limit: url.searchParams.get("limit") || "20",
         }));
+      }
+      const deleteMemberMatch = pathname.match(/^\/api\/admin\/members\/([a-f0-9-]+)$/);
+      if (deleteMemberMatch && req.method === "DELETE") {
+        authenticate(req, "admin");
+        rateLimit(req, "admin-delete-member", 30, 15 * 60 * 1000);
+        const body = await readJson(req);
+        const actor = authenticate(req, "admin");
+        return send(res, 200, handleMembers.deleteMember(deleteMemberMatch[1], body, actor));
+      }
+      const retryWelcomeMatch = pathname.match(/^\/api\/admin\/members\/([a-f0-9-]+)\/welcome-email\/retry$/);
+      if (retryWelcomeMatch && req.method === "POST") {
+        authenticate(req, "admin");
+        rateLimit(req, "admin-retry-welcome", 30, 15 * 60 * 1000);
+        return send(res, 200, { welcomeEmail: handleMembers.retryWelcomeEmail(retryWelcomeMatch[1]) });
+      }
+      if (pathname === "/api/admin/product-images" && req.method === "POST") {
+        authenticate(req);
+        rateLimit(req, "staff-product-images", 30, 15 * 60 * 1000);
+        if (activeProductImageRequests >= 2)
+          throw new HttpError(503, "Photo uploads are busy. Please try again shortly.");
+        activeProductImageRequests += 1;
+        try {
+          const body = await readJson(req, 9 * 1024 * 1024);
+          const actor = authenticate(req);
+          const result = await productMedia.upload(body, actor, { assertAuthorized: () => authenticate(req) });
+          return send(res, 201, result);
+        } finally { activeProductImageRequests -= 1; }
+      }
+      const staffProductImage = pathname.match(/^\/api\/admin\/product-images\/([a-f0-9-]{36})$/);
+      if (staffProductImage && req.method === "GET") {
+        authenticate(req);
+        const image = productMedia.get(staffProductImage[1]);
+        res.writeHead(200, { "Content-Type": image.contentType, "Content-Length": image.bytes.length,
+          "Cache-Control": "private, no-store", "Cross-Origin-Resource-Policy": "same-origin" });
+        return res.end(image.bytes);
       }
       const identityImageMatch = pathname.match(/^\/api\/admin\/members\/([a-f0-9-]+)\/identity-documents\/(document|selfie)$/);
       if (identityImageMatch && req.method === "GET") {
@@ -873,9 +925,11 @@ export function createServer({
   });
   server.requestTimeout = 60000;
   server.headersTimeout = 10000;
+  server.on("listening", () => handleMembers.start());
   server.on("close", () => {
     if (!databaseClosed) {
       handleMembers.close();
+      productMedia.close();
       db.close();
       databaseClosed = true;
     }

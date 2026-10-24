@@ -37,3 +37,6 @@ services:
       # Keep stable across deploys; never commit the value or use generateValue.
       - key: IDENTITY_UPLOAD_KEY
         sync: false
+      # Welcome email is optional until a real sender is configured privately.
+      # Set EMAIL_PROVIDER plus EMAIL_FROM and SMTP_* or RESEND_API_KEY in Environment.
+      # See docs/EMAIL_SETUP.md; no sender address or mail credential is committed here.

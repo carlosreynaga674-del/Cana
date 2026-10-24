@@ -4,13 +4,13 @@ A member website and ordering experience for **Loud + Cana, Gauteng, South Afric
 
 ## Show the client today
 
-Open **https://loud-cana.onrender.com/** for the hosted full application. The earlier deployment's member-account functionality, dedicated pages, storefront/product API, health check, and `/staff` login page were tested; those tests did not verify member identities. This release adds the staff Members directory, persistent Products management, and private encrypted ID/selfie submissions for manual review. Verify the new flows after the latest `main` deployment and configure the independent upload-encryption secret before accepting identity photographs. Order intake still needs the configuration listed in `DEPLOYMENT.md` under "Existing Render service". A loaded staff login page does not mean staff credentials have been configured.
+Open **https://loud-cana.onrender.com/** for the hosted full application. A current public check reports a healthy service, live order mode and configured encrypted ID storage. Preserve its existing host secrets and database settings. This release adds administrator deletion of registered members, direct product-photo uploads and queued welcome emails for new signups. Verify the new flows after the latest `main` deployment and configure a genuine mail sender before expecting welcome messages. Technical readiness and functional tests do not independently verify a member's identity, actual stock or commercial sales authority. See `DEPLOYMENT.md` and `EMAIL_SETUP.md`.
 
 The static collection website also remains available at **https://carlosreynaga674-del.github.io/Cana/**. It does not accept orders or produce simulated confirmations. For an offline copy, use the package below.
 
 1. Extract `loud-cana-client.zip`.
 2. Open **`loud-cana-preview.html`** in a modern browser. This is a single file: no server, installation, or internet connection is needed. If a managed browser blocks local HTML files, use the published website above or another browser that permits local files.
-3. Browse products, confirm age, add a product, and build a personal selection. Ordering is clearly unavailable until the store’s service details are configured. Favourites and selection persistence are available when the browser permits local storage.
+3. Browse products, confirm age, add a product, and build a personal selection. The offline copy does not accept order requests; the full Render service operates separately. Favourites and selection persistence are available when the browser permits local storage.
 
 For public catalog hosting, upload the **contents** of `static-site/` to a static host such as GitHub Pages. Its self-contained `index.html` works at the site's root or a repository subpath such as `/Cana/`, without extra asset or base-path configuration. Internal pages use hash routes such as `#/shop` and `#/membership`. Account buttons link to the full Render website for real signup and login; no account is created or authenticated inside the static files. The static site cannot receive real orders or run the staff dashboard, even when the separate full server has been configured for live requests.
 
@@ -60,7 +60,13 @@ Follow **[admin and staff setup](STAFF_SETUP.md)** first. Set the administrator 
 
 Product changes and member records persist in SQLite. Only published products are served by the full site's public catalog; checkout uses current server prices. Publishing does not establish factual catalog approval or commercial sales authority. The initial 28 entries seed once and do not overwrite saved staff edits on restart. **Pages and offline copies remain bundled snapshots:** rebuild/republish them to include later staff catalog changes.
 
-Before accepting photographs, set a stable independent **`IDENTITY_UPLOAD_KEY`** of exactly 64 hexadecimal characters in private hosting settings, following **`source/docs/IDENTITY_VERIFICATION.md`**. Missing or invalid key configuration blocks image submission. Generate it privately with `openssl rand -hex 32`, keep it out of chat/source/build logs, and back it up securely separately from the database. No third-party identity provider is required or connected. Do not ask applicants to email ID documents or attach them to a contact message.
+Administrators can use **Members → Delete member**, type the account email and confirm permanent deletion. Staff do not receive this control. It removes the account, saved favourites, sessions, linked identity/age-check records and queued unsent welcome emails. Independent orders are retained and are not cancelled; prior emails and backup copies need their own retention process. Deletion does not prevent a future fresh signup.
+
+Product editors now accept a direct **Product photo** upload: select a JPEG, PNG or WebP of at most 6 MiB, choose **Upload photo**, then save the draft or product. The server normalises it to a metadata-stripped WebP of at most 1,600 pixels per side. Photos are stored in SQLite with staff-only draft previews and become public only while a published product uses them. Unused uploads expire after 24 hours; saved product references protect their images. A direct HTTPS image URL remains available when appropriate. Product images are not the private ID/selfie store.
+
+New signups queue one transactional welcome email. No historical member backfill or marketing subscription is performed. Delivery waits for private SMTP or Resend configuration; failures retry with a bounded schedule and the displayed status never claims an unconfigured message was sent. A successful send means the provider accepted the message, not proof of inbox delivery. The message explains account creation and pending review without including passwords, birth dates or identity photographs. Read **`EMAIL_SETUP.md`** before enabling the sender. Deleting a member cancels queued jobs but cannot recall a message already in flight or sent.
+
+Keep the already-configured **`IDENTITY_UPLOAD_KEY`** stable when redeploying the existing service. For a new host, configure an independent secret of exactly 64 hexadecimal characters following **`source/docs/IDENTITY_VERIFICATION.md`**. Missing or invalid key configuration blocks image submission. Generate a new installation's key privately with `openssl rand -hex 32`, keep it out of chat/source/build logs, and back it up securely separately from the database. No third-party identity provider is required or connected. Do not ask applicants to email ID documents or attach them to a contact message.
 
 ## Collection and service status
 
@@ -101,6 +107,7 @@ The project includes unit/API tests and browser smoke suites. Browser checks req
 | `static-site/`           | Production frontend assets for static catalog hosting.                    |
 | `source/`                | Frontend, server, tests, scripts, lockfile, and deployment configuration. |
 | `DEPLOYMENT.md`          | Full-service deployment and launch steps.                                 |
+| `EMAIL_SETUP.md`         | Genuine SMTP/Resend sender setup and welcome-email delivery states.          |
 | `source/docs/SOUTH_AFRICAN_SIGNUP.md` | Legal sources and manual age-check operating instructions. |
 | `source/docs/IDENTITY_VERIFICATION.md` | Encrypted upload setup, image retention and staff ID/selfie review. |
 | `release-manifest.json`  | File inventory, sizes, and SHA-256 hashes.                                |

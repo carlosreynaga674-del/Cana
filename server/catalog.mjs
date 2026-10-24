@@ -1,5 +1,6 @@
 import { randomBytes, createHash } from "node:crypto";
 import { products as initialProducts, categories } from "../src/lib/products.js";
+import { productMediaId } from "./product-media.mjs";
 
 export class CatalogError extends Error {
   constructor(status, message, errors) {
@@ -35,6 +36,7 @@ const badControls = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/;
 
 function imageUrlValid(value) {
   if (!value) return true;
+  if (productMediaId(value)) return true;
   // Images are displayed directly by the visitor's browser; the server never
   // fetches staff-supplied URLs. Disallow executable formats and URL schemes.
   const raster = /\.(?:jpe?g|png|webp|avif)$/i;
@@ -142,6 +144,10 @@ export function createCatalog({ db, ErrorType = CatalogError, now = Date.now, se
     if (!["orange", "pink", "green"].includes(result.badgeType)) errors.badgeType = "Choose an available badge colour.";
     text("imageUrl", 0, 2048);
     if (!imageUrlValid(result.imageUrl)) errors.imageUrl = "Use a direct HTTPS JPG, PNG, WebP or AVIF image URL, or a valid /images/ path.";
+    const uploadedImageId = productMediaId(result.imageUrl);
+    if (uploadedImageId && (!db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='product_media'").get() ||
+        !db.prepare("SELECT id FROM product_media WHERE id=?").get(uploadedImageId)))
+      errors.imageUrl = "Upload this product photograph again before saving.";
     text("availability", 0, 160, "Awaiting store confirmation");
     for (const [key, values, fallback] of [
       ["catalogStatus", ["approved", "unapproved"], "unapproved"],

@@ -9,6 +9,8 @@ export function isProductId(value) {
 
 export function safeProductImage(value) {
   if (typeof value !== "string" || value.length > 2048) return "";
+  if (/^\/media\/products\/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}\.webp$/.test(value))
+    return value;
   if (/^\/images\/[a-zA-Z0-9/_-]+\.(?:webp|png|jpe?g|avif)$/i.test(value))
     return value;
   try {

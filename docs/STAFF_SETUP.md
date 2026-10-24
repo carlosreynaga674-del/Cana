@@ -2,6 +2,8 @@
 
 Use the existing [Loud + Cana service in Render](https://dashboard.render.com/web/srv-dbd567t9fdbs73agdiq0). No second service or third-party identity-verification account is needed. The full application is **https://loud-cana.onrender.com/**; GitHub Pages is a separate public catalog snapshot.
 
+The latest public check reports a healthy live service and configured encrypted ID storage. Preserve the existing valid upload key, administrator secret and database settings when deploying these changes. The setup steps below also apply to a new host. Welcome emails require the separate sender setup in [EMAIL_SETUP.md](EMAIL_SETUP.md).
+
 ## 1. Confirm persistent storage
 
 Before registering real members or accepting identity photographs, open the service's **Disks** settings and confirm that a persistent disk is mounted at **`/var/data`**. In **Environment**, set **`DATABASE_PATH`** to **`/var/data/orders.sqlite`**. This must be a disk-backed path, not just an environment variable pointing at an ephemeral directory.
@@ -72,7 +74,32 @@ This is a human comparison of submitted photographs. It does not provide automat
 
 In **Admin → Staff accounts**, find the employee. **Reset password** lets the administrator enter a replacement and confirm **Reset password and end sessions**. **Disable access** blocks login and invalidates that employee's existing sessions; **Enable access** permits login again. Changing an employee username also invalidates its earlier sessions. Restrict these controls to the administrator and review access when employment changes.
 
-There is no connected password-reset email service or invitation email. Do not tell an employee to expect an automatic message; use the business's approved private credential-delivery process.
+Welcome messages for member signups do not provide staff invitations or password-reset email. Use the business's approved private credential-delivery process for employee accounts; do not tell an employee to expect an automatic invitation or recovery message.
+
+## 8. Delete a registered member
+
+1. Sign in as the administrator and open **Members**. Staff can review applications but cannot delete accounts.
+2. Find the exact account and choose **Delete member**. Read the displayed consequences, type that member's email and confirm **Delete member permanently**.
+3. If the account changed since it was displayed, refresh the directory and review it again. The server checks the displayed account version as well as the typed email, so a stale confirmation cannot silently delete a changed profile.
+
+Deletion removes the member profile, favourites, sessions, linked ID/age-check records and unsent welcome-email jobs. Existing orders remain and are not cancelled. Already delivered or in-flight email cannot be recalled; historical backups have their own deletion schedule. This closes the current account and does not ban a future fresh signup. Use an isolated local fixture rather than a real customer for acceptance testing.
+
+## 9. Upload a product photograph
+
+1. Open **Products**, create a draft or edit an existing product, then select **Product photo**.
+2. Choose a static **JPEG, PNG or WebP** of at most **6 MiB**. It must be at least **64 × 64 pixels** and no more than **20 megapixels**. Use a product photograph the business has permission to publish; do not put identity evidence in the product editor.
+3. Select **Upload photo** and wait for a successful preview. The server strips metadata and stores a WebP limited to 1,600 pixels per side. A selected file is not saved merely because it appears in the browser; complete the upload and save the product.
+4. Save the draft, then publish when the actual product details, photo, price and stock are approved. Draft image previews require staff access. The public image works only while a published product references it; archiving removes that public availability.
+
+The photo and product persist in SQLite. Unreferenced uploads expire after 24 hours; saved product references protect their images. The optional direct HTTPS image URL remains available. Changes update the full Render storefront; Pages and offline copies need a fresh export/publication to change their bundled snapshot.
+
+## 10. Enable and monitor welcome emails
+
+Follow [EMAIL_SETUP.md](EMAIL_SETUP.md) to connect an actual mailbox or verified sender in Render's private Environment settings. An owner-controlled iCloud mailbox can use SMTP with an Apple app-specific password; an external verified-domain Resend sender is an alternative. The software cannot create mailbox credentials or bypass sender authentication.
+
+Every successful new signup queues one generic account welcome message. There is no historical-member backfill or marketing subscription. Missing sender configuration leaves it pending; the Members view shows actual queue status. **Sent means provider acceptance, not guaranteed inbox delivery.** After correcting a sender failure, the administrator can use the failed-message retry action. It does not send a new message to historical members or resend an already accepted message.
+
+No password, ID photo, selfie or date of birth is sent in the welcome message. It explains account creation and pending staff review; email does not approve the application or verify email ownership. Deleting a member cancels queued jobs but cannot recall messages already in flight or sent.
 
 ## Ordering is a separate launch step
 

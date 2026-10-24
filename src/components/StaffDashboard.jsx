@@ -2005,6 +2005,8 @@ export default function StaffDashboard({ workspace: dashboardRole = "staff" }) {
               <MemberDirectory
                 request={request}
                 onSessionExpired={sessionExpired}
+                canDelete={sessionRole === "admin"}
+                onNotice={setNotice}
                 onOpenAge={(member) => {
                   setAgeMember(member);
                   setWorkspace("age");

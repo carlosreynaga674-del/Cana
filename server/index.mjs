@@ -2,6 +2,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createServer, configFromEnv } from "./app.mjs";
 import { identityConfigFromEnv } from "./identity.mjs";
+import { mailConfigFromEnv } from "./welcome-mail.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const port = Number(process.env.PORT || 3000);
@@ -14,6 +15,7 @@ const server = createServer({
   adminPassword: process.env.ADMIN_PASSWORD || "",
   staffPassword: process.env.STAFF_PASSWORD || "",
   identityConfig: identityConfigFromEnv(),
+  mailConfig: mailConfigFromEnv(),
   staticDir: path.join(root, "dist"),
 });
 server.listen(port, "0.0.0.0", () =>
