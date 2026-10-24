@@ -1,7 +1,7 @@
 {
   "application": "Loud + Cana",
   "version": "1.0.0",
-  "createdAt": "2026-10-23T22:17:03.987Z",
+  "createdAt": "2026-10-24T21:38:13.362Z",
   "region": "Gauteng, South Africa",
   "currency": "ZAR",
   "runtime": "Node.js 24",
@@ -16,18 +16,23 @@
   "files": [
     {
       "filename": "DEPLOYMENT.md",
-      "bytes": 24057,
-      "sha256": "9a43df33a35c115e8816beee40d19ae0da697106810093550e4fe79446bc5ea7"
+      "bytes": 24779,
+      "sha256": "423cb6ede00bb0373e2ded59e545204494459c3261d633a4af77eff6b7ff4a4a"
+    },
+    {
+      "filename": "IDENTITY_VERIFICATION.md",
+      "bytes": 8013,
+      "sha256": "606115bbd7a04db6496b4d03919d597c78c907933e522499092064ebcd445db4"
     },
     {
       "filename": "loud-cana-preview.html",
-      "bytes": 3740611,
-      "sha256": "276e0648277dfe33689e662b8a2bbd2fda96df20efdfffb49e4361fbd99d43d1"
+      "bytes": 3758594,
+      "sha256": "92bff73875d2e51aa4ec1544421515bf53cba285b4916e6ad33be6149a049cec"
     },
     {
       "filename": "source/.env.example",
-      "bytes": 1133,
-      "sha256": "89e72233a75fc6dfb5da233b8e249998f47b79055c7eafed05655b92fb108f86"
+      "bytes": 1247,
+      "sha256": "1d6fbe9cf717144c2a8ff89266ac39afe01aee61d4a8e1fa1dc051a4ba0c348d"
     },
     {
       "filename": "source/.github/workflows/client-handoff.yml",
@@ -51,23 +56,28 @@
     },
     {
       "filename": "source/docs/DEPLOYMENT.md",
-      "bytes": 24057,
-      "sha256": "9a43df33a35c115e8816beee40d19ae0da697106810093550e4fe79446bc5ea7"
+      "bytes": 24779,
+      "sha256": "423cb6ede00bb0373e2ded59e545204494459c3261d633a4af77eff6b7ff4a4a"
     },
     {
       "filename": "source/docs/HANDOFF.md",
-      "bytes": 13689,
-      "sha256": "4ee0ddb4b87df643953e792dcaad961d254b92736e90883f893f3e35252ea1e7"
+      "bytes": 14038,
+      "sha256": "0492647a60f55440e01f39e7d67d76ef0d8e782dd8df933b0f55162ccff0a618"
     },
     {
       "filename": "source/docs/IDENTITY_VERIFICATION.md",
-      "bytes": 7447,
-      "sha256": "001a2f6d22b98ca125361ec5ad0d80afddb7e029fa33d909cd9b8a26c22c56e9"
+      "bytes": 8013,
+      "sha256": "606115bbd7a04db6496b4d03919d597c78c907933e522499092064ebcd445db4"
     },
     {
       "filename": "source/docs/SOUTH_AFRICAN_SIGNUP.md",
-      "bytes": 17185,
-      "sha256": "e80a5f32bd4d3bafafeca9fbd48c9339b34af92630cbb9988ba80dc14666e4bd"
+      "bytes": 17442,
+      "sha256": "15d9fd1db40d72abf22fb0aa16f577a3cea666ed57fe628e17a8bdcb957cc538"
+    },
+    {
+      "filename": "source/docs/STAFF_SETUP.md",
+      "bytes": 7605,
+      "sha256": "afd2ec05520bc274bcb4322314fe5571f8479a10707c9043bbf1ff40314298ff"
     },
     {
       "filename": "source/index.html",
@@ -186,13 +196,13 @@
     },
     {
       "filename": "source/README.md",
-      "bytes": 12162,
-      "sha256": "52ba887962e5533aae912609278a69f3c2c56f17fe5472b243a7c3cc0c472a55"
+      "bytes": 12787,
+      "sha256": "49fe331bb3c00bc0c73262bcd2be47a48750d4a9a19f2bb76ff91868d5fe376e"
     },
     {
       "filename": "source/render.yaml",
-      "bytes": 1225,
-      "sha256": "796581ee587ee144d8726d3dc742643063da0a230afc825ea14d883c8b4a7e47"
+      "bytes": 1251,
+      "sha256": "1c3dba3099e030d2dfb2801cbaac6ea2504840066db9ecab01eb2af294ff6332"
     },
     {
       "filename": "source/scripts/build-standalone.mjs",
@@ -201,13 +211,13 @@
     },
     {
       "filename": "source/scripts/package-release.mjs",
-      "bytes": 6913,
-      "sha256": "f17cb151b4ddd51f8c8ebdae7105289c8fb71fb63566854b10bcc865d043d834"
+      "bytes": 7185,
+      "sha256": "08062a754ca11e5494deee2d07182990b7db7370d71c15c567ebe1b16ca306a3"
     },
     {
       "filename": "source/server/app.mjs",
-      "bytes": 30731,
-      "sha256": "d0e68cb9903b655492d45e8d978b2ebd177459df4f729e272ea8336c9443bd72"
+      "bytes": 36523,
+      "sha256": "b6d20f1d12c9bc74ecb13f4ed9cb16de488f1bcbeb8825c8eed79f974c54ceae"
     },
     {
       "filename": "source/server/catalog.mjs",
@@ -226,8 +236,8 @@
     },
     {
       "filename": "source/server/members.mjs",
-      "bytes": 20853,
-      "sha256": "e1d8ffb3856b44d85ac6d778d85762acacce559fcfa7bd0d3e959b3e90b40c56"
+      "bytes": 21360,
+      "sha256": "00a75908e4eb7c931d5929701d152a79c2b0b9b1f01364c008d362b5fb1841da"
     },
     {
       "filename": "source/server/onboarding.mjs",
@@ -235,14 +245,19 @@
       "sha256": "17e32a9abd48f608b9bdd988bf3e7c4712a19889ce45e2672fff61413a7863d5"
     },
     {
+      "filename": "source/server/workforce.mjs",
+      "bytes": 10993,
+      "sha256": "61314d949028a888a15f01c2a1feaccf6cab6144bd09ec21d84c6ed8c93b765c"
+    },
+    {
       "filename": "source/src/App.jsx",
-      "bytes": 93368,
-      "sha256": "841dcab46637f994d3dde1e74a41d9e5a297418ca49eee681c5f1ea50759a97a"
+      "bytes": 94422,
+      "sha256": "3edf4fdf9bba9a87bd987e044d8ed29c0e1c6088ba49bdda30e5238b141cc43b"
     },
     {
       "filename": "source/src/components/Membership.jsx",
-      "bytes": 85461,
-      "sha256": "22ac591614740a53d4601a19b6c4d627c443e773ac2ac29c6a8536cde82d5123"
+      "bytes": 85240,
+      "sha256": "0c6d53b423ab4794a0da3ac2e44d8942c9c18afdc5f740912a1e98eea84db162"
     },
     {
       "filename": "source/src/components/OrderTracking.jsx",
@@ -261,13 +276,13 @@
     },
     {
       "filename": "source/src/components/StaffDashboard.jsx",
-      "bytes": 72278,
-      "sha256": "110585fc515fde43dc085463fb17a10b3d27330f4cdf7baa87c13a475438d612"
+      "bytes": 74580,
+      "sha256": "fce88247f170711f402253e2aa2b9078f89ecb2db541e6269cd00c50226a083c"
     },
     {
       "filename": "source/src/components/StaffManagement.jsx",
-      "bytes": 42164,
-      "sha256": "818f2401ab087370e808b2ced688ee7ae9341f5fc876990dfb4def1331fa1808"
+      "bytes": 64200,
+      "sha256": "84ae30c79d4d2de4a02cd8f542c41401ae9988ef965e165af38e26516a15678c"
     },
     {
       "filename": "source/src/lib/api.js",
@@ -316,8 +331,8 @@
     },
     {
       "filename": "source/src/staff.css",
-      "bytes": 64995,
-      "sha256": "1bcd58fdf0aa62dd38bb28a6208b5afa4478ccdb5ea8d7af32c6a4d88de4ee57"
+      "bytes": 68457,
+      "sha256": "64b85f1827a0d293426211c55474d073ada1053f3ce9a1a6270528c81f76ae61"
     },
     {
       "filename": "source/src/styles.css",
@@ -326,18 +341,18 @@
     },
     {
       "filename": "source/tests/age-onboarding.test.js",
-      "bytes": 19177,
-      "sha256": "f9426876a417799f8c70c29634f8da8d6f8bc04368c16d21626848a5f7473415"
+      "bytes": 19279,
+      "sha256": "9ac606ec7da988f5971ccd3bd9de7a0fc7620a5ba7c2f5f5f7b2ef168b198bb5"
     },
     {
       "filename": "source/tests/browser_age_helpers.py",
-      "bytes": 8144,
-      "sha256": "f6866547c57f690ace7c2cb54a3f9541cd2f35170cca616e530ee62cbfb21796"
+      "bytes": 8221,
+      "sha256": "b80cab15690954d8319e6d72f66c05ad32a61574e45630baa62feef592d32700"
     },
     {
       "filename": "source/tests/browser_smoke.py",
-      "bytes": 14062,
-      "sha256": "6c026694d24e6abdd0538fb6dedb37d7df3b9f8eacdd2c2e4a3f99d628d7e111"
+      "bytes": 14056,
+      "sha256": "752c4a6404ccb77e2b478cee44928585da2cebc415f4ed53ca777c179d431af8"
     },
     {
       "filename": "source/tests/catalog_browser_smoke.py",
@@ -381,8 +396,8 @@
     },
     {
       "filename": "source/tests/management_browser_smoke.py",
-      "bytes": 11824,
-      "sha256": "94a680fd16eecf1ea639d206ff516a0fcd51f3e97a0042e4e81f45e06e076df3"
+      "bytes": 16172,
+      "sha256": "378d5ad8b6c948acb0e12e9fc4a9c23ab9b0d4206821d7afee389ea6cdcdad57"
     },
     {
       "filename": "source/tests/management.test.js",
@@ -396,8 +411,8 @@
     },
     {
       "filename": "source/tests/membership_browser_smoke.py",
-      "bytes": 25586,
-      "sha256": "0366615c6cb5bbd3e9317e9603025ce4c15c446bd876e29531dc31ff12a586c6"
+      "bytes": 25577,
+      "sha256": "0a0d409f29e0b1ec4dca255c6b3c36e2c84753dcad8f3717c4b7316acf2febd9"
     },
     {
       "filename": "source/tests/order.test.js",
@@ -410,9 +425,14 @@
       "sha256": "12fce28107678d015dc832cd0986dd01ac88fa6ba4d9d7c4eac08ca199d84d97"
     },
     {
+      "filename": "source/tests/staff-access.test.js",
+      "bytes": 11562,
+      "sha256": "c1e77324c20a58369a8e4789ccd965f68170bc1377b3c3d30e93a1728251ee5f"
+    },
+    {
       "filename": "source/tests/standalone_smoke.py",
-      "bytes": 9442,
-      "sha256": "4adab6ed3e21a2a522a92b8bc8b1388203120fccdf4624ab323384d6ff885e1f"
+      "bytes": 9437,
+      "sha256": "e8abca6fd8845d726f047f6dc89b5f80ef52e6d17558f943128ec9d6dcbed301"
     },
     {
       "filename": "source/tests/storage.test.js",
@@ -425,14 +445,29 @@
       "sha256": "27133ffba0a5f2eb749cb2982e08192386121cfc474862b4362c635d5d479810"
     },
     {
+      "filename": "source/tests/workforce.test.js",
+      "bytes": 12891,
+      "sha256": "c4258dc912ed7a2fc6107b55ecc22786f12847db0f83f70154476e2665b1fb61"
+    },
+    {
       "filename": "source/vite.config.js",
       "bytes": 229,
       "sha256": "befaa9310d90c74f39559a0183dc81f9921c616390eef9657a9eb6d05d939b83"
     },
     {
+      "filename": "SOUTH_AFRICAN_SIGNUP.md",
+      "bytes": 17442,
+      "sha256": "15d9fd1db40d72abf22fb0aa16f577a3cea666ed57fe628e17a8bdcb957cc538"
+    },
+    {
+      "filename": "STAFF_SETUP.md",
+      "bytes": 7605,
+      "sha256": "afd2ec05520bc274bcb4322314fe5571f8479a10707c9043bbf1ff40314298ff"
+    },
+    {
       "filename": "START-HERE.md",
-      "bytes": 13689,
-      "sha256": "4ee0ddb4b87df643953e792dcaad961d254b92736e90883f893f3e35252ea1e7"
+      "bytes": 14038,
+      "sha256": "0492647a60f55440e01f39e7d67d76ef0d8e782dd8df933b0f55162ccff0a618"
     },
     {
       "filename": "static-site/assets/dm-sans-latin-ext-wght-normal-BOFOeGcA.woff2",
@@ -445,14 +480,14 @@
       "sha256": "9fea608a947e67020c33cad9a6fe3d60c54119dfb8cff87768a8117a15ed7543"
     },
     {
-      "filename": "static-site/assets/index-C3NMmNtr.css",
-      "bytes": 170915,
-      "sha256": "84cb283d833f7e338fc061c868a27d4c974cd6523fa2bd1136a777caf408f056"
+      "filename": "static-site/assets/index-CIhWOi83.css",
+      "bytes": 173707,
+      "sha256": "2bbd054e5cd178e97214a87ceaea7780e25c78553eb10578117e84066daa577c"
     },
     {
-      "filename": "static-site/assets/index-JjJ1mZSs.js",
-      "bytes": 493009,
-      "sha256": "a86fb556c6844899850995ff306528eaeeac3863179e6d609a48152897a0e884"
+      "filename": "static-site/assets/index-D5HAI_Jv.js",
+      "bytes": 508200,
+      "sha256": "d1cd29118c2b4452d7d500b5f280c612bb647ecb4d2619ffc35346f284a4dbc2"
     },
     {
       "filename": "static-site/assets/manrope-cyrillic-wght-normal-Dvxsihut.woff2",
@@ -586,8 +621,8 @@
     },
     {
       "filename": "static-site/index.html",
-      "bytes": 3740611,
-      "sha256": "276e0648277dfe33689e662b8a2bbd2fda96df20efdfffb49e4361fbd99d43d1"
+      "bytes": 3758594,
+      "sha256": "92bff73875d2e51aa4ec1544421515bf53cba285b4916e6ad33be6149a049cec"
     },
     {
       "filename": "static-site/social-cover.webp",

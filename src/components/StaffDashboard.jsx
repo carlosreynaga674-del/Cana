@@ -34,6 +34,7 @@ import {
   Users,
   PackagePlus,
   LayoutDashboard,
+  UserPlus,
 } from "lucide-react";
 import { Navigate, Link } from "react-router-dom";
 import { formatMoney } from "../lib/order.js";
@@ -41,6 +42,7 @@ import {
   AdminOverview,
   MemberDirectory,
   ProductManagement,
+  StaffAccounts,
 } from "./StaffManagement.jsx";
 import "../staff.css";
 
@@ -1116,6 +1118,7 @@ export default function StaffDashboard({ workspace: dashboardRole = "staff" }) {
   const adminDashboard = dashboardRole === "admin";
   const [auth, setAuth] = useState("checking");
   const [sessionRole, setSessionRole] = useState(null);
+  const [sessionUser, setSessionUser] = useState(null);
   const authCheck = useRef(0);
   const [workspace, setWorkspace] = useState(
     adminDashboard ? "overview" : "orders",
@@ -1137,6 +1140,7 @@ export default function StaffDashboard({ workspace: dashboardRole = "staff" }) {
   const sessionExpired = useCallback(() => {
     setAuth("login");
     setSessionRole(null);
+    setSessionUser(null);
     setOrders([]);
   }, []);
   const accessDenied = useCallback(() => {
@@ -1180,6 +1184,7 @@ export default function StaffDashboard({ workspace: dashboardRole = "staff" }) {
           return;
         }
         setSessionRole(data.role);
+        setSessionUser(data.user || null);
         if (data.role !== dashboardRole) {
           setOrders([]);
           setAuth(data.role === "admin" ? "redirect_admin" : "forbidden");
@@ -1229,6 +1234,7 @@ export default function StaffDashboard({ workspace: dashboardRole = "staff" }) {
       await request("/api/admin/logout", { method: "POST", body: "{}" });
       setAuth("login");
       setSessionRole(null);
+      setSessionUser(null);
       setOrders([]);
       setExpandedId(null);
     } catch (error) {
@@ -1471,6 +1477,15 @@ export default function StaffDashboard({ workspace: dashboardRole = "staff" }) {
             <PackagePlus size={17} />
             Products
           </button>
+          {adminDashboard && (
+            <button
+              className={workspace === "team" ? "staff-nav-active" : ""}
+              onClick={() => setWorkspace("team")}
+            >
+              <UserPlus size={17} />
+              Staff accounts
+            </button>
+          )}
           <a href="/">
             <ShoppingBag size={17} />
             View storefront
@@ -1497,6 +1512,11 @@ export default function StaffDashboard({ workspace: dashboardRole = "staff" }) {
             <p>
               Gauteng, South Africa <span>·</span>{" "}
               {adminDashboard ? "Admin workspace" : "Staff workspace"}
+              {sessionUser?.name && (
+                <>
+                  <span>·</span> {sessionUser.name}
+                </>
+              )}
             </p>
           </div>
           <div className="staff-topbar-actions">
@@ -1531,18 +1551,35 @@ export default function StaffDashboard({ workspace: dashboardRole = "staff" }) {
                       ? "Your registered members, with their details kept private to the team."
                       : workspace === "products"
                         ? "Create, refine, and publish the products that make your store yours."
-                        : "Review requests, verify the details, and keep your team in step."}
+                        : workspace === "team"
+                          ? "Create personal staff sign-ins and control access to your team’s workspaces."
+                          : "Review requests, verify the details, and keep your team in step."}
               </p>
             </div>
             {workspace === "orders" && (
-              <button
-                className="staff-secondary-button staff-refresh"
-                onClick={() => loadOrders()}
-                disabled={loading}
-              >
-                <RefreshCw size={15} className={loading ? "staff-spin" : ""} />
-                {loading ? "Refreshing…" : "Refresh"}
-              </button>
+              <div className="staff-page-heading-actions">
+                <button
+                  className="staff-action-button"
+                  onClick={() => {
+                    setAgeMember(null);
+                    setWorkspace("age");
+                  }}
+                >
+                  <IdCard size={16} />
+                  Review applications
+                </button>
+                <button
+                  className="staff-secondary-button staff-refresh"
+                  onClick={() => loadOrders()}
+                  disabled={loading}
+                >
+                  <RefreshCw
+                    size={15}
+                    className={loading ? "staff-spin" : ""}
+                  />
+                  {loading ? "Refreshing…" : "Refresh"}
+                </button>
+              </div>
             )}
           </div>
           <div
@@ -1561,6 +1598,7 @@ export default function StaffDashboard({ workspace: dashboardRole = "staff" }) {
                 "age",
                 "members",
                 "products",
+                ...(adminDashboard ? ["team"] : []),
               ];
               const index = workspaces.indexOf(workspace);
               const next =
@@ -1639,6 +1677,19 @@ export default function StaffDashboard({ workspace: dashboardRole = "staff" }) {
               <PackagePlus size={17} />
               Products
             </button>
+            {adminDashboard && (
+              <button
+                id="staff-team-tab"
+                role="tab"
+                aria-selected={workspace === "team"}
+                tabIndex={workspace === "team" ? 0 : -1}
+                aria-controls="staff-team-panel"
+                onClick={() => setWorkspace("team")}
+              >
+                <UserPlus size={17} />
+                Staff accounts
+              </button>
+            )}
           </div>
           {adminDashboard && (
             <div
@@ -1656,6 +1707,23 @@ export default function StaffDashboard({ workspace: dashboardRole = "staff" }) {
                     setAgeMember(null);
                     setWorkspace(next);
                   }}
+                />
+              )}
+            </div>
+          )}
+          {adminDashboard && (
+            <div
+              id="staff-team-panel"
+              role="tabpanel"
+              aria-labelledby="staff-team-tab"
+              hidden={workspace !== "team"}
+            >
+              {workspace === "team" && (
+                <StaffAccounts
+                  request={request}
+                  onSessionExpired={sessionExpired}
+                  onForbidden={accessDenied}
+                  onNotice={setNotice}
                 />
               )}
             </div>

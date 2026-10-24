@@ -30,6 +30,7 @@ export function createMemberHandlers({
   HttpError,
   productIds,
   identityConfig = {},
+  onMemberAuthenticated = () => {},
 }) {
   const knownProducts = () => new Set(typeof productIds === "function" ? productIds() : productIds);
   let activeDerivations = 0;
@@ -203,6 +204,21 @@ export function createMemberHandlers({
       throw new HttpError(400, "Please submit a valid account request.");
     return body;
   }
+  async function signIn(req, res, body, unified = false) {
+    rateLimit(req, "member-login", 240, 15 * 60 * 1000);
+    if (!record(body)) throw new HttpError(400, "Please submit a valid sign-in request.");
+    const suppliedEmail = emailAddress(body.email);
+    const email = suppliedEmail.length <= 254 ? suppliedEmail : "";
+    rateLimit(req, `member-login-email:${hashToken(email)}`, 12, 15 * 60 * 1000);
+    const member = byEmail.get(email);
+    const matches = await passwordMatches(body.password, member);
+    const current = member && byId.get(member.id);
+    if (!matches || !current || current.password_hash !== member.password_hash)
+      throw new HttpError(401, "The email, username or password was not accepted.");
+    issueSession(res, member.id);
+    onMemberAuthenticated(req, res);
+    send(res, 200, { ...(unified ? { role: "member" } : {}), member: publicMember(current) });
+  }
 
   const handleMembers = async function handleMembers(req, res, pathname) {
     if (!pathname.startsWith("/api/members/")) return false;
@@ -334,31 +350,13 @@ export function createMemberHandlers({
           );
         throw error;
       }
+      onMemberAuthenticated(req, res);
       send(res, 201, { member: publicMember(byId.get(id)) });
       return true;
     }
     if (pathname === "/api/members/login" && req.method === "POST") {
-      rateLimit(req, "member-login", 240, 15 * 60 * 1000);
       const body = await bodyObject(req);
-      const suppliedEmail = emailAddress(body.email);
-      const email = suppliedEmail.length <= 254 ? suppliedEmail : "";
-      rateLimit(
-        req,
-        `member-login-email:${hashToken(email)}`,
-        12,
-        15 * 60 * 1000,
-      );
-      const member = byEmail.get(email);
-      const matches = await passwordMatches(body.password, member);
-      const current = member && byId.get(member.id);
-      if (
-        !matches ||
-        !current ||
-        current.password_hash !== member.password_hash
-      )
-        throw new HttpError(401, "The email or password was not accepted.");
-      issueSession(res, member.id);
-      send(res, 200, { member: publicMember(current) });
+      await signIn(req, res, body);
       return true;
     }
     if (pathname === "/api/members/logout" && req.method === "POST") {
@@ -492,6 +490,12 @@ export function createMemberHandlers({
     const { member } = authenticate(req);
     onboarding.requireVerified(member.id);
     return publicMember(member);
+  };
+  handleMembers.signIn = (req, res, body) => signIn(req, res, body, true);
+  handleMembers.clearSession = (req, res) => {
+    const token = incomingToken(req);
+    if (token) revokeSession.run(hashToken(token));
+    setMemberCookie(res, "", 0);
   };
   handleMembers.ageQueue = (status) => {
     identity.cleanup();

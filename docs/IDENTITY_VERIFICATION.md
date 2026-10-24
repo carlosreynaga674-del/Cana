@@ -12,7 +12,7 @@ Set **`IDENTITY_UPLOAD_KEY`** to a newly generated, cryptographically random 32-
 
 If the key is missing or invalid, the server refuses image submissions with HTTP 503. Members remain unverified; signup does not silently bypass the upload requirement. Temporarily missing or changed keys do not erase otherwise-current pending evidence. Restore the original key to review those images. Changing the key without a controlled re-encryption procedure makes old ciphertext unreadable. Do not replace or discard it during redeployment.
 
-The existing production database must be on confirmed persistent storage, with restricted host and staff access, tested backups and HTTPS. Configure a secure `ADMIN_PASSWORD` before offering staff review. The member service and image store use the same database; an ephemeral Render filesystem can lose both.
+The existing production database must be on confirmed persistent storage, with restricted host and staff access, tested backups and HTTPS. Configure a secure `ADMIN_PASSWORD`, sign in as `admin`, and create individual employees in **Staff accounts** before offering staff review. Employees then use their own usernames/passwords at the shared login; no shared `STAFF_PASSWORD` is required. Follow [the Render and staff setup guide](STAFF_SETUP.md). The member service and image store use the same database; an ephemeral Render filesystem can lose both.
 
 ## Submission and retention
 
@@ -28,12 +28,12 @@ Deleting live database values does not erase encrypted historical SQLite/WAL pag
 
 ## Staff workflow
 
-1. Sign in to `/staff` and open **Age checks**. Only authenticated staff endpoints can return pending images.
+1. Sign in at `/login` with an authorised employee username/password, then use **Review applications** or open **Age checks** in `/staff`. Only authenticated staff endpoints can return pending images.
 2. Open the actual current application. Compare the ID portrait with the submitted selfie, and compare the document's name and date of birth with the application. Check the document's validity and whether it establishes an age of at least 18. Do not treat the software's upload validation or questionnaire as this inspection.
 3. Record both required attestations only after the comparison. If the image is unreadable, the face or details do not match, the document is unsuitable, or eligibility cannot be established, reject the application using the provided reason. Do not enter ID numbers or personal document notes.
 4. Confirm the decision. The server requires both the current eligibility-submission timestamp and exact upload ID, so a stale review cannot approve a replacement submission. The image purge and age/audit update are atomic.
 
-Staff should never save, share or copy documents outside the approved process. A shared staff password/session reference does not individually identify each employee; the business remains responsible for staff accountability, access reviews and training.
+Staff should never save, share or copy documents outside the approved process. Create a separate employee account for each reviewer; the administrator can reset or disable it, ending its existing sessions. The review audit uses an authenticated reviewer reference rather than personal document notes. The business remains responsible for reviewer accountability, access reviews and training. If the optional legacy shared login is retained, it does not identify an individual employee.
 
 ## API boundary
 

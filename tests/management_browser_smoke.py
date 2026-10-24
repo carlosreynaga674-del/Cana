@@ -6,7 +6,7 @@ import re
 from uuid import uuid4
 
 from playwright.sync_api import sync_playwright, expect
-from membership_browser_smoke import start_fixture, stop_fixture, unused_port, assert_no_overflow, ADMIN_PASSWORD, STAFF_PASSWORD
+from membership_browser_smoke import start_fixture, stop_fixture, unused_port, assert_no_overflow, ADMIN_PASSWORD
 from browser_age_helpers import register_member, synthetic_identity_images, workforce_sign_in
 
 
@@ -14,6 +14,9 @@ def run():
     errors = []
     name = "Local Browser Published Grinder"
     email = f"directory-browser-{uuid4().hex}@example.test"
+    employee_username = "review.employee"
+    employee_password = "Local browser employee review password 42"
+    replacement_password = "Local browser employee replacement password 84"
     with tempfile.TemporaryDirectory(prefix="cana-management-browser-") as directory:
         database = Path(directory) / "management.sqlite"
         process, base = start_fixture(database, unused_port())
@@ -32,7 +35,8 @@ def run():
                 public.on("pageerror", lambda error: errors.append(str(error)))
                 customer.request.post(base + "/api/members/logout")
                 public.goto(base + "/login", wait_until="networkidle")
-                public.get_by_label("Email or staff username", exact=True).fill(email)
+                expect(public.get_by_role("link", name=re.compile("Staff access", re.I))).to_have_count(0)
+                public.get_by_label("Email or username", exact=True).fill(email)
                 public.get_by_label("Password", exact=True).fill("Local directory browser account password")
                 public.get_by_role("button", name="Sign in", exact=True).click()
                 expect(public).to_have_url(base + "/account")
@@ -51,6 +55,25 @@ def run():
                 expect(staff.get_by_role("tab", name="Overview", exact=True)).to_be_visible()
                 assert staff.request.get(base + "/api/admin/overview").status == 200
                 staff.screenshot(path="/tmp/cana-admin-overview-desktop.png", full_page=True)
+                staff.get_by_role("tab", name="Staff accounts", exact=True).click()
+                staff.get_by_role("button", name="Create staff account", exact=True).click()
+                staff.get_by_label("Staff member name", exact=True).fill("Local Review Employee")
+                staff.get_by_label("Staff username", exact=True).fill(employee_username)
+                staff.get_by_label("Staff password", exact=True).fill(employee_password)
+                staff.get_by_label("Confirm staff password", exact=True).fill(employee_password)
+                with staff.expect_response(lambda response: response.url == base + "/api/admin/staff" and response.request.method == "POST") as created_staff:
+                    staff.get_by_role("button", name="Create account", exact=True).click()
+                assert created_staff.value.status == 201, created_staff.value.text()
+                employee = created_staff.value.json()["staff"]
+                employee_row = staff.get_by_role("list", name="Staff accounts").get_by_role("listitem").filter(has_text=employee_username)
+                expect(employee_row).to_contain_text("Local Review Employee")
+                worker_context = browser.new_context(viewport={"width": 390, "height": 844})
+                worker = worker_context.new_page()
+                worker.on("pageerror", lambda error: errors.append(str(error)))
+                workforce_sign_in(worker, base, employee_username, employee_password)
+                expect(worker.get_by_role("tab", name="Staff accounts", exact=True)).to_have_count(0)
+                assert worker.request.get(base + "/api/admin/staff").status == 403
+                print("PASS administrator creates an individual staff account and only that assigned login reaches its staff dashboard", flush=True)
                 staff.get_by_role("tab", name="Members", exact=True).click()
                 staff.get_by_label("Search registered members", exact=True).fill(email)
                 records = staff.get_by_role("list", name="Registered members").get_by_role("listitem")
@@ -62,28 +85,28 @@ def run():
                 staff.screenshot(path="/tmp/cana-staff-member-directory-mobile.png", full_page=True)
                 print("PASS private registered-member directory, name/email search, identity-review status and mobile layout", flush=True)
 
-                staff.get_by_role("tab", name="Age checks", exact=True).click()
-                card = staff.locator(".staff-age-card").filter(has_text=email)
+                worker.get_by_role("tab", name="Age checks", exact=True).click()
+                card = worker.locator(".staff-age-card").filter(has_text=email)
                 card.locator(".staff-age-summary").click()
-                image_panel = staff.get_by_role("region", name="Private ID document and selfie")
+                image_panel = worker.get_by_role("region", name="Private ID document and selfie")
                 expect(image_panel.locator("img")).to_have_count(2)
                 for image in image_panel.locator("img").all():
                     expect(image).to_be_visible()
                     assert image.evaluate("image => image.complete && image.naturalWidth >= 200")
-                identity_checkbox = staff.get_by_role("checkbox", name=re.compile("^I reviewed the uploaded ID document"))
+                identity_checkbox = worker.get_by_role("checkbox", name=re.compile("^I reviewed the uploaded ID document"))
                 expect(identity_checkbox).to_be_enabled()
-                staff.screenshot(path="/tmp/cana-private-id-selfie-review-mobile.png", full_page=True)
+                worker.screenshot(path="/tmp/cana-private-id-selfie-review-mobile.png", full_page=True)
                 identity_checkbox.check()
-                staff.get_by_role("checkbox", name="The date of birth visible on the uploaded ID shows that this applicant is 18 years or older today.", exact=True).check()
-                staff.get_by_role("button", name="Record ID + selfie check", exact=True).click()
-                with staff.expect_response(lambda response: response.url.endswith(f"/api/admin/members/{member['id']}/age-verification") and response.request.method == "POST") as reviewed:
-                    staff.get_by_role("region", name="Confirm age check decision").get_by_role("button", name="Confirm manual ID + selfie check", exact=True).click()
+                worker.get_by_role("checkbox", name="The date of birth visible on the uploaded ID shows that this applicant is 18 years or older today.", exact=True).check()
+                worker.get_by_role("button", name="Record ID + selfie check", exact=True).click()
+                with worker.expect_response(lambda response: response.url.endswith(f"/api/admin/members/{member['id']}/age-verification") and response.request.method == "POST") as reviewed:
+                    worker.get_by_role("region", name="Confirm age check decision").get_by_role("button", name="Confirm manual ID + selfie check", exact=True).click()
                 assert reviewed.value.status == 200, reviewed.value.text()
                 assert reviewed.value.json()["member"]["ageVerification"]["status"] == "verified"
                 assert customer.request.get(base + f"/api/admin/members/{member['id']}/identity-documents/document").status == 401
-                assert staff.request.get(base + f"/api/admin/members/{member['id']}/identity-documents/document").status == 404
-                assert_no_overflow(staff)
-                print("PASS private ID/selfie preview, explicit manual reviewer attestations, actual review and image removal", flush=True)
+                assert worker.request.get(base + f"/api/admin/members/{member['id']}/identity-documents/document").status == 404
+                assert_no_overflow(worker)
+                print("PASS individual staff private ID/selfie preview, explicit manual attestations, application approval and image removal", flush=True)
 
                 staff.get_by_role("tab", name="Products", exact=True).click()
                 staff.get_by_role("button", name="Add product", exact=True).click()
@@ -134,10 +157,7 @@ def run():
                 assert_no_overflow(staff)
                 print("PASS staff price edit, archive confirmation and removal from current storefront", flush=True)
 
-                worker_context = browser.new_context(viewport={"width": 390, "height": 844})
-                worker = worker_context.new_page()
-                worker.on("pageerror", lambda error: errors.append(str(error)))
-                workforce_sign_in(worker, base, "staff", STAFF_PASSWORD)
+                worker.get_by_role("tab", name="Order requests", exact=True).click()
                 expect(worker.get_by_role("tab", name="Overview", exact=True)).to_have_count(0)
                 expect(worker.get_by_role("tab", name="Order requests", exact=True)).to_be_visible()
                 worker.screenshot(path="/tmp/cana-staff-workspace-mobile.png", full_page=True)
@@ -146,6 +166,29 @@ def run():
                 expect(worker.get_by_role("heading", name="Admin access required.", exact=True)).to_be_visible()
                 assert_no_overflow(worker)
                 print("PASS one login page sends member/admin/staff to separate dashboards and enforces admin-only overview", flush=True)
+
+                staff.get_by_role("tab", name="Staff accounts", exact=True).click()
+                employee_row = staff.get_by_role("list", name="Staff accounts").get_by_role("listitem").filter(has_text=employee_username)
+                employee_row.get_by_role("button", name="Reset password", exact=True).click()
+                staff.get_by_label("New staff password", exact=True).fill(replacement_password)
+                staff.get_by_label("Confirm new staff password", exact=True).fill(replacement_password)
+                staff.get_by_role("button", name="Review password reset", exact=True).click()
+                with staff.expect_response(lambda response: response.url.endswith("/api/admin/staff/" + employee["id"]) and response.request.method == "PATCH") as reset:
+                    staff.get_by_role("region", name="Confirm staff password reset").get_by_role("button", name="Reset password and end sessions", exact=True).click()
+                assert reset.value.status == 200, reset.value.text()
+                assert worker.request.get(base + "/api/admin/members").status == 401
+                assert worker.request.post(base + "/api/auth/login", data={"identifier": employee_username, "password": employee_password}).status == 401
+                workforce_sign_in(worker, base, employee_username, replacement_password)
+                employee_row.get_by_role("button", name="Disable access", exact=True).click()
+                with staff.expect_response(lambda response: response.url.endswith("/api/admin/staff/" + employee["id"]) and response.request.method == "PATCH") as disabled:
+                    staff.get_by_role("region", name="Confirm staff access change").get_by_role("button", name="Disable access", exact=True).click()
+                assert disabled.value.status == 200, disabled.value.text()
+                assert worker.request.get(base + "/api/admin/members").status == 401
+                assert worker.request.post(base + "/api/auth/login", data={"identifier": employee_username, "password": replacement_password}).status == 401
+                assert staff.request.get(base + "/api/admin/overview").status == 200
+                assert_no_overflow(staff)
+                staff.screenshot(path="/tmp/cana-admin-staff-accounts-mobile.png", full_page=True)
+                print("PASS admin password reset and disable revoke employee sessions immediately while retaining administrator access", flush=True)
                 browser.close()
                 assert not errors, errors
                 print("PASS zero uncaught browser errors", flush=True)

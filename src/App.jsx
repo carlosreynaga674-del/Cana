@@ -335,7 +335,7 @@ const PAGE_TITLES = {
   about: "Our Story",
   membership: "Membership",
   contact: "Contact",
-  login: "Member Login",
+  login: "Sign In",
   signup: "Create Your Account",
   account: "Your Account",
   privacy: "Privacy Policy",
@@ -352,6 +352,7 @@ function Storefront() {
   const routeName = routePath === "/" ? "home" : routePath.slice(1);
   const page = Object.hasOwn(PAGE_TITLES, routeName) ? routeName : "not-found";
   const [member, setMember] = useState(null);
+  const [workforceRole, setWorkforceRole] = useState(null);
   const [memberLoading, setMemberLoading] = useState(!offlinePreview);
   const [favoriteBusy, setFavoriteBusy] = useState(false);
   const [products, setProducts] = useState(offlinePreview ? seedProducts : []);
@@ -404,6 +405,38 @@ function Storefront() {
   const [trackingBusy, setTrackingBusy] = useState(false);
   const requestKey = useRef(null);
   const live = store.mode === "live";
+  useEffect(() => {
+    if (offlinePreview) return;
+    let active = true;
+    let sequence = 0;
+    let controller;
+    const refreshWorkforce = () => {
+      controller?.abort();
+      controller = new AbortController();
+      const signal = controller.signal;
+      const current = ++sequence;
+      request("/api/admin/session", { signal })
+        .then((session) => {
+          if (!active || signal.aborted || current !== sequence) return;
+          setWorkforceRole(
+            session.authenticated === true && ["admin", "staff"].includes(session.role)
+              ? session.role
+              : null,
+          );
+        })
+        .catch(() => {
+          if (active && !signal.aborted && current === sequence)
+            setWorkforceRole(null);
+        });
+    };
+    refreshWorkforce();
+    window.addEventListener("focus", refreshWorkforce);
+    return () => {
+      active = false;
+      controller?.abort();
+      window.removeEventListener("focus", refreshWorkforce);
+    };
+  }, []);
   useEffect(() => {
     if (offlinePreview) return;
     const controller = new AbortController();
@@ -519,6 +552,7 @@ function Storefront() {
   };
   const handleSessionChange = (nextMember) => {
     setMember(nextMember);
+    if (nextMember) setWorkforceRole(null);
     setFavorites(nextMember ? cleanFavorites(nextMember.favorites, null) : []);
   };
   useEffect(() => {
@@ -1067,8 +1101,8 @@ function Storefront() {
             </button>
             <Link
               className="icon-button account-button"
-              aria-label={member ? "Your member account" : "Member login"}
-              to={member ? "/account" : "/login"}
+              aria-label={workforceRole ? "Open dashboard" : member ? "Your member account" : "Sign in"}
+              to={workforceRole === "admin" ? "/admin" : workforceRole === "staff" ? "/staff" : member ? "/account" : "/login"}
             >
               <UserRound size={21} />
             </Link>
@@ -1644,11 +1678,6 @@ function Storefront() {
                 {label}
               </Link>
             ))}
-            {!offlinePreview && (
-              <Link to="/staff">
-                Staff access <ArrowUpRight size={12} />
-              </Link>
-            )}
           </div>
           <div className="footer-column">
             <h3>Find Your Vibe</h3>

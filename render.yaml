@@ -31,9 +31,8 @@ services:
         value: "false"
       - key: ADMIN_PASSWORD
         generateValue: true
-      # Separate staff-role secret: >=16 characters, different from admin.
-      - key: STAFF_PASSWORD
-        sync: false
+      # Create individual employees from Admin → Staff accounts after deployment.
+      # No shared STAFF_PASSWORD is required for those accounts.
       # Supply privately: exactly 64 hex characters from openssl rand -hex 32.
       # Keep stable across deploys; never commit the value or use generateValue.
       - key: IDENTITY_UPLOAD_KEY

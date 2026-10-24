@@ -157,15 +157,11 @@ export default function Membership({
   const [busy, setBusy] = useState(false);
   const formRef = useRef(null);
 
-  const nextRole = new URLSearchParams(window.location.search).get("next");
   useEffect(() => {
-    setFields({
-      ...EMPTY_SIGNUP,
-      email: mode === "login" && ["admin", "staff"].includes(nextRole) ? nextRole : "",
-    });
+    setFields({ ...EMPTY_SIGNUP });
     setErrors({});
     setServerError("");
-  }, [mode, nextRole]);
+  }, [mode]);
 
   const change = (name) => (event) => {
     const value =
@@ -184,16 +180,16 @@ export default function Membership({
     const nextErrors = {};
     const name = fields.name.trim();
     const email = fields.email.trim().toLowerCase();
-    const workforceRole = !signup && ["admin", "staff"].includes(email) ? email : null;
     if (signup && (name.length < 2 || name.length > 80))
       nextErrors.name = "Enter your name using 2 to 80 characters.";
-    if (!workforceRole && (!EMAIL.test(email) || email.length > 254))
-      nextErrors.email = "Enter your member email address, or the admin or staff username.";
+    const validIdentifier = EMAIL.test(email) || /^[a-z][a-z0-9._-]{2,39}$/.test(email);
+    if ((signup ? !EMAIL.test(email) : !validIdentifier) || email.length > 254)
+      nextErrors.email = signup ? "Enter a valid email address." : "Enter your email address or username.";
     if (!fields.password || (signup && fields.password.length < 12))
       nextErrors.password = signup
         ? "Use at least 12 characters for your password."
         : "Enter your password.";
-    const passwordLimit = workforceRole ? 256 : 128;
+    const passwordLimit = signup ? 128 : 256;
     if (fields.password.length > passwordLimit)
       nextErrors.password = `Use no more than ${passwordLimit} characters.`;
     if (signup && fields.confirmPassword !== fields.password)
@@ -210,13 +206,19 @@ export default function Membership({
     setBusy(true);
     setServerError("");
     try {
-      if (workforceRole) {
-        const result = await request("/api/admin/login", {
+      if (!signup) {
+        const result = await request("/api/auth/login", {
           method: "POST",
-          body: { role: workforceRole, password: fields.password },
+          body: { identifier: email, password: fields.password },
         });
-        if (result.ok !== true || result.role !== workforceRole)
-          throw new Error("Team sign-in could not be confirmed. Please try again.");
+        if (result.role === "member" && result.member?.id) {
+          setFields({ ...EMPTY_SIGNUP });
+          onSessionChange(result.member);
+          onNavigate("/account");
+          return;
+        }
+        if (!["admin", "staff"].includes(result.role) || !result.user?.id || !result.user?.username)
+          throw new Error("Sign-in could not be confirmed. Please try again.");
         setFields({ ...EMPTY_SIGNUP });
         onNavigate(result.role === "admin" ? "/admin" : "/staff");
         return;
@@ -480,19 +482,18 @@ export default function Membership({
           <p>
             {signup
               ? "Your favourites. Your account. Your own corner of the Loud +Cana community."
-              : "One sign-in for your member account and the team. Use your member email, or your assigned admin or staff credentials."}
+              : "Sign in to your account to pick up where you left off."}
           </p>
           <div className="auth-trust">
             <ShieldCheck size={21} />
             <span>
-              Your password is protected. Your credentials determine which
-              account or team dashboard you can access.
+              Your password is protected. Access your account securely.
             </span>
           </div>
         </div>
         <div className="member-panel auth-panel">
           <span className="eyebrow">
-            {signup ? "FREE MEMBERSHIP" : "MEMBERS + TEAM"}
+            {signup ? "FREE MEMBERSHIP" : "YOUR ACCOUNT"}
           </span>
           <h2>{signup ? "Create your account" : "Sign in"}</h2>
           <form
@@ -523,7 +524,7 @@ export default function Membership({
               </div>
             )}
             <div className="auth-field">
-              <label htmlFor="member-email">Email or staff username</label>
+              <label htmlFor="member-email">Email or username</label>
               <input
                 id="member-email"
                 name="email"
@@ -541,7 +542,7 @@ export default function Membership({
                 aria-describedby={`login-identifier-hint${errors.email ? " member-email-error" : ""}`}
               />
               <small className="auth-hint" id="login-identifier-hint">
-                Members: your email address. Team: use admin or staff with your assigned password.
+                Use the email address or username associated with your account.
               </small>
               <FieldError name="member-email" error={errors.email} />
             </div>
@@ -552,11 +553,7 @@ export default function Membership({
               onChange={change("password")}
               error={errors.password}
               autoComplete={signup ? "new-password" : "current-password"}
-              maxLength={
-                !signup && ["admin", "staff"].includes(fields.email.trim().toLowerCase())
-                  ? 256
-                  : 128
-              }
+              maxLength={signup ? 128 : 256}
               hint={
                 signup
                   ? "At least 12 characters. A unique passphrase works well."

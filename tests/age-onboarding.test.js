@@ -92,7 +92,10 @@ async function start(t, options = {}) {
           const key = pair.slice(0, pair.indexOf("="));
           const token = pair.slice(pair.indexOf("=") + 1);
           if (token) cookies.set(key, token);
-          else if (!value.includes("Path=/api/members") || key !== "lc_member")
+          else if (
+            !(key === "lc_member" && value.includes("Path=/api/members;")) &&
+            !(key === "lc_staff" && value.includes("Path=/api/admin;"))
+          )
             cookies.delete(key);
         }
         return response;

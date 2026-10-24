@@ -156,9 +156,9 @@ def wait_for_favorite(page, base, product_id):
 
 def sign_in(page, base, email, password=PASSWORD, expected_status=200):
     page.goto(base + "/login", wait_until="networkidle")
-    form_field(page, "Email or staff username").fill(email)
+    form_field(page, "Email or username").fill(email)
     form_field(page, "Password").fill(password)
-    with page.expect_response(lambda response: response.url == base + "/api/members/login" and response.request.method == "POST") as result:
+    with page.expect_response(lambda response: response.url == base + "/api/auth/login" and response.request.method == "POST") as result:
         page.get_by_role("button", name=re.compile(r"^(Sign|Log) in$", re.I)).click()
     response = result.value
     assert response.status == expected_status, response.text()

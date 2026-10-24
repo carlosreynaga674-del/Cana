@@ -21,6 +21,7 @@ import { fileURLToPath } from "node:url";
 import { calculateTotals, validateCheckout } from "../src/lib/order.js";
 import { createMemberHandlers } from "./members.mjs";
 import { createCatalog } from "./catalog.mjs";
+import { createWorkforce } from "./workforce.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const SESSION_AGE_MS = 8 * 60 * 60 * 1000;
@@ -353,6 +354,7 @@ export function createServer({
     CREATE INDEX IF NOT EXISTS orders_created ON orders(created_at DESC);
   `);
   const catalog = createCatalog({ db, ErrorType: HttpError });
+  const workforce = createWorkforce({ db, HttpError });
   if (dbPath !== ":memory:")
     for (const file of [dbPath, `${dbPath}-wal`, `${dbPath}-shm`]) {
       if (existsSync(file)) chmodSync(file, 0o600);
@@ -440,12 +442,44 @@ export function createServer({
       sessions.delete(hash);
       throw new HttpError(401, "Please sign in to the staff dashboard.");
     }
+    if (session.staffId) {
+      const staff = workforce.validateSession(session.staffId, session.credentialVersion);
+      if (!staff) {
+        sessions.delete(hash);
+        throw new HttpError(401, "Your staff access changed. Please sign in again.");
+      }
+      session.user = { id: staff.id, name: staff.name, username: staff.username };
+    }
     if (requiredRole && session.role !== requiredRole)
       throw new HttpError(403, "This page requires an administrator account.");
     return hash;
   }
-  function sessionCookie(value, age) {
-    return `lc_staff=${value}; Path=/api/admin; HttpOnly; SameSite=Strict; Max-Age=${age}${settings.production ? "; Secure" : ""}`;
+  function sessionCookie(value, age, cookiePath = "/api") {
+    return `lc_staff=${value}; Path=${cookiePath}; HttpOnly; SameSite=Strict; Max-Age=${age}${settings.production ? "; Secure" : ""}`;
+  }
+  function clearWorkforceSession(req, res) {
+    for (const part of String(req.headers.cookie || "").split(";").map((value) => value.trim()))
+      if (part.startsWith("lc_staff=")) sessions.delete(sha256(part.slice(9)));
+    const previous = res.getHeader("Set-Cookie");
+    res.setHeader("Set-Cookie", [...(Array.isArray(previous) ? previous : previous ? [previous] : []), sessionCookie("", 0), sessionCookie("", 0, "/api/admin")]);
+  }
+  function issueWorkforceSession(req, res, role, user, credentialVersion = null) {
+    clearWorkforceSession(req, res);
+    handleMembers.clearSession(req, res);
+    const token = randomBytes(32).toString("base64url");
+    sessions.set(sha256(token), {
+      expiresAt: Date.now() + SESSION_AGE_MS, role, user,
+      ...(credentialVersion !== null ? { staffId: user.id, credentialVersion } : {}),
+    });
+    const previous = res.getHeader("Set-Cookie");
+    // Keep the newly issued workforce cookie first; discard the same-path clear.
+    const others = (Array.isArray(previous) ? previous : previous ? [previous] : []).filter((value) => !String(value).startsWith("lc_staff="));
+    res.setHeader("Set-Cookie", [sessionCookie(token, SESSION_AGE_MS / 1000), sessionCookie("", 0, "/api/admin"), ...others]);
+  }
+  function reviewActor(req) {
+    const hash = authenticate(req);
+    const session = sessions.get(hash);
+    return session.staffId ? `staff:${session.staffId}` : `${session.role}:${session.user?.id || hash}`;
   }
   function serveFile(req, res, pathname) {
     if (!["GET", "HEAD"].includes(req.method))
@@ -500,6 +534,7 @@ export function createServer({
     HttpError,
     productIds: () => catalog.productIds(),
     identityConfig: { ...identityConfig, publicOrigin: identityConfig.publicOrigin || settings.publicOrigin },
+    onMemberAuthenticated: clearWorkforceSession,
   });
   const server = http.createServer(async (req, res) => {
     res.setHeader("X-Content-Type-Options", "nosniff");
@@ -524,6 +559,32 @@ export function createServer({
         res.setHeader("Cache-Control", "no-store");
       if (!["GET", "HEAD", "OPTIONS"].includes(req.method)) checkOrigin(req);
       if (await handleMembers(req, res, pathname)) return;
+      if (pathname === "/api/auth/login" && req.method === "POST") {
+        rateLimit(req, "shared-login", 60, 15 * 60 * 1000);
+        const body = await readJson(req);
+        const identifier = isRecord(body) ? clean(body.identifier).toLowerCase() : "";
+        if (!identifier || identifier.length > 254 || typeof body.password !== "string" || body.password.length > 256)
+          throw new HttpError(401, "The email, username or password was not accepted.");
+        if (identifier.includes("@"))
+          return await handleMembers.signIn(req, res, { email: identifier, password: body.password });
+        rateLimit(req, `workforce-login:${sha256(identifier)}`, 12, 15 * 60 * 1000);
+        let role = "staff", user, credentialVersion = null;
+        if (["admin", "staff"].includes(identifier)) {
+          const expected = identifier === "admin" ? passwordHash : staffPasswordHash;
+          if (!expected) throw new HttpError(503, "This account's sign-in has not been configured.");
+          if (!timingSafeEqual(scryptSync(body.password, passwordSalt, 64), expected))
+            throw new HttpError(401, "The email, username or password was not accepted.");
+          role = identifier;
+          user = { id: role === "admin" ? "admin" : "legacy-staff", name: role === "admin" ? "Administrator" : "Staff", username: identifier };
+        } else {
+          const result = await workforce.authenticate(identifier, body.password);
+          if (!result) throw new HttpError(401, "The email, username or password was not accepted.");
+          user = { id: result.staff.id, name: result.staff.name, username: result.staff.username };
+          credentialVersion = result.credentialVersion;
+        }
+        issueWorkforceSession(req, res, role, user, credentialVersion);
+        return send(res, 200, { role, user });
+      }
       if (pathname === "/api/health" && req.method === "GET")
         return send(res, 200, {
           ok: true,
@@ -643,23 +704,20 @@ export function createServer({
         const candidateHash = scryptSync(candidate, passwordSalt, 64);
         if (!timingSafeEqual(candidateHash, expectedHash))
           throw new HttpError(401, "The staff password was not accepted.");
-        const token = randomBytes(32).toString("base64url");
-        sessions.set(sha256(token), { expiresAt: Date.now() + SESSION_AGE_MS, role });
-        res.setHeader(
-          "Set-Cookie",
-          sessionCookie(token, SESSION_AGE_MS / 1000),
-        );
-        return send(res, 200, { ok: true, role });
+        const user = { id: role === "admin" ? "admin" : "legacy-staff", name: role === "admin" ? "Administrator" : "Staff", username: role };
+        issueWorkforceSession(req, res, role, user);
+        return send(res, 200, { ok: true, role, user });
       }
       if (pathname === "/api/admin/logout" && req.method === "POST") {
-        const sessionHash = authenticate(req);
-        sessions.delete(sessionHash);
-        res.setHeader("Set-Cookie", sessionCookie("", 0));
+        authenticate(req);
+        clearWorkforceSession(req, res);
         return send(res, 200, { ok: true });
       }
       if (pathname === "/api/admin/session" && req.method === "GET") {
         const hash = authenticate(req);
-        return send(res, 200, { authenticated: true, role: sessions.get(hash).role });
+        const token = String(req.headers.cookie || "").split(";").map((value) => value.trim()).find((part) => part.startsWith("lc_staff="))?.slice(9);
+        res.setHeader("Set-Cookie", [sessionCookie(token, Math.max(1, Math.ceil((sessions.get(hash).expiresAt - Date.now()) / 1000))), sessionCookie("", 0, "/api/admin")]);
+        return send(res, 200, { authenticated: true, role: sessions.get(hash).role, user: sessions.get(hash).user });
       }
       if (pathname === "/api/admin/overview" && req.method === "GET") {
         authenticate(req, "admin");
@@ -669,8 +727,33 @@ export function createServer({
           members: { total: total("members"), pending: count("member_age_checks", "pending"), verified: count("member_age_checks", "verified") },
           products: { total: total("catalog_products"), published: count("catalog_products", "published"), draft: count("catalog_products", "draft"), archived: count("catalog_products", "archived") },
           orders: { total: total("orders"), pending: count("orders", "pending") },
-          setup: { staffConfigured, identityStorageConfigured: handleMembers.identityConfiguration().configured },
+          setup: { staffConfigured: staffConfigured || workforce.countActive() > 0, identityStorageConfigured: handleMembers.identityConfiguration().configured },
         });
+      }
+      if (pathname === "/api/admin/staff" && req.method === "GET") {
+        authenticate(req, "admin");
+        const page = Number(url.searchParams.get("page") || "1"), limit = Number(url.searchParams.get("limit") || "20");
+        if (!Number.isInteger(page) || page < 1 || page > 100000 || !Number.isInteger(limit) || limit < 1 || limit > 100)
+          throw new HttpError(422, "Choose a valid staff page.");
+        const result = workforce.list({ search: url.searchParams.get("q") || url.searchParams.get("search") || "", status: url.searchParams.get("status") || "all", limit, offset: (page - 1) * limit });
+        return send(res, 200, { staff: result.staff, total: result.total, page, limit });
+      }
+      if (pathname === "/api/admin/staff" && req.method === "POST") {
+        authenticate(req, "admin");
+        rateLimit(req, "staff-accounts", 60, 15 * 60 * 1000);
+        const body = await readJson(req);
+        const actor = authenticate(req, "admin");
+        const staff = await workforce.create(body, actor, { assertAuthorized: () => authenticate(req, "admin") });
+        return send(res, 201, { staff });
+      }
+      const staffAccountMatch = pathname.match(/^\/api\/admin\/staff\/([a-f0-9-]+)$/);
+      if (staffAccountMatch && req.method === "PATCH") {
+        authenticate(req, "admin");
+        rateLimit(req, "staff-accounts", 60, 15 * 60 * 1000);
+        const body = await readJson(req);
+        const actor = authenticate(req, "admin");
+        const staff = await workforce.update(staffAccountMatch[1], body, actor, { assertAuthorized: () => authenticate(req, "admin") });
+        return send(res, 200, { staff });
       }
       if (pathname === "/api/admin/members" && req.method === "GET") {
         authenticate(req);
@@ -726,10 +809,10 @@ export function createServer({
         /^\/api\/admin\/members\/([a-f0-9-]+)\/age-verification$/,
       );
       if (ageReviewMatch && req.method === "POST") {
-        const reviewer = authenticate(req);
+        authenticate(req);
         rateLimit(req, "staff-age-review", 120, 15 * 60 * 1000);
         const body = await readJson(req);
-        authenticate(req);
+        const reviewer = reviewActor(req);
         if (!isRecord(body))
           throw new HttpError(400, "Please submit a valid age-check decision.");
         return send(res, 200, {
@@ -753,6 +836,7 @@ export function createServer({
         const row = findById.get(adminMatch[1]);
         if (!row) throw new HttpError(404, "Order not found.");
         const body = await readJson(req);
+        authenticate(req);
         const status = isRecord(body) ? body.status : null;
         if (!STATUS_TRANSITIONS[row.status]?.includes(status))
           throw new HttpError(409, "That status change is not available.");

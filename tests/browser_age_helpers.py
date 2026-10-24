@@ -142,12 +142,13 @@ def approve_member_ui(browser, base, email, admin_password):
         context.close()
 
 
-def workforce_sign_in(page, base, role, password):
+def workforce_sign_in(page, base, username, password, role=None):
     """Use the shared login page and verify its server-authorised destination."""
     page.goto(base + "/login", wait_until="networkidle")
-    page.get_by_label("Email or staff username", exact=True).fill(role)
+    role = role or ("admin" if username == "admin" else "staff")
+    page.get_by_label("Email or username", exact=True).fill(username)
     page.get_by_label("Password", exact=True).fill(password)
-    with page.expect_response(lambda response: response.url == base + "/api/admin/login" and response.request.method == "POST") as login:
+    with page.expect_response(lambda response: response.url == base + "/api/auth/login" and response.request.method == "POST") as login:
         page.get_by_role("button", name="Sign in", exact=True).click()
     assert login.value.status == 200, login.value.text()
     assert login.value.json()["role"] == role

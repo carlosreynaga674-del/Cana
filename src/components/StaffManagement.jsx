@@ -11,6 +11,10 @@ import {
   RefreshCw,
   Search,
   ShieldCheck,
+  UserPlus,
+  KeyRound,
+  UserRoundCheck,
+  UserRoundX,
   Trash2,
   Users,
   X,
@@ -195,8 +199,8 @@ export function AdminOverview({
                 <span className="staff-eyebrow">WORKSPACE SETUP</span>
                 <h3>A clear view of what is ready.</h3>
                 <p>
-                  Staff sign-in and secure identity storage use separate private
-                  host settings.
+                  Create individual staff accounts here. Secure identity storage
+                  uses a separate private host setting.
                 </p>
               </div>
               <dl>
@@ -211,6 +215,12 @@ export function AdminOverview({
                       ? "Configured"
                       : "Configuration needed"}
                   </dd>
+                  <button
+                    className="staff-secondary-button"
+                    onClick={() => onOpen("team")}
+                  >
+                    Manage staff <ArrowRight size={15} />
+                  </button>
                 </div>
                 <div>
                   <dt>Secure ID and selfie storage</dt>
@@ -262,6 +272,638 @@ function ErrorNotice({ error, onRetry }) {
       )}
     </div>
   ) : null;
+}
+
+const emptyStaffForm = {
+  name: "",
+  username: "",
+  password: "",
+  confirmPassword: "",
+};
+
+export function StaffAccounts({
+  request,
+  onSessionExpired,
+  onForbidden,
+  onNotice,
+}) {
+  const [staff, setStaff] = useState([]);
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [formError, setFormError] = useState("");
+  const [errors, setErrors] = useState({});
+  const [editor, setEditor] = useState(null);
+  const [form, setForm] = useState(emptyStaffForm);
+  const [confirmReset, setConfirmReset] = useState(false);
+  const [accessChange, setAccessChange] = useState(null);
+  const generation = useRef(0);
+  const editorRef = useRef(null);
+  const failAccess = useCallback(
+    (problem) => {
+      if (problem.status === 401) {
+        onSessionExpired();
+        return true;
+      }
+      if (problem.status === 403) {
+        onForbidden();
+        return true;
+      }
+      return false;
+    },
+    [onSessionExpired, onForbidden],
+  );
+  const load = useCallback(async () => {
+    const current = ++generation.current;
+    setLoading(true);
+    setError("");
+    try {
+      const data = await request(
+        `/api/admin/staff?q=${encodeURIComponent(search.trim())}&page=${page}&limit=20`,
+      );
+      if (current !== generation.current) return;
+      if (
+        !Array.isArray(data.staff) ||
+        !Number.isInteger(data.total) ||
+        data.total < 0 ||
+        data.staff.some(
+          (person) =>
+            !person.id ||
+            person.role !== "staff" ||
+            typeof person.username !== "string" ||
+            typeof person.name !== "string" ||
+            typeof person.active !== "boolean" ||
+            !Number.isInteger(person.revision),
+        )
+      )
+        throw new Error(
+          "The staff account list could not be loaded. Please refresh.",
+        );
+      setStaff(data.staff);
+      setTotal(data.total);
+      if (page > 1 && !data.staff.length)
+        setPage(Math.max(1, Math.ceil(data.total / 20)));
+    } catch (problem) {
+      if (current !== generation.current) return;
+      if (!failAccess(problem)) setError(problem.message);
+    } finally {
+      if (current === generation.current) setLoading(false);
+    }
+  }, [request, search, page, failAccess]);
+  useEffect(() => {
+    const timer = setTimeout(load, 200);
+    return () => {
+      clearTimeout(timer);
+      generation.current += 1;
+    };
+  }, [load]);
+  useEffect(() => {
+    if (!editor) return;
+    editorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    editorRef.current?.querySelector("input")?.focus({ preventScroll: true });
+  }, [editor]);
+
+  function closeEditor() {
+    setEditor(null);
+    setForm({ ...emptyStaffForm });
+    setFormError("");
+    setErrors({});
+    setConfirmReset(false);
+  }
+  function openEditor(person = null) {
+    setEditor(
+      person ? { mode: "reset", person: { ...person } } : { mode: "create" },
+    );
+    setForm({ ...emptyStaffForm });
+    setFormError("");
+    setErrors({});
+    setConfirmReset(false);
+    setAccessChange(null);
+  }
+  function change(name, value) {
+    setForm((previous) => ({ ...previous, [name]: value }));
+    setErrors((previous) => ({ ...previous, [name]: "" }));
+    setFormError("");
+    setConfirmReset(false);
+  }
+  function validateForm() {
+    const next = {};
+    if (editor?.mode === "create") {
+      if (form.name.trim().length < 2 || form.name.trim().length > 80)
+        next.name = "Enter a name using 2 to 80 characters.";
+      const username = form.username.trim().toLowerCase();
+      if (
+        !/^[a-z][a-z0-9._-]{2,39}$/.test(username) ||
+        ["admin", "staff"].includes(username)
+      )
+        next.username =
+          "Use 3–40 letters, numbers, dots, hyphens or underscores, starting with a letter. Choose a personal username, not admin or staff.";
+    }
+    if (form.password.length < 16 || form.password.length > 256)
+      next.password = "Use a unique password between 16 and 256 characters.";
+    if (form.confirmPassword !== form.password)
+      next.confirmPassword = "The passwords do not match.";
+    setErrors(next);
+    return Object.keys(next).length === 0;
+  }
+  async function saveStaff() {
+    if (busy || !editor || !validateForm()) return;
+    const action = editor;
+    setBusy(true);
+    setFormError("");
+    try {
+      const data =
+        action.mode === "create"
+          ? await request("/api/admin/staff", {
+              method: "POST",
+              body: JSON.stringify({
+                name: form.name.trim(),
+                username: form.username.trim().toLowerCase(),
+                password: form.password,
+              }),
+            })
+          : await request(
+              `/api/admin/staff/${encodeURIComponent(action.person.id)}`,
+              {
+                method: "PATCH",
+                body: JSON.stringify({
+                  revision: action.person.revision,
+                  password: form.password,
+                }),
+              },
+            );
+      if (!data.staff?.id || data.staff.role !== "staff")
+        throw new Error(
+          "The staff account change was not confirmed. Refresh before trying again.",
+        );
+      closeEditor();
+      onNotice(
+        action.mode === "create"
+          ? `Staff account created for ${data.staff.name}.`
+          : `Password reset for ${data.staff.name}; existing sessions ended.`,
+      );
+      await load();
+    } catch (problem) {
+      if (!failAccess(problem)) {
+        if (problem.status === 409 && action.mode === "reset") {
+          closeEditor();
+          setError(
+            "This staff account changed. Refresh the latest details before resetting its password.",
+          );
+          await load();
+          setError(
+            "This staff account changed. Review the latest details before resetting its password.",
+          );
+        } else setFormError(problem.message);
+      }
+    } finally {
+      setForm((previous) => ({
+        ...previous,
+        password: "",
+        confirmPassword: "",
+      }));
+      setConfirmReset(false);
+      setBusy(false);
+    }
+  }
+  async function submitForm(event) {
+    event.preventDefault();
+    if (busy || !validateForm()) return;
+    if (editor.mode === "reset") setConfirmReset(true);
+    else await saveStaff();
+  }
+  async function changeAccess() {
+    if (!accessChange || busy) return;
+    const person = accessChange;
+    setBusy(true);
+    setError("");
+    try {
+      const data = await request(
+        `/api/admin/staff/${encodeURIComponent(person.id)}`,
+        {
+          method: "PATCH",
+          body: JSON.stringify({
+            revision: person.revision,
+            active: !person.active,
+          }),
+        },
+      );
+      if (!data.staff?.id || data.staff.role !== "staff")
+        throw new Error(
+          "The access change was not confirmed. Refresh before trying again.",
+        );
+      setAccessChange(null);
+      onNotice(
+        `${data.staff.active ? "Access enabled" : "Access disabled"} for ${data.staff.name}.`,
+      );
+      await load();
+    } catch (problem) {
+      if (!failAccess(problem)) {
+        if ([404, 409].includes(problem.status)) {
+          setAccessChange(null);
+          await load();
+          setError(
+            "This staff account changed. Review its latest details before changing access.",
+          );
+        } else setError(problem.message);
+      }
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <section
+      className="staff-management staff-team-management"
+      aria-labelledby="staff-team-heading"
+    >
+      <div className="staff-management-heading">
+        <div>
+          <span className="staff-eyebrow">YOUR STAFF</span>
+          <h2 id="staff-team-heading">Individual access for your team.</h2>
+          <p>
+            Create staff sign-ins and manage who can review applications,
+            products and requests. Only administrators can manage these
+            accounts.
+          </p>
+        </div>
+        <button
+          className="staff-action-button"
+          disabled={busy}
+          onClick={() => openEditor()}
+        >
+          <UserPlus size={17} />
+          Create staff account
+        </button>
+      </div>
+      <div className="staff-management-toolbar">
+        <label className="staff-search">
+          <Search size={17} />
+          <input
+            type="search"
+            aria-label="Search staff accounts"
+            placeholder="Search name or username"
+            value={search}
+            disabled={busy}
+            onChange={(event) => {
+              setSearch(event.target.value);
+              setPage(1);
+            }}
+          />
+        </label>
+        <button
+          className="staff-secondary-button"
+          disabled={busy || loading}
+          onClick={load}
+        >
+          <RefreshCw size={16} className={loading ? "staff-spin" : ""} />
+          Refresh staff
+        </button>
+      </div>
+      <ErrorNotice error={error} onRetry={load} />
+      {editor && (
+        <section
+          className="staff-team-editor"
+          aria-labelledby="staff-team-editor-heading"
+          ref={editorRef}
+        >
+          <div className="staff-team-editor-heading">
+            <div>
+              <span className="staff-eyebrow">
+                {editor.mode === "create"
+                  ? "NEW STAFF SIGN-IN"
+                  : "ACCOUNT SECURITY"}
+              </span>
+              <h3 id="staff-team-editor-heading">
+                {editor.mode === "create"
+                  ? "Create staff account"
+                  : `Reset password for ${editor.person.name}`}
+              </h3>
+            </div>
+            <button
+              className="staff-icon-button"
+              aria-label="Close staff account form"
+              disabled={busy}
+              onClick={closeEditor}
+            >
+              <X size={18} />
+            </button>
+          </div>
+          <form className="staff-team-form" onSubmit={submitForm} noValidate>
+            <div className="staff-product-fields">
+              {editor.mode === "create" && (
+                <>
+                  <label className="staff-product-field">
+                    <span>Staff member name</span>
+                    <input
+                      name="staffName"
+                      aria-label="Staff member name"
+                      autoComplete="off"
+                      value={form.name}
+                      maxLength={80}
+                      disabled={busy}
+                      aria-invalid={!!errors.name}
+                      onChange={(event) => change("name", event.target.value)}
+                    />
+                    {errors.name && (
+                      <small className="staff-field-error">{errors.name}</small>
+                    )}
+                  </label>
+                  <label className="staff-product-field">
+                    <span>Staff username</span>
+                    <input
+                      name="staffUsername"
+                      aria-label="Staff username"
+                      autoComplete="off"
+                      autoCapitalize="none"
+                      spellCheck={false}
+                      value={form.username}
+                      maxLength={40}
+                      disabled={busy}
+                      aria-invalid={!!errors.username}
+                      onChange={(event) =>
+                        change("username", event.target.value.toLowerCase())
+                      }
+                    />
+                    <small>
+                      Use this personal username on the shared sign-in page.
+                    </small>
+                    {errors.username && (
+                      <small className="staff-field-error">
+                        {errors.username}
+                      </small>
+                    )}
+                  </label>
+                </>
+              )}
+              <label className="staff-product-field">
+                <span>
+                  {editor.mode === "create"
+                    ? "Staff password"
+                    : "New staff password"}
+                </span>
+                <input
+                  name="staffPassword"
+                  aria-label={
+                    editor.mode === "create"
+                      ? "Staff password"
+                      : "New staff password"
+                  }
+                  type="password"
+                  autoComplete="new-password"
+                  value={form.password}
+                  minLength={16}
+                  maxLength={256}
+                  disabled={busy}
+                  aria-invalid={!!errors.password}
+                  onChange={(event) => change("password", event.target.value)}
+                />
+                <small>
+                  16–256 characters. Give this directly to the staff member.
+                </small>
+                {errors.password && (
+                  <small className="staff-field-error">{errors.password}</small>
+                )}
+              </label>
+              <label className="staff-product-field">
+                <span>
+                  {editor.mode === "create"
+                    ? "Confirm staff password"
+                    : "Confirm new staff password"}
+                </span>
+                <input
+                  name="staffConfirmPassword"
+                  aria-label={
+                    editor.mode === "create"
+                      ? "Confirm staff password"
+                      : "Confirm new staff password"
+                  }
+                  type="password"
+                  autoComplete="new-password"
+                  value={form.confirmPassword}
+                  minLength={16}
+                  maxLength={256}
+                  disabled={busy}
+                  aria-invalid={!!errors.confirmPassword}
+                  onChange={(event) =>
+                    change("confirmPassword", event.target.value)
+                  }
+                />
+                {errors.confirmPassword && (
+                  <small className="staff-field-error">
+                    {errors.confirmPassword}
+                  </small>
+                )}
+              </label>
+            </div>
+            <p className="staff-team-security-note">
+              <ShieldCheck size={16} />
+              Passwords cannot be retrieved later. Resetting a password ends
+              that staff member’s active sessions. The staff role cannot create
+              other staff or access administrator controls.
+            </p>
+            <ErrorNotice error={formError} />
+            {confirmReset ? (
+              <div
+                className="staff-team-confirm"
+                role="region"
+                aria-label="Confirm staff password reset"
+              >
+                <strong>Reset {editor.person.name}’s password?</strong>
+                <p>
+                  Their current password will stop working and their active
+                  sessions will end. Share the new password through your
+                  approved private process.
+                </p>
+                <div>
+                  <button
+                    type="button"
+                    className="staff-secondary-button"
+                    disabled={busy}
+                    onClick={() => setConfirmReset(false)}
+                  >
+                    Back
+                  </button>
+                  <button
+                    type="button"
+                    className="staff-action-button"
+                    disabled={busy}
+                    onClick={saveStaff}
+                  >
+                    {busy ? (
+                      <LoaderCircle size={16} className="staff-spin" />
+                    ) : (
+                      <KeyRound size={16} />
+                    )}
+                    Reset password and end sessions
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="staff-product-form-actions">
+                <button
+                  type="button"
+                  className="staff-secondary-button"
+                  disabled={busy}
+                  onClick={closeEditor}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="staff-action-button"
+                  disabled={busy}
+                >
+                  {busy ? (
+                    <LoaderCircle size={16} className="staff-spin" />
+                  ) : editor.mode === "create" ? (
+                    <UserPlus size={16} />
+                  ) : (
+                    <KeyRound size={16} />
+                  )}
+                  {editor.mode === "create"
+                    ? "Create account"
+                    : "Review password reset"}
+                </button>
+              </div>
+            )}
+          </form>
+        </section>
+      )}
+      {accessChange && (
+        <div
+          className="staff-team-access-confirm staff-team-confirm"
+          role="region"
+          aria-label="Confirm staff access change"
+        >
+          <strong>
+            {accessChange.active ? "Disable" : "Enable"} access for{" "}
+            {accessChange.name}?
+          </strong>
+          <p>
+            {accessChange.active
+              ? "They will be signed out and cannot open the staff dashboard until you enable their account again."
+              : "They will be able to sign in using their assigned username and current password."}
+          </p>
+          <div>
+            <button
+              className="staff-secondary-button"
+              disabled={busy}
+              onClick={() => setAccessChange(null)}
+            >
+              Cancel
+            </button>
+            <button
+              className="staff-action-button"
+              disabled={busy}
+              onClick={changeAccess}
+            >
+              {busy ? (
+                <LoaderCircle size={16} className="staff-spin" />
+              ) : accessChange.active ? (
+                <UserRoundX size={16} />
+              ) : (
+                <UserRoundCheck size={16} />
+              )}
+              {accessChange.active ? "Disable access" : "Enable access"}
+            </button>
+          </div>
+        </div>
+      )}
+      {loading ? (
+        <div className="staff-management-loading" role="status">
+          <LoaderCircle size={22} className="staff-spin" />
+          Loading staff accounts…
+        </div>
+      ) : (
+        !error &&
+        (staff.length ? (
+          <div
+            role="list"
+            aria-label="Staff accounts"
+            className="staff-team-list"
+          >
+            {staff.map((person) => (
+              <article
+                role="listitem"
+                className="staff-team-record"
+                key={person.id}
+              >
+                <span className="staff-member-avatar" aria-hidden="true">
+                  {person.name.trim().charAt(0).toUpperCase()}
+                </span>
+                <div className="staff-member-info">
+                  <h3>{person.name}</h3>
+                  <p>@{person.username}</p>
+                  <small>Created {dateLabel(person.createdAt)}</small>
+                </div>
+                <span
+                  className={`staff-team-status ${person.active ? "is-active" : "is-disabled"}`}
+                >
+                  {person.active ? "Active" : "Disabled"}
+                </span>
+                <div className="staff-team-record-actions">
+                  <button
+                    className="staff-secondary-button"
+                    disabled={busy}
+                    onClick={() => openEditor(person)}
+                  >
+                    <KeyRound size={15} />
+                    Reset password
+                  </button>
+                  <button
+                    className="staff-secondary-button"
+                    disabled={busy}
+                    onClick={() => {
+                      closeEditor();
+                      setAccessChange({ ...person });
+                    }}
+                  >
+                    {person.active ? (
+                      <UserRoundX size={15} />
+                    ) : (
+                      <UserRoundCheck size={15} />
+                    )}
+                    {person.active ? "Disable access" : "Enable access"}
+                  </button>
+                </div>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="staff-empty">
+            <span>
+              <Users size={30} />
+            </span>
+            <h3>
+              {search
+                ? "No staff accounts found."
+                : "Give your team their own sign-in."}
+            </h3>
+            <p>
+              {search
+                ? "Search another name or username."
+                : "Create a staff account to give someone access to member applications, products and orders."}
+            </p>
+          </div>
+        ))
+      )}
+      <Pager
+        page={page}
+        pageSize={20}
+        total={total}
+        loading={loading || busy}
+        onPage={setPage}
+      />
+      <p className="staff-management-privacy">
+        Each staff member uses their own username and password. Disabling access
+        or resetting a password ends their current sessions. Administrator
+        credentials are managed separately in your host’s private settings.
+      </p>
+    </section>
+  );
 }
 
 function MemberVerification({ member }) {

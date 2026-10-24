@@ -27,7 +27,7 @@ def exercise(app):
     expect(app.locator(".membership-page").get_by_role("link", name="Create your account", exact=True)).to_have_attribute("href", "https://loud-cana.onrender.com/signup")
     expect(app.locator(".membership-page").get_by_role("link", name="Member login", exact=True)).to_have_attribute("href", "https://loud-cana.onrender.com/login")
     expect(app.locator(".membership-page form")).to_have_count(0)
-    app.locator(".header-actions").get_by_role("link", name="Member login", exact=True).click()
+    app.locator(".header-actions").get_by_role("link", name="Sign in", exact=True).click()
     expect(app.locator(".membership-page")).to_contain_text("Account signup and login are available on our full website")
     expect(app.get_by_role("link", name="Open member website", exact=True)).to_have_attribute("href", "https://loud-cana.onrender.com/login")
     expect(app.locator(".membership-page input[type=password]")).to_have_count(0)
