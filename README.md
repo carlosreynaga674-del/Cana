@@ -14,3 +14,5 @@ The full service supports individual staff accounts, private manual ID/selfie re
 This static catalog is a bundled snapshot and does not receive staff catalog changes automatically. Management, account access, identity uploads and order requests require the full Node service and its private hosting setup. Source and the complete client ZIP are on loud-cana-client-handoff.
 
 Members now receive permanent membership numbers and a digital card in the full-service dashboard. Admin and individual staff accounts have private membership/verification/profile notifications with personal unread status. These in-app alerts update while the protected dashboard is open; the static catalog does not expose account information.
+
+Approved members keep their Verified member card badge; completed ID/selfie review panels and setup checklists are hidden from their full-service dashboard. New required reviews restore those steps.
