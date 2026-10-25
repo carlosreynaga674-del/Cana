@@ -5,6 +5,7 @@ Responsive public catalog with dedicated pages and hash routes for direct links 
 Public catalog: https://carlosreynaga674-del.github.io/Cana/
 Full application: https://loud-cana.onrender.com/
 Shared sign-in: https://loud-cana.onrender.com/login
+Public contact: loudpluscana@protonmail.com
 Staff setup: https://github.com/carlosreynaga674-del/Cana/blob/main/docs/STAFF_SETUP.md
 Welcome-email setup: https://github.com/carlosreynaga674-del/Cana/blob/main/docs/EMAIL_SETUP.md
 
