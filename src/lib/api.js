@@ -1,3 +1,5 @@
+import { businessContactEmail } from "./business.js";
+
 export const offlinePreview =
   window.__LC_OFFLINE_PREVIEW__ === true ||
   window.location.protocol === "file:";
@@ -7,7 +9,7 @@ export const defaultStore = {
   jurisdiction: "Gauteng, South Africa",
   deliveryZips: [],
   pickupAddress: "",
-  contactEmail: "",
+  contactEmail: businessContactEmail,
   currency: "ZAR",
   readiness: { ready: false },
   available: false,

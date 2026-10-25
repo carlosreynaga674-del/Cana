@@ -6,7 +6,48 @@ The application needs an authenticated sending account. It cannot send mail simp
 
 There are no mail credentials in source, the client package or this guide. Enter actual secrets only in the existing service's private Render **Environment** settings. Do not paste them in chat, screenshots, source files or build commands.
 
-## Option A: an existing iCloud mailbox
+## Set the public contact and reply address
+
+The requested business contact is **`loudpluscana@protonmail.com`**. Sign in to that mailbox at [Proton Mail](https://mail.proton.me/) and confirm that you can receive and reply to a message. Changing the website's contact address does not create the mailbox, prove ownership or grant the application permission to send from it.
+
+1. Open the existing [Loud + Cana Render service](https://dashboard.render.com/web/srv-dbd567t9fdbs73agdiq0).
+2. Choose **Environment → Edit / Add Environment Variable**.
+3. Set **`CONTACT_EMAIL=loudpluscana@protonmail.com`** and **`EMAIL_REPLY_TO=loudpluscana@protonmail.com`**. These values are public contact details, not credentials.
+4. Preserve the existing `ADMIN_PASSWORD`, `IDENTITY_UPLOAD_KEY`, `DATABASE_PATH` and mounted disk. Save and redeploy. Do not regenerate the upload-encryption key for this email change.
+
+This configures contact links and the reply address. Automatic welcome messages still require an authorised sending account as described below.
+
+## Option A: send through Proton Mail
+
+**Proton's direct SMTP submission requires a paid Proton Mail plan and an active custom-domain address.** The address `loudpluscana@protonmail.com` uses Proton's own domain and cannot be selected for this direct SMTP service, even merely by upgrading the account. It can remain the public contact and reply address. See [Proton's official SMTP requirements and instructions](https://proton.me/support/smtp-submission).
+
+If you have only the `@protonmail.com` mailbox and no custom domain, stop before entering SMTP settings. Keep that mailbox for incoming messages and replies; to send automatically, either obtain a domain you control and the required Proton plan, or use another genuinely authorised sender below. Do not invent a domain or put the Proton account password into Render.
+
+1. Use a paid Proton Mail plan that supports the required custom-domain setup. Add a domain you own in Proton's settings and follow its displayed verification, mail-routing and authentication DNS instructions. Wait until Proton confirms the domain and sender are ready. See [Proton's custom-domain guide](https://proton.me/support/custom-domain).
+2. Create an active sending address on that verified custom domain. This is the address that will appear in the message's **From** field; it is separate from the `@protonmail.com` contact/reply address.
+3. In Proton Mail, open **Settings → All settings → IMAP/SMTP → SMTP tokens** and select **Generate token**.
+4. Name the token **Loud Cana Render**, select that active custom-domain sending address, and generate it. Proton may ask for your account password inside Proton's own interface. Copy the generated **SMTP token** privately; the popup shows it only once. The account password and mailbox password do not work as SMTP credentials.
+5. In the existing Render service's **Environment** settings, enter the following values. Replace the descriptive sender fields with the actual address selected in Proton; do not copy descriptive text as a value.
+
+| Variable | Value |
+| --- | --- |
+| `EMAIL_PROVIDER` | `smtp` |
+| `EMAIL_FROM` | The actual active custom-domain sending address paired with the Proton SMTP token. |
+| `SMTP_HOST` | `smtp.protonmail.ch` |
+| `SMTP_PORT` | `587` |
+| `SMTP_USER` | The same actual custom-domain address selected for the token. |
+| `SMTP_PASSWORD` | The private generated Proton SMTP token, not the Proton account password. |
+| `CONTACT_EMAIL` | `loudpluscana@protonmail.com` |
+| `EMAIL_REPLY_TO` | `loudpluscana@protonmail.com` |
+| `EMAIL_PUBLIC_ORIGIN` | Leave unset to use `PUBLIC_ORIGIN` or Render's external URL, or supply the genuine full-service HTTPS origin. |
+
+6. Preserve all existing administrator, upload-key and database settings. Select **Save, rebuild, and deploy** and wait for the service to finish deploying. The application requires STARTTLS with certificate verification on port 587.
+7. Sign in as administrator and check that welcome-email setup is configured. Due pending signup jobs can now send automatically, as can future signup jobs. Review unwanted test accounts before enabling the sender because their queued messages may also be processed.
+8. Test receipt only with an authorised recipient you control. Confirm both its Members-view mail status and the recipient's inbox/spam folder. **Sent** means Proton accepted the message, not proof of inbox placement. If a job fails, correct the sender/network settings before using the administrator's failed-message retry action.
+
+Proton Mail Bridge is a local desktop-client connection and is not a hosted SMTP service supplied by Render. It is not a way to enter the free Proton mailbox's ordinary password into this cloud application. The app does not install or operate an always-running Bridge instance.
+
+## Option B: an existing iCloud mailbox
 
 Use this option only if the owner controls the iCloud mailbox that will send the message. A public contact address does not establish access to its mailbox.
 
@@ -23,7 +64,7 @@ Use this option only if the owner controls the iCloud mailbox that will send the
 | `SMTP_PORT` | `587` |
 | `SMTP_USER` | The full iCloud mailbox address. |
 | `SMTP_PASSWORD` | The private Apple app-specific password generated above. |
-| `EMAIL_REPLY_TO` | Optional monitored support address. Leave unset to use the sender's normal reply behavior. |
+| `EMAIL_REPLY_TO` | `loudpluscana@protonmail.com` for replies to the requested business mailbox. |
 | `EMAIL_PUBLIC_ORIGIN` | Optional genuine full-service HTTPS origin. Leave unset to use `PUBLIC_ORIGIN` or Render's external URL. |
 
 5. Preserve the existing `ADMIN_PASSWORD`, `IDENTITY_UPLOAD_KEY` and mounted database settings. Save the mail settings and redeploy. Do not generate a replacement identity-upload key for this mail change.
@@ -39,11 +80,11 @@ Supported ports are **465** for TLS and **587/2525** for mandatory STARTTLS. The
 
 Render free web services restrict common outbound SMTP ports, including 25, 465 and 587. Check the actual service plan and current host restrictions. The persistent-disk Blueprint uses a paid service, but that does not prove the existing service's private plan or network settings. If the host blocks the mailbox's required port, use a supported transport or the HTTPS option below. The application does not change hosting plans or create paid accounts automatically.
 
-## Option B: Resend over HTTPS
+## Option C: Resend over HTTPS
 
 1. Use the owner's Resend account and complete its domain-verification process for a domain the owner controls. Follow the provider's DNS/authentication instructions. A mailbox on a domain owned by another provider does not give the owner control of that domain's DNS.
 2. Create a server-side API key with permission to send for the approved sender. Keep it private.
-3. In Render **Environment**, set `EMAIL_PROVIDER=resend`, `RESEND_API_KEY` to that private key, and `EMAIL_FROM` to the approved verified-domain sender. Set `EMAIL_REPLY_TO` if the business needs a different monitored reply address.
+3. In Render **Environment**, set `EMAIL_PROVIDER=resend`, `RESEND_API_KEY` to that private key, and `EMAIL_FROM` to the approved verified-domain sender. Set `CONTACT_EMAIL` and `EMAIL_REPLY_TO` to `loudpluscana@protonmail.com`. Do not use an unauthorised `@protonmail.com` address as the Resend **From** sender; you do not control Proton's domain DNS.
 4. Leave `EMAIL_PUBLIC_ORIGIN` unset to use the existing full-service origin, or supply the genuine HTTPS origin for member account links. Save and redeploy.
 
 A provider's default testing sender may be limited to the provider account owner's own recipient address. It cannot be advertised as a sender for every new customer. Complete actual sender/domain authorisation before enabling production welcome messages.

@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import nodemailer from "nodemailer";
+import { resolveBusinessContactEmail } from "../src/lib/business.js";
 
 const MAX_ATTEMPTS = 5;
 const LEASE_MS = 90_000;
@@ -33,7 +34,7 @@ function originOf(value, production) {
 export function mailConfigFromEnv(env = process.env) {
   return {
     provider: clean(env.EMAIL_PROVIDER).toLowerCase(),
-    from: clean(env.EMAIL_FROM), replyTo: clean(env.EMAIL_REPLY_TO || env.CONTACT_EMAIL),
+    from: clean(env.EMAIL_FROM), replyTo: resolveBusinessContactEmail(env.EMAIL_REPLY_TO || env.CONTACT_EMAIL),
     publicOrigin: clean(env.EMAIL_PUBLIC_ORIGIN || env.PUBLIC_ORIGIN || env.RENDER_EXTERNAL_URL),
     smtpHost: clean(env.SMTP_HOST), smtpPort: clean(env.SMTP_PORT) || "587",
     smtpUser: clean(env.SMTP_USER), smtpPassword: env.SMTP_PASSWORD || "",

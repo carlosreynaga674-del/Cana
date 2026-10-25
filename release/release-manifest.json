@@ -1,7 +1,7 @@
 {
   "application": "Loud + Cana",
   "version": "1.0.0",
-  "createdAt": "2026-10-25T04:31:20.533Z",
+  "createdAt": "2026-10-25T05:24:58.586Z",
   "region": "Gauteng, South Africa",
   "currency": "ZAR",
   "runtime": "Node.js 24",
@@ -16,13 +16,13 @@
   "files": [
     {
       "filename": "DEPLOYMENT.md",
-      "bytes": 29803,
-      "sha256": "5c3dd4e5694667785ff340a8c8768f17eac1d29d14efef47f0eafe438f3e9df9"
+      "bytes": 30733,
+      "sha256": "9fde4bcd4f6eacf65c388d6e1179d312373460cf7b223608e65d0dc508e13d6d"
     },
     {
       "filename": "EMAIL_SETUP.md",
-      "bytes": 8406,
-      "sha256": "6fc981eaf869866ae306c57c8333bf446d911ba2b664688f1eb8befa2ba4527a"
+      "bytes": 13356,
+      "sha256": "5cfc525e4da0a9f9651fd91c60598b9ab20746457e872ba5a9f01a08b540ea67"
     },
     {
       "filename": "IDENTITY_VERIFICATION.md",
@@ -31,13 +31,13 @@
     },
     {
       "filename": "loud-cana-preview.html",
-      "bytes": 3772085,
-      "sha256": "c0ac19078b3fca4bb637aa5aefb17b223f59b1d16af506e12f0b2728fc0d38ae"
+      "bytes": 3772118,
+      "sha256": "e8096cc2b0fa66455d127f10e83f73326cd7a4a8a9ca3d0b7e085b86e208468d"
     },
     {
       "filename": "source/.env.example",
-      "bytes": 1846,
-      "sha256": "1bedb1dbfd6d228a640a06ee434ca5ce8186749079ed383b8c88bfe6228c325c"
+      "bytes": 2051,
+      "sha256": "9a45eb25f4fa3e35d27c0c47d9e56a4cc53638a78394e3ee2f12ced54aa63a18"
     },
     {
       "filename": "source/.github/workflows/client-handoff.yml",
@@ -61,13 +61,13 @@
     },
     {
       "filename": "source/docs/DEPLOYMENT.md",
-      "bytes": 29803,
-      "sha256": "5c3dd4e5694667785ff340a8c8768f17eac1d29d14efef47f0eafe438f3e9df9"
+      "bytes": 30733,
+      "sha256": "9fde4bcd4f6eacf65c388d6e1179d312373460cf7b223608e65d0dc508e13d6d"
     },
     {
       "filename": "source/docs/EMAIL_SETUP.md",
-      "bytes": 8406,
-      "sha256": "6fc981eaf869866ae306c57c8333bf446d911ba2b664688f1eb8befa2ba4527a"
+      "bytes": 13356,
+      "sha256": "5cfc525e4da0a9f9651fd91c60598b9ab20746457e872ba5a9f01a08b540ea67"
     },
     {
       "filename": "source/docs/HANDOFF.md",
@@ -86,8 +86,8 @@
     },
     {
       "filename": "source/docs/STAFF_SETUP.md",
-      "bytes": 11408,
-      "sha256": "08f5d484161ac4bce45ccbb45a6201fdc284293bfb1935401cc48b5ff8fa0940"
+      "bytes": 12606,
+      "sha256": "cfd7432fe2548f9973c38fa7a244045bb4081dff82e0ec99f7e0fbd83b47b3ad"
     },
     {
       "filename": "source/index.html",
@@ -211,8 +211,8 @@
     },
     {
       "filename": "source/render.yaml",
-      "bytes": 1507,
-      "sha256": "7ae25e6f78f28f72c6303b113817ab8dfe5ada73e345d9896f12bb21dce6f5a2"
+      "bytes": 1648,
+      "sha256": "be4cdef749b47500cd78a0a5ae899b40eb2a0aa61f20c01a56dd0d4fdc8477c3"
     },
     {
       "filename": "source/scripts/build-standalone.mjs",
@@ -226,8 +226,8 @@
     },
     {
       "filename": "source/server/app.mjs",
-      "bytes": 39645,
-      "sha256": "2bf5ba79d298b549b5f7aecf0e32a48d98ec64dc8387c83d255272f4dbf509ff"
+      "bytes": 39737,
+      "sha256": "1e6de2a25b5fc0af63ae6e4f7c0931ea46156afaf8cf8ef6d57e0aa639935499"
     },
     {
       "filename": "source/server/catalog.mjs",
@@ -261,8 +261,8 @@
     },
     {
       "filename": "source/server/welcome-mail.mjs",
-      "bytes": 14831,
-      "sha256": "62a8c00599bc4f2dbafd1171e75bf31d8b9a0aaa7cae1d25f54c700433083385"
+      "bytes": 14923,
+      "sha256": "7c0fe2e1a78cd33965bf779c0460e7c83dc2ea589c88eeda8554f8b50d062ac2"
     },
     {
       "filename": "source/server/workforce.mjs",
@@ -306,8 +306,13 @@
     },
     {
       "filename": "source/src/lib/api.js",
-      "bytes": 2082,
-      "sha256": "b93d6f47442fc27dcfdf5f6abede918ec8b534556389a92bd3fec220c83e9ad5"
+      "bytes": 2155,
+      "sha256": "10e12737f7106df7ffae12fd9f4e261b92690ea6584ecacbbda23d386d81972a"
+    },
+    {
+      "filename": "source/src/lib/business.js",
+      "bytes": 392,
+      "sha256": "9d7a7bd53631d933189ea9abe1d4d7d6f26aeda2e16060299eb9e32f1eebbf2b"
     },
     {
       "filename": "source/src/lib/catalog.js",
@@ -496,8 +501,8 @@
     },
     {
       "filename": "STAFF_SETUP.md",
-      "bytes": 11408,
-      "sha256": "08f5d484161ac4bce45ccbb45a6201fdc284293bfb1935401cc48b5ff8fa0940"
+      "bytes": 12606,
+      "sha256": "cfd7432fe2548f9973c38fa7a244045bb4081dff82e0ec99f7e0fbd83b47b3ad"
     },
     {
       "filename": "START-HERE.md",
@@ -515,14 +520,14 @@
       "sha256": "9fea608a947e67020c33cad9a6fe3d60c54119dfb8cff87768a8117a15ed7543"
     },
     {
-      "filename": "static-site/assets/index-bY0M4vDF.js",
-      "bytes": 518569,
-      "sha256": "354dcc2b061d011909fdd0d3563b80e214ff88e064b9e905a5bb97543fed9d4f"
-    },
-    {
       "filename": "static-site/assets/index-D7O7Jg3O.css",
       "bytes": 176829,
       "sha256": "9fc36b816befca028587c8c7451fd826e7c4647ad30fb9ab4ade997db795b26b"
+    },
+    {
+      "filename": "static-site/assets/index-Yi2C3fiK.js",
+      "bytes": 518602,
+      "sha256": "73a23b62e7889e8c7d3e3128648c20d6f313200fc949fce57de8e0cdff2c724d"
     },
     {
       "filename": "static-site/assets/manrope-cyrillic-wght-normal-Dvxsihut.woff2",
@@ -656,8 +661,8 @@
     },
     {
       "filename": "static-site/index.html",
-      "bytes": 3772085,
-      "sha256": "c0ac19078b3fca4bb637aa5aefb17b223f59b1d16af506e12f0b2728fc0d38ae"
+      "bytes": 3772118,
+      "sha256": "e8096cc2b0fa66455d127f10e83f73326cd7a4a8a9ca3d0b7e085b86e208468d"
     },
     {
       "filename": "static-site/social-cover.webp",

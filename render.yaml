@@ -23,6 +23,10 @@ services:
         value: Loud + Cana
       - key: BUSINESS_JURISDICTION
         value: Gauteng, South Africa
+      - key: CONTACT_EMAIL
+        value: loudpluscana@protonmail.com
+      - key: EMAIL_REPLY_TO
+        value: loudpluscana@protonmail.com
       - key: LIVE_ORDERS_ENABLED
         value: "false"
       - key: LEGAL_SALES_AUTHORIZATION_CONFIRMED

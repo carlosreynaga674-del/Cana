@@ -95,7 +95,11 @@ The photo and product persist in SQLite. Unreferenced uploads expire after 24 ho
 
 ## 10. Enable and monitor welcome emails
 
-Follow [EMAIL_SETUP.md](EMAIL_SETUP.md) to connect an actual mailbox or verified sender in Render's private Environment settings. An owner-controlled iCloud mailbox can use SMTP with an Apple app-specific password; an external verified-domain Resend sender is an alternative. The software cannot create mailbox credentials or bypass sender authentication.
+Set `CONTACT_EMAIL` and `EMAIL_REPLY_TO` to **`loudpluscana@protonmail.com`** in the existing Render service's private Environment settings, preserving the administrator password, identity-upload key and persistent database settings. This sets the public contact and reply address; it does not authorise automatic sending.
+
+Follow [EMAIL_SETUP.md](EMAIL_SETUP.md) for the complete Proton steps. [Proton's direct SMTP service](https://proton.me/support/smtp-submission) requires a paid Proton Mail plan and an active **custom-domain** address. The `@protonmail.com` mailbox cannot use this direct SMTP service as its sender, even merely by upgrading. With an eligible custom-domain sender, generate its SMTP token in **Settings → All settings → IMAP/SMTP → SMTP tokens**; use `smtp.protonmail.ch` on port `587`, the selected custom-domain address for `SMTP_USER`/`EMAIL_FROM` and the token for `SMTP_PASSWORD`. Never enter the ordinary Proton account password into Render. Keep the requested Proton mailbox as the reply address.
+
+If there is no custom domain, keep Proton for incoming contact/replies and connect a separately authorised sender. An owner-controlled iCloud mailbox can use SMTP with an Apple app-specific password; a verified-domain Resend sender is another option. Proton Mail Bridge is a desktop-client connection, not a Render-hosted mail service. The software cannot create mailbox credentials or bypass sender authentication. Save the settings and deploy, then check the mail setup and receipt with a test recipient you control.
 
 Every successful new signup queues one generic account welcome message. There is no historical-member backfill or marketing subscription. Missing sender configuration leaves it pending; the Members view shows actual queue status. **Sent means provider acceptance, not guaranteed inbox delivery.** After correcting a sender failure, the administrator can use the failed-message retry action. It does not send a new message to historical members or resend an already accepted message.
 

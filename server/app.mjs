@@ -19,6 +19,7 @@ import {
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { calculateTotals, validateCheckout } from "../src/lib/order.js";
+import { resolveBusinessContactEmail } from "../src/lib/business.js";
 import { createMemberHandlers } from "./members.mjs";
 import { createCatalog } from "./catalog.mjs";
 import { createWorkforce } from "./workforce.mjs";
@@ -71,7 +72,7 @@ export function configFromEnv(env = process.env) {
       .map(clean)
       .filter(Boolean),
     pickupAddress: clean(env.PICKUP_ADDRESS),
-    contactEmail: clean(env.CONTACT_EMAIL),
+    contactEmail: resolveBusinessContactEmail(env.CONTACT_EMAIL),
     liveOrdersEnabled: bool(env.LIVE_ORDERS_ENABLED),
     legalSalesAuthorizationConfirmed: bool(
       env.LEGAL_SALES_AUTHORIZATION_CONFIRMED,
