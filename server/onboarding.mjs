@@ -284,7 +284,7 @@ function appendCookie(res, value) {
   ]);
 }
 
-export function createOnboarding({ db, production, HttpError }) {
+export function createOnboarding({ db, production, HttpError, onReviewed = () => {} }) {
   db.exec(`
     CREATE TABLE IF NOT EXISTS member_signup_challenges (
       id TEXT PRIMARY KEY, token_hash TEXT NOT NULL UNIQUE, question_ids TEXT NOT NULL,
@@ -502,7 +502,7 @@ export function createOnboarding({ db, production, HttpError }) {
         "Complete the required staff ID and age review before submitting an order request.",
       );
   }
-  function queue(status) {
+  function queue(status, memberId = "") {
     cleanup();
     const filter = ["required", "pending", "verified", "rejected"].includes(
       status,
@@ -511,16 +511,19 @@ export function createOnboarding({ db, production, HttpError }) {
       : "pending";
     return db
       .prepare(
-        `SELECT m.id,m.name,m.email,a.birth_date FROM members m LEFT JOIN member_age_checks a ON a.member_id=m.id WHERE COALESCE(a.status,'required')=? ORDER BY COALESCE(a.submitted_at,m.created_at) DESC LIMIT 500`,
+        `SELECT m.id,m.name,m.email,a.birth_date FROM members m LEFT JOIN member_age_checks a ON a.member_id=m.id WHERE ${memberId ? "m.id=?" : "COALESCE(a.status,'required')=?"} ORDER BY COALESCE(a.submitted_at,m.created_at) DESC LIMIT 500`,
       )
-      .all(filter)
-      .map((row) => ({
-        id: row.id,
-        name: row.name,
-        email: row.email,
-        birthDate: filter === "pending" ? row.birth_date : null,
-        ageVerification: publicAge(row.id),
-      }));
+      .all(memberId || filter)
+      .map((row) => {
+        const verification = publicAge(row.id);
+        return {
+          id: row.id,
+          name: row.name,
+          email: row.email,
+          birthDate: verification.status === "pending" ? row.birth_date : null,
+          ageVerification: verification,
+        };
+      });
   }
   function review(memberId, body, reviewerRef) {
     const member = db
@@ -600,6 +603,7 @@ export function createOnboarding({ db, production, HttpError }) {
         hash(reviewerRef),
         body.decision === "rejected" ? body.reason : null,
       );
+      onReviewed({ memberId, sourceRef: `in-person-review:${memberId}:${body.expectedSubmittedAt}` });
       db.exec("COMMIT");
     } catch (error) {
       db.exec("ROLLBACK");

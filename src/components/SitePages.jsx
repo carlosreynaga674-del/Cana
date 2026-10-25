@@ -402,6 +402,40 @@ function PrivacyPage({ onNavigate, store = {} }) {
           </p>
         </section>
         <section className="legal-section">
+          <h2>Membership number and digital card</h2>
+          <p>
+            Your account receives a permanent, random membership number that
+            is separate from any government document number. Your private
+            dashboard and digital card show your name, membership number,
+            joining date, and current verification status. Authorised staff can
+            also use the number to find your member record. The card is an
+            account reference, not proof of identity, age, or approval.
+          </p>
+          <p>
+            If you download your card, keep the file private. It is a snapshot
+            and does not update when your details or review status change.
+            The file does not include your email address, birth date, password,
+            identity document, or selfie.
+          </p>
+        </section>
+        <section className="legal-section">
+          <h2>Private staff activity notifications</h2>
+          <p>
+            Authorised staff receive private in-app notices when an account is
+            created, verification information is submitted or reviewed, or a
+            member changes their name. Notices refer to your account and show
+            your current name to staff. They do not copy your email address,
+            date of birth, password, identity photographs, or document details.
+            Staff read receipts use a hashed staff reference.
+          </p>
+          <p>
+            Activity notices are kept for up to 30 days, subject to a maximum
+            of 10,000 events. Deleting your account removes its linked notices
+            and read receipts from active storage. Backups have a separate
+            retention process. These notices are not a marketing subscription.
+          </p>
+        </section>
+        <section className="legal-section">
           <h2>Account welcome emails</h2>
           <p>
             Creating an account queues a transactional welcome email. When the
@@ -457,7 +491,8 @@ function PrivacyPage({ onNavigate, store = {} }) {
           <p>
             You can edit your profile, change your password, and manage your
             member account from the account page. Account deletion removes the
-            member profile, saved favourites, age-check information, and sign-in
+            member profile, membership number, saved favourites, linked activity
+            notices, age-check information, and sign-in
             sessions. An authorised administrator can also delete your member
             account. Deletion removes linked unsent welcome-email jobs; messages
             already in flight or accepted by the sending service cannot be

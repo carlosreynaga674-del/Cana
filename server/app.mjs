@@ -777,7 +777,34 @@ export function createServer({
         authenticate(req);
         return send(res, 200, handleMembers.listMembers({
           q: url.searchParams.get("q") || "", page: url.searchParams.get("page") || "1", limit: url.searchParams.get("limit") || "20",
+          memberId: url.searchParams.get("memberId") || "",
         }));
+      }
+      if (pathname === "/api/admin/notifications" && req.method === "GET") {
+        const principal = reviewActor(req);
+        const unread = url.searchParams.get("unread");
+        if (unread !== null && !["true", "false"].includes(unread))
+          throw new HttpError(422, "Choose a valid notification filter.");
+        return send(res, 200, handleMembers.notifications(principal, {
+          limit: url.searchParams.get("limit") ?? "30",
+          before: url.searchParams.get("before") ?? "",
+          unreadOnly: unread === "true",
+        }));
+      }
+      if (pathname === "/api/admin/notifications/read-all" && req.method === "POST") {
+        reviewActor(req);
+        rateLimit(req, "staff-notification-reads", 240, 15 * 60 * 1000);
+        const body = await readJson(req);
+        const principal = reviewActor(req);
+        return send(res, 200, handleMembers.readAllNotifications(principal, body));
+      }
+      const notificationReadMatch = pathname.match(/^\/api\/admin\/notifications\/([a-f0-9-]{36})\/read$/);
+      if (notificationReadMatch && req.method === "POST") {
+        reviewActor(req);
+        rateLimit(req, "staff-notification-reads", 240, 15 * 60 * 1000);
+        await readJson(req);
+        const principal = reviewActor(req);
+        return send(res, 200, handleMembers.readNotification(principal, notificationReadMatch[1]));
       }
       const deleteMemberMatch = pathname.match(/^\/api\/admin\/members\/([a-f0-9-]+)$/);
       if (deleteMemberMatch && req.method === "DELETE") {
@@ -855,7 +882,7 @@ export function createServer({
       ) {
         authenticate(req);
         return send(res, 200, {
-          members: handleMembers.ageQueue(url.searchParams.get("status")),
+          members: handleMembers.ageQueue(url.searchParams.get("status"), url.searchParams.get("memberId") || ""),
         });
       }
       const ageReviewMatch = pathname.match(

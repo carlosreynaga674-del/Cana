@@ -93,8 +93,9 @@ test("membership creates real catalog-mode accounts and discloses only safe own-
   assert.deepEqual(member.favorites, []);
   assert.equal(
     Object.keys(member).sort().join(","),
-    "ageVerification,createdAt,email,favorites,id,identityVerification,name",
+    "ageVerification,createdAt,email,favorites,id,identityVerification,membershipNumber,name",
   );
+  assert.match(member.membershipNumber, /^LC-[0-9A-HJKMNP-TV-Z]{4}-[0-9A-HJKMNP-TV-Z]{4}-[0-9A-HJKMNP-TV-Z]{4}$/);
   assert.match(response.headers.get("set-cookie"), /HttpOnly; SameSite=Strict/);
   assert.match(response.headers.get("set-cookie"), /Path=\/api;/);
   assert.equal(response.headers.get("cache-control"), "no-store");
@@ -246,6 +247,8 @@ test("member profiles and saved favourites are server-backed, validated and isol
   assert.equal(update.status, 200);
   const { member } = await update.json();
   assert.equal(member.name, "Jordan Updated");
+  assert.equal(member.membershipNumber, first.member.membershipNumber);
+  assert.notEqual(member.membershipNumber, second.member.membershipNumber);
   assert.deepEqual(member.favorites, ["sunset-sherbet", "peach-state"]);
   assert.deepEqual(
     (
@@ -427,6 +430,8 @@ test("member passwords and session tokens are hashed at rest, and accounts/sessi
   assert.ok(!JSON.stringify(session).includes(registered.cookie.split("=")[1]));
   database.close();
   const restarted = await start(t, { dbPath });
+  const restored = await restarted.request("/api/members/me", { cookie: registered.cookie }).then((response) => response.json());
+  assert.equal(restored.member.membershipNumber, registered.member.membershipNumber);
   assert.equal(
     (
       await restarted

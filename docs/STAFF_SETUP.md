@@ -105,6 +105,23 @@ Every successful new signup queues one generic account welcome message. There is
 
 No password, ID photo, selfie or date of birth is sent in the welcome message. It confirms account creation and directs the member to their current review status; email does not approve the application or verify email ownership. Deleting a member cancels queued jobs but cannot recall messages already in flight or sent.
 
+## 11. Use account notifications
+
+1. Sign in to the protected admin or staff dashboard. The **Notifications** bell and navigation item show your unread count. Open **Notifications** to see recent membership activity.
+2. New membership applications, successful ID/selfie submissions or renewed eligibility applications, completed staff reviews and actual member-name changes create events. Routine sign-ins, password changes and saved-favourite changes do not create these alerts. Deployment does not manufacture alerts for earlier account history.
+3. Open a notification's member or verification link to see that exact member's current record. Notification text does not include an ID image, date of birth, email address or review document.
+4. Mark an item read, or choose **Mark all read** for the currently loaded event boundary. Events received after that boundary remain unread. Read status is saved in SQLite for your account and survives sign-out and restart; an administrator reading an item does not clear an individual employee's item. A retained legacy shared staff login shares its own read status.
+
+The dashboard checks for updates about every 15 seconds while visible and when it regains focus or connection. Keep the dashboard open for in-app updates. These alerts do not require a mail sender and do not promise an email, sound, browser push or operating-system notification. A lost or revoked staff session removes private notification access.
+
+The feed retains events for up to 30 days and at most 10,000 shared activity records. Linked events and read receipts are removed when a member is deleted. Event records store member references, event type, time and hashed source references; read receipts use a hashed staff identity. The protected feed looks up the member's current name instead of keeping copied profile details. Backups retain their separate lifecycle.
+
+## 12. Find membership numbers and digital cards
+
+Every member has a permanent, random **membership number** in the form `LC-XXXX-XXXX-XXXX`. Existing accounts receive one automatically during the database migration; new accounts receive one within signup. The number remains stable after a name change or restart. In **Members**, search using the member's name, email or membership number.
+
+Members see their digital card on **Your account** (`/account`). It shows their name, membership number, joining date and current verification status, including a pending or required review. **Download membership card** saves a private SVG copy of those details. A download is a snapshot and does not update when the review status changes; the signed-in dashboard shows the current status. The card is an account reference, not government ID, proof of age, a completed identity check or a payment card. It does not change account eligibility or business permissions. Downloaded cards contain no email address, date of birth, ID/selfie images or passwords.
+
 ## Ordering is a separate launch step
 
 These settings enable management access and encrypted identity submissions. They do not authorise cannabis sales or enable payments or driver dispatch. Complete the genuine business-authorisation, catalog, contact and approved **`DELIVERY_ZIPS`** requirements in [DEPLOYMENT.md](DEPLOYMENT.md) before accepting real order requests. Account approval does not replace commercial sales/delivery authorisation.

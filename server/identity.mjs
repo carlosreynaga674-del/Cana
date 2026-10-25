@@ -21,6 +21,7 @@ export function identityConfigFromEnv(env = process.env) {
  */
 export function createIdentityService({
   db, HttpError, config = identityConfigFromEnv(), getApplication, recordDecision,
+  onSubmitted = () => {}, onReviewed = () => {},
   now = () => Date.now(),
 }) {
   const keyText = clean(config.storageKey);
@@ -247,6 +248,7 @@ export function createIdentityService({
         id, memberId, current.submittedAt, binding(normalizedName(current.name)), binding(current.birthDate),
         encrypt(document, id, "document"), encrypt(selfie, id, "selfie"), timestamp, timestamp, now() + PENDING_MS, keyId,
       );
+      onSubmitted({ memberId, uploadId: id });
     });
     return { verification: status(memberId) };
   }
@@ -296,6 +298,7 @@ export function createIdentityService({
         body.decision, body.decision === "rejected" ? body.reason : null, timestamp,
         createHash("sha256").update(String(reviewerRef)).digest("hex"), upload.id,
       );
+      onReviewed({ memberId, sourceRef: `identity-review:${upload.id}` });
     });
     return status(memberId);
   }

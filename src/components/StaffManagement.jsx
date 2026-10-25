@@ -998,10 +998,12 @@ export function MemberDirectory({
   request,
   onSessionExpired,
   onOpenAge,
+  initialMember = null,
   canDelete = false,
   onNotice = () => {},
 }) {
   const [members, setMembers] = useState([]);
+  const [focusedMemberId, setFocusedMemberId] = useState(initialMember?.id || "");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
@@ -1022,7 +1024,7 @@ export function MemberDirectory({
       setError("");
       try {
         const data = await request(
-          `/api/admin/members?q=${encodeURIComponent(search.trim())}&page=${page}&limit=20`,
+          `/api/admin/members?q=${encodeURIComponent(search.trim())}&page=${page}&limit=20${focusedMemberId ? `&memberId=${encodeURIComponent(focusedMemberId)}` : ""}`,
         );
         if (current !== generation.current) return;
         if (!Array.isArray(data.members) || !Number.isInteger(data.total))
@@ -1041,7 +1043,7 @@ export function MemberDirectory({
         if (current === generation.current && !quiet) setLoading(false);
       }
     },
-    [page, search, request, onSessionExpired],
+    [page, search, focusedMemberId, request, onSessionExpired],
   );
   useEffect(() => {
     const timer = setTimeout(load, 200);
@@ -1173,6 +1175,12 @@ export function MemberDirectory({
           Refresh members
         </button>
       </div>
+      {focusedMemberId && (
+        <div className="staff-member-focus" role="status">
+          <span>Showing {members[0]?.name || initialMember?.name || "the selected member"}.</span>
+          <button disabled={deleting} onClick={() => { setFocusedMemberId(""); setSearch(""); setPage(1); }}>View all members</button>
+        </div>
+      )}
       <div className="staff-management-toolbar">
         <label className="staff-search">
           <Search size={17} />
@@ -1180,9 +1188,10 @@ export function MemberDirectory({
             type="search"
             aria-label="Search registered members"
             disabled={deleting}
-            placeholder="Search name or email"
+            placeholder="Search name, email or membership number"
             value={search}
             onChange={(event) => {
+              setFocusedMemberId("");
               setSearch(event.target.value);
               setPage(1);
             }}
@@ -1289,6 +1298,9 @@ export function MemberDirectory({
                 <div className="staff-member-info">
                   <h3>{member.name}</h3>
                   <p>{member.email}</p>
+                  {member.membershipNumber && (
+                    <small className="staff-membership-number">Member {member.membershipNumber}</small>
+                  )}
                   <small>Joined {dateLabel(member.createdAt)}</small>
                   {member.welcomeEmail && (
                     <small

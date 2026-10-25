@@ -23,6 +23,7 @@ import {
   Users,
 } from "lucide-react";
 import { request, offlinePreview } from "../lib/api.js";
+import MembershipCard, { MemberSetupJourney } from "./MembershipCard.jsx";
 
 const MEMBER_SITE = "https://loud-cana.onrender.com";
 const EMPTY_SIGNUP = {
@@ -2214,6 +2215,11 @@ function MemberAccount({
           choose your files again below to complete your submission.
         </p>
       )}
+      <div className="member-dashboard-showcase">
+        <MembershipCard member={member} />
+        <MemberSetupJourney member={member} savedCount={savedCount} />
+      </div>
+      <div id="member-verification" className="member-verification-section">
       {member.identityVerification?.required ? (
         <IdentityVerificationCard
           member={member}
@@ -2229,6 +2235,7 @@ function MemberAccount({
           onNavigate={onNavigate}
         />
       )}
+      </div>
       <div className="account-grid">
         <section className="account-card account-favourites">
           <Heart size={27} />

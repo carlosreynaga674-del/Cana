@@ -9,6 +9,8 @@ import { promisify } from "node:util";
 import { createOnboarding, ONBOARDING_POLICY_VERSION } from "./onboarding.mjs";
 import { createIdentityService } from "./identity.mjs";
 import { createWelcomeMailer } from "./welcome-mail.mjs";
+import { createStaffNotifications } from "./notifications.mjs";
+import { createMemberNumbers } from "./member-numbers.mjs";
 
 const deriveKey = promisify(scrypt);
 const SESSION_SECONDS = 30 * 24 * 60 * 60;
@@ -66,7 +68,12 @@ export function createMemberHandlers({
       action TEXT NOT NULL, created_at TEXT NOT NULL
     );
   `);
-  const onboarding = createOnboarding({ db, production, HttpError });
+  const notifications = createStaffNotifications({ db, HttpError });
+  const memberNumbers = createMemberNumbers({ db, HttpError });
+  const onReviewed = ({ memberId, sourceRef }) => notifications.publish({
+    type: "verification_reviewed", memberId, sourceRef,
+  });
+  const onboarding = createOnboarding({ db, production, HttpError, onReviewed });
   const byId = db.prepare("SELECT * FROM members WHERE id = ?");
   const byEmail = db.prepare("SELECT * FROM members WHERE email = ?");
   const sessionByHash = db.prepare(
@@ -80,6 +87,10 @@ export function createMemberHandlers({
   );
   const identity = createIdentityService({
     db, HttpError, config: { ...identityConfig, production },
+    onSubmitted: ({ memberId, uploadId }) => notifications.publish({
+      type: "verification_requested", memberId, sourceRef: `identity:${uploadId}`,
+    }),
+    onReviewed,
     getApplication(memberId) {
       const member = byId.get(memberId);
       const application = onboarding.providerApplication(memberId);
@@ -131,6 +142,7 @@ export function createMemberHandlers({
     }
     return {
       id: row.id,
+      membershipNumber: memberNumbers.get(row.id),
       name: row.name,
       email: row.email,
       createdAt: row.created_at,
@@ -288,6 +300,8 @@ export function createMemberHandlers({
         if (!byId.get(member.id))
           throw new HttpError(401, "Please sign in again.");
         onboarding.recordSubmission(member.id, submission, res);
+        notifications.publish({ type: "verification_requested", memberId: member.id,
+          sourceRef: `application:${member.id}:${onboarding.providerApplication(member.id).submittedAt}` });
         db.exec("COMMIT");
       } catch (error) {
         db.exec("ROLLBACK");
@@ -352,7 +366,9 @@ export function createMemberHandlers({
           ONBOARDING_POLICY_VERSION,
         );
         onboarding.recordSubmission(id, submission, res, true);
+        memberNumbers.assign(id);
         mailer.enqueue(id);
+        notifications.publish({ type: "member_registered", memberId: id, sourceRef: id });
         issueSession(res, id);
         db.exec("COMMIT");
       } catch (error) {
@@ -408,18 +424,22 @@ export function createMemberHandlers({
       const current = byId.get(member.id);
       if (!current)
         throw new HttpError(401, "Please sign in to your membership account.");
-      db.prepare(
-        "UPDATE members SET name = ?, favorites_json = ?, updated_at = ? WHERE id = ?",
-      ).run(
-        body.name === undefined ? current.name : name,
-        favorites === undefined
-          ? current.favorites_json
-          : JSON.stringify(favorites),
-        new Date().toISOString(),
-        member.id,
-      );
-      if (body.name !== undefined && name !== current.name)
-        onboarding.invalidateName(member.id);
+      db.exec("BEGIN IMMEDIATE");
+      try {
+        db.prepare(
+          "UPDATE members SET name = ?, favorites_json = ?, updated_at = ? WHERE id = ?",
+        ).run(
+          body.name === undefined ? current.name : name,
+          favorites === undefined ? current.favorites_json : JSON.stringify(favorites),
+          new Date().toISOString(), member.id,
+        );
+        if (body.name !== undefined && name !== current.name) {
+          onboarding.invalidateName(member.id);
+          notifications.publish({ type: "member_profile_updated", memberId: member.id,
+            sourceRef: randomUUID() });
+        }
+        db.exec("COMMIT");
+      } catch (error) { db.exec("ROLLBACK"); throw error; }
       send(res, 200, { member: publicMember(byId.get(member.id)) });
       return true;
     }
@@ -511,21 +531,27 @@ export function createMemberHandlers({
     if (token) revokeSession.run(hashToken(token));
     setMemberCookie(res, "", 0);
   };
-  handleMembers.ageQueue = (status) => {
-    identity.cleanup();
-    return onboarding.queue(status).map((member) => ({ ...member, identityVerification: identity.status(member.id) }));
+  const focusedMemberId = (value = "") => {
+    if (typeof value !== "string" || (value && !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(value)))
+      throw new HttpError(422, "Choose a valid member record.");
+    return value;
   };
-  handleMembers.listMembers = ({ q = "", page = "1", limit = "20" } = {}) => {
+  handleMembers.ageQueue = (status, memberId = "") => {
+    identity.cleanup();
+    return onboarding.queue(status, focusedMemberId(memberId)).map((member) => ({ ...member, identityVerification: identity.status(member.id) }));
+  };
+  handleMembers.listMembers = ({ q = "", page = "1", limit = "20", memberId = "" } = {}) => {
+    const focus = focusedMemberId(memberId);
     const pageNumber = Number(page), pageSize = Number(limit);
     if (typeof q !== "string" || q.length > 120 || !Number.isInteger(pageNumber) || pageNumber < 1 || pageNumber > 100000 || !Number.isInteger(pageSize) || pageSize < 1 || pageSize > 100)
       throw new HttpError(422, "Choose a valid member search and page.");
     const query = q.trim().toLowerCase();
-    const where = "WHERE instr(lower(name),?)>0 OR instr(lower(email),?)>0";
-    const total = db.prepare(`SELECT COUNT(*) AS count FROM members ${where}`).get(query, query).count;
-    const rows = db.prepare(`SELECT * FROM members ${where} ORDER BY created_at DESC,id LIMIT ? OFFSET ?`).all(query, query, pageSize, (pageNumber - 1) * pageSize);
+    const where = "WHERE (instr(lower(name),?)>0 OR instr(lower(email),?)>0 OR instr(lower(COALESCE((SELECT number FROM member_numbers WHERE member_id=members.id),'')),?)>0) AND (?='' OR id=?)";
+    const total = db.prepare(`SELECT COUNT(*) AS count FROM members ${where}`).get(query, query, query, focus, focus).count;
+    const rows = db.prepare(`SELECT * FROM members ${where} ORDER BY created_at DESC,id LIMIT ? OFFSET ?`).all(query, query, query, focus, focus, pageSize, (pageNumber - 1) * pageSize);
     return { members: rows.map((row) => {
       const member = publicMember(row);
-      return { id: member.id, name: member.name, email: member.email, createdAt: member.createdAt, updatedAt: row.updated_at, ageVerification: member.ageVerification, identityVerification: member.identityVerification, welcomeEmail: mailer.status(member.id) };
+      return { id: member.id, membershipNumber: member.membershipNumber, name: member.name, email: member.email, createdAt: member.createdAt, updatedAt: row.updated_at, ageVerification: member.ageVerification, identityVerification: member.identityVerification, welcomeEmail: mailer.status(member.id) };
     }), total, page: pageNumber, limit: pageSize };
   };
   handleMembers.identityImage = (id, kind, uploadId) => identity.image(id, kind, uploadId);
@@ -561,6 +587,9 @@ export function createMemberHandlers({
     return publicMember(byId.get(id));
   };
   handleMembers.start = () => mailer.start();
-  handleMembers.close = () => { mailer.close(); identity.dispose(); onboarding.close(); };
+  handleMembers.notifications = (principal, options) => notifications.list(principal, options);
+  handleMembers.readNotification = (principal, id) => notifications.markRead(principal, id);
+  handleMembers.readAllNotifications = (principal, body) => notifications.markAllRead(principal, body);
+  handleMembers.close = () => { mailer.close(); identity.dispose(); onboarding.close(); notifications.close(); };
   return handleMembers;
 }

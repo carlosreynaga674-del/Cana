@@ -35,6 +35,7 @@ import {
   PackagePlus,
   LayoutDashboard,
   UserPlus,
+  Bell,
 } from "lucide-react";
 import { Navigate, Link } from "react-router-dom";
 import { formatMoney } from "../lib/order.js";
@@ -45,6 +46,10 @@ import {
   StaffAccounts,
 } from "./StaffManagement.jsx";
 import "../staff.css";
+import StaffNotifications, {
+  NotificationBell,
+  useStaffNotifications,
+} from "./StaffNotifications.jsx";
 
 const statusLabels = {
   pending: "New request",
@@ -890,7 +895,8 @@ function AgeVerificationQueue({ onSessionExpired, onNotice, initialMember }) {
   const [status, setStatus] = useState(
     initialMember?.ageVerification?.status || "pending",
   );
-  const [search, setSearch] = useState(initialMember?.email || "");
+  const [focusedMemberId, setFocusedMemberId] = useState(initialMember?.id || "");
+  const [search, setSearch] = useState(initialMember?.id ? "" : initialMember?.email || "");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [savingId, setSavingId] = useState(null);
@@ -904,7 +910,7 @@ function AgeVerificationQueue({ onSessionExpired, onNotice, initialMember }) {
       if (!quiet) setLoading(true);
       try {
         const data = await request(
-          `/api/admin/members/age-verifications?status=${encodeURIComponent(status)}`,
+          `/api/admin/members/age-verifications?status=${encodeURIComponent(status)}${focusedMemberId ? `&memberId=${encodeURIComponent(focusedMemberId)}` : ""}`,
         );
         if (currentLoad !== loadId.current) return;
         if (!Array.isArray(data.members))
@@ -913,6 +919,12 @@ function AgeVerificationQueue({ onSessionExpired, onNotice, initialMember }) {
             502,
           );
         setMembers(data.members);
+        const focusedStatus = data.members[0]?.ageVerification?.status;
+        if (
+          focusedMemberId &&
+          focusedStatus !== status &&
+          ["required", "pending", "verified", "rejected"].includes(focusedStatus)
+        ) setStatus(focusedStatus);
         setError("");
         setUpdatedAt(new Date());
       } catch (problem) {
@@ -923,7 +935,7 @@ function AgeVerificationQueue({ onSessionExpired, onNotice, initialMember }) {
         if (currentLoad === loadId.current) setLoading(false);
       }
     },
-    [status, onSessionExpired],
+    [status, focusedMemberId, onSessionExpired],
   );
   useEffect(() => {
     load();
@@ -1003,6 +1015,12 @@ function AgeVerificationQueue({ onSessionExpired, onNotice, initialMember }) {
           {loading ? "Refreshing…" : "Refresh age checks"}
         </button>
       </div>
+      {focusedMemberId && (
+        <div className="staff-member-focus" role="status">
+          <span>Showing the current application for {members[0]?.name || initialMember?.name || "this member"}.</span>
+          <button onClick={() => { setFocusedMemberId(""); setSearch(""); }}>View all applications</button>
+        </div>
+      )}
       <div className="staff-age-toolbar">
         <div
           className="staff-filter-tabs"
@@ -1022,6 +1040,7 @@ function AgeVerificationQueue({ onSessionExpired, onNotice, initialMember }) {
               disabled={Boolean(savingId)}
               onClick={() => {
                 loadId.current += 1;
+                setFocusedMemberId("");
                 setStatus(value);
                 setMembers([]);
                 setReviewError("");
@@ -1039,7 +1058,7 @@ function AgeVerificationQueue({ onSessionExpired, onNotice, initialMember }) {
             type="search"
             placeholder="Find a member by name or email"
             value={search}
-            onChange={(event) => setSearch(event.target.value)}
+            onChange={(event) => { setFocusedMemberId(""); setSearch(event.target.value); }}
           />
         </label>
       </div>
@@ -1124,6 +1143,7 @@ export default function StaffDashboard({ workspace: dashboardRole = "staff" }) {
     adminDashboard ? "overview" : "orders",
   );
   const [ageMember, setAgeMember] = useState(null);
+  const [memberFocus, setMemberFocus] = useState(null);
   const [orders, setOrders] = useState([]);
   const [config, setConfig] = useState(null);
   const [serviceError, setServiceError] = useState("");
@@ -1147,6 +1167,17 @@ export default function StaffDashboard({ workspace: dashboardRole = "staff" }) {
     setAuth("forbidden");
     setOrders([]);
   }, []);
+  const notifications = useStaffNotifications({
+    enabled: auth === "authenticated" && sessionRole === dashboardRole,
+    accountKey: `${sessionRole || ""}:${sessionUser?.id || ""}`,
+    request,
+    onSessionExpired: sessionExpired,
+    onForbidden: accessDenied,
+  });
+  const openNotifications = () => {
+    notifications.newest();
+    setWorkspace("notifications");
+  };
 
   const loadOrders = useCallback(async ({ quiet = false } = {}) => {
     if (!quiet) setLoading(true);
@@ -1443,6 +1474,14 @@ export default function StaffDashboard({ workspace: dashboardRole = "staff" }) {
             </button>
           )}
           <button
+            className={workspace === "notifications" ? "staff-nav-active" : ""}
+            onClick={openNotifications}
+          >
+            <Bell size={17} />
+            Notifications
+            {notifications.unreadCount > 0 && <span aria-hidden="true">{notifications.unreadCount > 99 ? "99+" : notifications.unreadCount}</span>}
+          </button>
+          <button
             className={workspace === "orders" ? "staff-nav-active" : ""}
             onClick={() => {
               setWorkspace("orders");
@@ -1465,7 +1504,7 @@ export default function StaffDashboard({ workspace: dashboardRole = "staff" }) {
           </button>
           <button
             className={workspace === "members" ? "staff-nav-active" : ""}
-            onClick={() => setWorkspace("members")}
+            onClick={() => { setMemberFocus(null); setWorkspace("members"); }}
           >
             <Users size={17} />
             Members
@@ -1520,6 +1559,7 @@ export default function StaffDashboard({ workspace: dashboardRole = "staff" }) {
             </p>
           </div>
           <div className="staff-topbar-actions">
+            <NotificationBell inbox={notifications} onOpen={openNotifications} />
             <span className={`staff-service-badge ${isLive ? "is-live" : ""}`}>
               <span />
               {isLive ? "Live intake enabled" : "Intake paused"}
@@ -1533,6 +1573,7 @@ export default function StaffDashboard({ workspace: dashboardRole = "staff" }) {
             </button>
           </div>
         </header>
+        <div className="staff-notification-announcement" role="status" aria-live="polite">{notifications.announcement}</div>
         <main className="staff-main">
           <div className="staff-page-heading">
             <div>
@@ -1545,6 +1586,8 @@ export default function StaffDashboard({ workspace: dashboardRole = "staff" }) {
               <p>
                 {workspace === "overview"
                   ? "Members, products, requests and setup, brought together for the administrator."
+                  : workspace === "notifications"
+                    ? "Stay up to date with member applications and private account activity."
                   : workspace === "age"
                     ? "Compare uploaded ID and selfie images, and record a private manual review."
                     : workspace === "members"
@@ -1594,6 +1637,7 @@ export default function StaffDashboard({ workspace: dashboardRole = "staff" }) {
               event.preventDefault();
               const workspaces = [
                 ...(adminDashboard ? ["overview"] : []),
+                "notifications",
                 "orders",
                 "age",
                 "members",
@@ -1614,6 +1658,8 @@ export default function StaffDashboard({ workspace: dashboardRole = "staff" }) {
                       ];
               setWorkspace(next);
               if (next === "age") setAgeMember(null);
+              if (next === "members") setMemberFocus(null);
+              if (next === "notifications") notifications.newest();
               document.getElementById(`staff-${next}-tab`)?.focus();
             }}
           >
@@ -1630,6 +1676,18 @@ export default function StaffDashboard({ workspace: dashboardRole = "staff" }) {
                 Overview
               </button>
             )}
+            <button
+              id="staff-notifications-tab"
+              role="tab"
+              aria-selected={workspace === "notifications"}
+              tabIndex={workspace === "notifications" ? 0 : -1}
+              aria-controls="staff-notifications-panel"
+              onClick={openNotifications}
+            >
+              <Bell size={17} />
+              Notifications
+              {notifications.unreadCount > 0 && <span className="staff-notification-tab-count" aria-hidden="true">{notifications.unreadCount > 99 ? "99+" : notifications.unreadCount}</span>}
+            </button>
             <button
               id="staff-orders-tab"
               role="tab"
@@ -1661,7 +1719,7 @@ export default function StaffDashboard({ workspace: dashboardRole = "staff" }) {
               aria-selected={workspace === "members"}
               tabIndex={workspace === "members" ? 0 : -1}
               aria-controls="staff-members-panel"
-              onClick={() => setWorkspace("members")}
+              onClick={() => { setMemberFocus(null); setWorkspace("members"); }}
             >
               <Users size={17} />
               Members
@@ -1691,6 +1749,23 @@ export default function StaffDashboard({ workspace: dashboardRole = "staff" }) {
               </button>
             )}
           </div>
+          <div
+            id="staff-notifications-panel"
+            role="tabpanel"
+            aria-labelledby="staff-notifications-tab"
+            hidden={workspace !== "notifications"}
+          >
+            {workspace === "notifications" && (
+              <StaffNotifications
+                inbox={notifications}
+                onOpen={(target, member) => {
+                  if (target === "age") setAgeMember(member);
+                  else setMemberFocus(member);
+                  setWorkspace(target);
+                }}
+              />
+            )}
+          </div>
           {adminDashboard && (
             <div
               id="staff-overview-panel"
@@ -1705,6 +1780,7 @@ export default function StaffDashboard({ workspace: dashboardRole = "staff" }) {
                   onForbidden={accessDenied}
                   onOpen={(next) => {
                     setAgeMember(null);
+                    setMemberFocus(null);
                     setWorkspace(next);
                   }}
                 />
@@ -2005,6 +2081,7 @@ export default function StaffDashboard({ workspace: dashboardRole = "staff" }) {
               <MemberDirectory
                 request={request}
                 onSessionExpired={sessionExpired}
+                initialMember={memberFocus}
                 canDelete={sessionRole === "admin"}
                 onNotice={setNotice}
                 onOpenAge={(member) => {
