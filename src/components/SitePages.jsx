@@ -402,6 +402,17 @@ function PrivacyPage({ onNavigate, store = {} }) {
           </p>
         </section>
         <section className="legal-section">
+          <h2>Account welcome emails</h2>
+          <p>
+            Creating an account queues a transactional welcome email. When the
+            business has connected its sending account, the sending service
+            receives your email address, first name, and account-service message.
+            Identity photographs, date of birth, document numbers, and passwords
+            are not included. This does not subscribe you to marketing or verify
+            ownership of your email address.
+          </p>
+        </section>
+        <section className="legal-section">
           <h2>Sign-in cookies</h2>
           <p>
             The server uses an HttpOnly session cookie to keep you signed in.
@@ -447,7 +458,11 @@ function PrivacyPage({ onNavigate, store = {} }) {
             You can edit your profile, change your password, and manage your
             member account from the account page. Account deletion removes the
             member profile, saved favourites, age-check information, and sign-in
-            sessions. Existing order records are separate business records and
+            sessions. An authorised administrator can also delete your member
+            account. Deletion removes linked unsent welcome-email jobs; messages
+            already in flight or accepted by the sending service cannot be
+            recalled. Backups and the sending service's records have separate
+            retention processes. Existing order records are separate business records and
             may require a retention or deletion review by the business.
           </p>
           <PageLink to="/account" onNavigate={onNavigate}>

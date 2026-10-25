@@ -99,7 +99,7 @@ Follow [EMAIL_SETUP.md](EMAIL_SETUP.md) to connect an actual mailbox or verified
 
 Every successful new signup queues one generic account welcome message. There is no historical-member backfill or marketing subscription. Missing sender configuration leaves it pending; the Members view shows actual queue status. **Sent means provider acceptance, not guaranteed inbox delivery.** After correcting a sender failure, the administrator can use the failed-message retry action. It does not send a new message to historical members or resend an already accepted message.
 
-No password, ID photo, selfie or date of birth is sent in the welcome message. It explains account creation and pending staff review; email does not approve the application or verify email ownership. Deleting a member cancels queued jobs but cannot recall messages already in flight or sent.
+No password, ID photo, selfie or date of birth is sent in the welcome message. It confirms account creation and directs the member to their current review status; email does not approve the application or verify email ownership. Deleting a member cancels queued jobs but cannot recall messages already in flight or sent.
 
 ## Ordering is a separate launch step
 

@@ -1,6 +1,6 @@
 # Welcome-email setup
 
-New member signup queues one generic, transactional welcome email. It confirms account creation and explains that the required manual ID/selfie review is still pending. It does not contain a password, date of birth, document number, identity photograph or product promotion. It does not verify email ownership, approve membership eligibility, subscribe anyone to marketing, send password-reset links or invite staff.
+New member signup queues one generic, transactional welcome email. It confirms account creation and directs the member to their account for the current verification status and any required manual ID/selfie review. It does not contain a password, date of birth, document number, identity photograph or product promotion. It does not verify email ownership, approve membership eligibility, subscribe anyone to marketing, send password-reset links or invite staff.
 
 The application needs an authenticated sending account. It cannot send mail simply because a contact email is displayed on the site. You can use an existing mailbox the owner controls through SMTP; no new identity-verification provider is involved. Resend's HTTPS API is an alternative when the owner has a verified sending domain.
 

@@ -157,7 +157,7 @@ try {
     publication:
       "Not published by this package. Configure and deploy to obtain an actual public URL.",
     launchStatus:
-      "Live ordering remains disabled until the business and lawful-sales requirements are supplied and approved. No payment processor is connected.",
+      "Order intake is disabled by default in the source package and controlled by each deployment's private business, catalogue and lawful-sales settings. No payment processor is connected.",
     checksumAlgorithm: "SHA-256",
     files: checksums,
   };
