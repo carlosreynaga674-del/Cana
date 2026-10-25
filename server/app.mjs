@@ -551,7 +551,7 @@ export function createServer({
     res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
     res.setHeader(
       "Permissions-Policy",
-      "camera=(), microphone=(), geolocation=()",
+      "camera=(self), microphone=(), geolocation=()",
     );
     res.setHeader(
       "Content-Security-Policy",
@@ -779,6 +779,13 @@ export function createServer({
           q: url.searchParams.get("q") || "", page: url.searchParams.get("page") || "1", limit: url.searchParams.get("limit") || "20",
           memberId: url.searchParams.get("memberId") || "",
         }));
+      }
+      if (pathname === "/api/admin/members/lookup" && req.method === "POST") {
+        authenticate(req);
+        rateLimit(req, "staff-member-lookup", 240, 15 * 60 * 1000);
+        const body = await readJson(req);
+        authenticate(req);
+        return send(res, 200, handleMembers.lookupMember(body));
       }
       if (pathname === "/api/admin/notifications" && req.method === "GET") {
         const principal = reviewActor(req);

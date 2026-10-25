@@ -11,6 +11,7 @@ import { createIdentityService } from "./identity.mjs";
 import { createWelcomeMailer } from "./welcome-mail.mjs";
 import { createStaffNotifications } from "./notifications.mjs";
 import { createMemberNumbers } from "./member-numbers.mjs";
+import { hasCompletedVerification, MEMBERSHIP_NUMBER_PATTERN, LEGACY_MEMBERSHIP_NUMBER_PATTERN, normalizeMembershipNumber } from "../src/lib/membership.js";
 
 const deriveKey = promisify(scrypt);
 const SESSION_SECONDS = 30 * 24 * 60 * 60;
@@ -546,13 +547,30 @@ export function createMemberHandlers({
     if (typeof q !== "string" || q.length > 120 || !Number.isInteger(pageNumber) || pageNumber < 1 || pageNumber > 100000 || !Number.isInteger(pageSize) || pageSize < 1 || pageSize > 100)
       throw new HttpError(422, "Choose a valid member search and page.");
     const query = q.trim().toLowerCase();
-    const where = "WHERE (instr(lower(name),?)>0 OR instr(lower(email),?)>0 OR instr(lower(COALESCE((SELECT number FROM member_numbers WHERE member_id=members.id),'')),?)>0) AND (?='' OR id=?)";
+    const where = "WHERE (instr(lower(name),?)>0 OR instr(lower(email),?)>0 OR EXISTS(SELECT 1 FROM member_number_aliases WHERE member_id=members.id AND instr(lower(number),?)>0)) AND (?='' OR id=?)";
     const total = db.prepare(`SELECT COUNT(*) AS count FROM members ${where}`).get(query, query, query, focus, focus).count;
     const rows = db.prepare(`SELECT * FROM members ${where} ORDER BY created_at DESC,id LIMIT ? OFFSET ?`).all(query, query, query, focus, focus, pageSize, (pageNumber - 1) * pageSize);
     return { members: rows.map((row) => {
       const member = publicMember(row);
       return { id: member.id, membershipNumber: member.membershipNumber, name: member.name, email: member.email, createdAt: member.createdAt, updatedAt: row.updated_at, ageVerification: member.ageVerification, identityVerification: member.identityVerification, welcomeEmail: mailer.status(member.id) };
     }), total, page: pageNumber, limit: pageSize };
+  };
+  handleMembers.lookupMember = (body) => {
+    if (!record(body) || Object.keys(body).some((key) => key !== "membershipNumber") ||
+        typeof body.membershipNumber !== "string" || body.membershipNumber.length > 80)
+      throw new HttpError(422, "Scan or enter a valid membership number.");
+    const number = normalizeMembershipNumber(body.membershipNumber);
+    if (!MEMBERSHIP_NUMBER_PATTERN.test(number) && !LEGACY_MEMBERSHIP_NUMBER_PATTERN.test(number))
+      throw new HttpError(422, "Scan or enter a valid Loud + Cana membership number.");
+    const row = db.prepare("SELECT m.* FROM members m JOIN member_number_aliases n ON n.member_id=m.id WHERE n.number=?").get(number);
+    if (!row) throw new HttpError(404, "No current member matches this membership number.");
+    const member = publicMember(row);
+    return { member: {
+      id: member.id, name: member.name, membershipNumber: member.membershipNumber,
+      createdAt: member.createdAt, ageVerification: { status: member.ageVerification.status },
+      identityVerification: { required: member.identityVerification.required === true, status: member.identityVerification.status },
+      verified: hasCompletedVerification(member),
+    } };
   };
   handleMembers.identityImage = (id, kind, uploadId) => identity.image(id, kind, uploadId);
   handleMembers.identityConfiguration = () => identity.configStatus();

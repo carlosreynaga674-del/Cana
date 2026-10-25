@@ -95,7 +95,7 @@ test("membership creates real catalog-mode accounts and discloses only safe own-
     Object.keys(member).sort().join(","),
     "ageVerification,createdAt,email,favorites,id,identityVerification,membershipNumber,name",
   );
-  assert.match(member.membershipNumber, /^LC-[0-9A-HJKMNP-TV-Z]{4}-[0-9A-HJKMNP-TV-Z]{4}-[0-9A-HJKMNP-TV-Z]{4}$/);
+  assert.match(member.membershipNumber, /^LC-\d{6}$/);
   assert.match(response.headers.get("set-cookie"), /HttpOnly; SameSite=Strict/);
   assert.match(response.headers.get("set-cookie"), /Path=\/api;/);
   assert.equal(response.headers.get("cache-control"), "no-store");

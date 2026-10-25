@@ -28,7 +28,7 @@ from membership_browser_smoke import (
 )
 
 
-NUMBER = re.compile(r"^LC-[0-9A-HJKMNP-TV-Z]{4}-[0-9A-HJKMNP-TV-Z]{4}-[0-9A-HJKMNP-TV-Z]{4}$")
+NUMBER = re.compile(r"^LC-\d{6}$")
 PASSWORD = "Local membership card fixture passphrase 42"
 
 

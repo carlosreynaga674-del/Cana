@@ -16,6 +16,8 @@
 .digital-card-person > span, .digital-card-number > span { display: block; color: #9db18b; font-size: 8px; letter-spacing: 1.8px; margin-bottom: 8px; }
 .digital-card-person h3 { font-size: clamp(20px, 2vw, 29px); line-height: 1.2; letter-spacing: -.8px; overflow-wrap: anywhere; color: #f3f7ed; font-weight: 650; }
 .digital-card-number > strong { display: block; color: var(--lime); font-size: clamp(15px, 1.6vw, 21px); font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; letter-spacing: .8px; line-height: 1.5; overflow-wrap: anywhere; user-select: all; }
+.digital-card-barcode { width: 100%; min-width: 0; overflow: hidden; border-radius: 5px; background: #fff; line-height: 0; }
+.digital-card-barcode svg { display: block; width: 100%; height: auto; }
 .digital-card-bottom { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; margin-top: auto; padding-top: 5px; }
 .digital-card-bottom > span:first-child { color: #a4b79a; font-size: 9px; }
 .digital-card-bottom > span:first-child > strong { display: block; color: #e0eaca; font-size: 11px; font-weight: 550; margin-top: 4px; }

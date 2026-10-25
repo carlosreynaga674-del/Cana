@@ -36,6 +36,7 @@ import {
   LayoutDashboard,
   UserPlus,
   Bell,
+  ScanLine,
 } from "lucide-react";
 import { Navigate, Link } from "react-router-dom";
 import { formatMoney } from "../lib/order.js";
@@ -50,6 +51,7 @@ import StaffNotifications, {
   NotificationBell,
   useStaffNotifications,
 } from "./StaffNotifications.jsx";
+import MemberScanner from "./MemberScanner.jsx";
 
 const statusLabels = {
   pending: "New request",
@@ -1144,6 +1146,8 @@ export default function StaffDashboard({ workspace: dashboardRole = "staff" }) {
   );
   const [ageMember, setAgeMember] = useState(null);
   const [memberFocus, setMemberFocus] = useState(null);
+  const [memberSearch, setMemberSearch] = useState("");
+  const [scannerQuery, setScannerQuery] = useState(null);
   const [orders, setOrders] = useState([]);
   const [config, setConfig] = useState(null);
   const [serviceError, setServiceError] = useState("");
@@ -1482,6 +1486,13 @@ export default function StaffDashboard({ workspace: dashboardRole = "staff" }) {
             {notifications.unreadCount > 0 && <span aria-hidden="true">{notifications.unreadCount > 99 ? "99+" : notifications.unreadCount}</span>}
           </button>
           <button
+            className={workspace === "scanner" ? "staff-nav-active" : ""}
+            onClick={() => { setScannerQuery(null); setWorkspace("scanner"); }}
+          >
+            <ScanLine size={17} />
+            Scan member card
+          </button>
+          <button
             className={workspace === "orders" ? "staff-nav-active" : ""}
             onClick={() => {
               setWorkspace("orders");
@@ -1558,6 +1569,18 @@ export default function StaffDashboard({ workspace: dashboardRole = "staff" }) {
               )}
             </p>
           </div>
+          <form className="staff-member-search" role="search" aria-label="Search members by ID"
+            onSubmit={(event) => {
+              event.preventDefault();
+              setScannerQuery((previous) => ({ number: memberSearch, revision: (previous?.revision || 0) + 1 }));
+              setWorkspace("scanner");
+            }}>
+            <Search size={16} aria-hidden="true" />
+            <input aria-label="Search member ID" placeholder="Search member ID · LC-123456" value={memberSearch}
+              maxLength={80} required autoComplete="off" spellCheck={false}
+              onChange={(event) => setMemberSearch(event.target.value)} />
+            <button type="submit" aria-label="Find member by ID"><ArrowRight size={17} /></button>
+          </form>
           <div className="staff-topbar-actions">
             <NotificationBell inbox={notifications} onOpen={openNotifications} />
             <span className={`staff-service-badge ${isLive ? "is-live" : ""}`}>
@@ -1588,6 +1611,8 @@ export default function StaffDashboard({ workspace: dashboardRole = "staff" }) {
                   ? "Members, products, requests and setup, brought together for the administrator."
                   : workspace === "notifications"
                     ? "Stay up to date with member applications and private account activity."
+                  : workspace === "scanner"
+                    ? "Scan a membership card to find the member's current record and verification status."
                   : workspace === "age"
                     ? "Compare uploaded ID and selfie images, and record a private manual review."
                     : workspace === "members"
@@ -1638,6 +1663,7 @@ export default function StaffDashboard({ workspace: dashboardRole = "staff" }) {
               const workspaces = [
                 ...(adminDashboard ? ["overview"] : []),
                 "notifications",
+                "scanner",
                 "orders",
                 "age",
                 "members",
@@ -1660,6 +1686,7 @@ export default function StaffDashboard({ workspace: dashboardRole = "staff" }) {
               if (next === "age") setAgeMember(null);
               if (next === "members") setMemberFocus(null);
               if (next === "notifications") notifications.newest();
+              if (next === "scanner") setScannerQuery(null);
               document.getElementById(`staff-${next}-tab`)?.focus();
             }}
           >
@@ -1687,6 +1714,17 @@ export default function StaffDashboard({ workspace: dashboardRole = "staff" }) {
               <Bell size={17} />
               Notifications
               {notifications.unreadCount > 0 && <span className="staff-notification-tab-count" aria-hidden="true">{notifications.unreadCount > 99 ? "99+" : notifications.unreadCount}</span>}
+            </button>
+            <button
+              id="staff-scanner-tab"
+              role="tab"
+              aria-selected={workspace === "scanner"}
+              tabIndex={workspace === "scanner" ? 0 : -1}
+              aria-controls="staff-scanner-panel"
+              onClick={() => { setScannerQuery(null); setWorkspace("scanner"); }}
+            >
+              <ScanLine size={17} />
+              Scan member card
             </button>
             <button
               id="staff-orders-tab"
@@ -1747,6 +1785,27 @@ export default function StaffDashboard({ workspace: dashboardRole = "staff" }) {
                 <UserPlus size={17} />
                 Staff accounts
               </button>
+            )}
+          </div>
+          <div
+            id="staff-scanner-panel"
+            role="tabpanel"
+            aria-labelledby="staff-scanner-tab"
+            hidden={workspace !== "scanner"}
+          >
+            {workspace === "scanner" && (
+              <MemberScanner
+                key={dashboardRole + ":" + (sessionUser?.id || "") + ":" + (scannerQuery?.revision || "manual")}
+                initialNumber={scannerQuery?.number || ""}
+                request={request}
+                onSessionExpired={sessionExpired}
+                onForbidden={accessDenied}
+                onOpen={(target, member) => {
+                  if (target === "age") setAgeMember(member);
+                  else setMemberFocus(member);
+                  setWorkspace(target);
+                }}
+              />
             )}
           </div>
           <div

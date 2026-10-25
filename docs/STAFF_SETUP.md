@@ -120,9 +120,21 @@ The feed retains events for up to 30 days and at most 10,000 shared activity rec
 
 After the required staff or administrator review is approved, members see **Verified member** on their card and the completed review panel/checklist disappears from their dashboard, including after a new sign-in. Pending or unsuccessful reviews keep their next steps available. If changing the account name requires a new review, those steps return.
 
-Every member has a permanent, random **membership number** in the form `LC-XXXX-XXXX-XXXX`. Existing accounts receive one automatically during the database migration; new accounts receive one within signup. The number remains stable after a name change or restart. In **Members**, search using the member's name, email or membership number.
+Every member has a permanent, random **membership number** in the form `LC-123456`. Existing accounts receive one automatically during the database migration; new accounts receive one within signup. The number remains stable after a name change or restart. In **Members**, search using the member's name, email or membership number.
 
 Members see their digital card on **Your account** (`/account`). It shows their name, membership number, joining date and current verification status, including a pending or required review. **Download membership card** saves a private SVG copy of those details. A download is a snapshot and does not update when the review status changes; the signed-in dashboard shows the current status. The card is an account reference, not government ID, proof of age, a completed identity check or a payment card. It does not change account eligibility or business permissions. Downloaded cards contain no email address, date of birth, ID/selfie images or passwords.
+
+## 13. Scan a membership card
+
+1. Sign in with an administrator or individual staff account and open **Scan member card**.
+2. Choose **Start camera**, allow camera access and hold the complete barcode in the frame. Use the live HTTPS service. **Stop camera** ends capture; it also stops after a match, when the tab is hidden, or when you leave the scanner.
+3. Alternatively, enter or scan the printed **Membership number** using a USB scanner and press Enter / **Find member**. **Barcode image** accepts a JPEG, PNG or WebP photo or screenshot of up to 6 MiB.
+4. Read the current member name, membership number and verification status returned by the service. A copied card is an account reference, not proof of the holder's identity. **Open member record** opens the private directory; an incomplete review also has **Review application**.
+5. Use **Clear result** before looking up another member. If camera access is unavailable or denied, the image and number methods remain available.
+
+Decoding happens locally; this scanner does not upload photos, request microphone/location access, or save scan history. Only the decoded number is sent to the private lookup endpoint. Pending, rejected, changed or deleted accounts are checked against current server records rather than the status on an old card. New card downloads contain the barcode; older saved copies need to be downloaded again.
+
+The **Search member ID** field at the top of both dashboards also opens this lookup. Enter LC- and six digits, or just the six digits. Earlier long card numbers remain aliases for the same member after the one-time format migration; the result shows the new number. New six-digit numbers stay stable and are never reissued after deletion. The database retains an unlinked reservation of previously issued numbers.
 
 ## Ordering is a separate launch step
 

@@ -417,6 +417,19 @@ function PrivacyPage({ onNavigate, store = {} }) {
             The file does not include your email address, birth date, password,
             identity document, or selfie.
           </p>
+          <p>
+            The membership barcode contains only your membership number. When
+            staff use the card scanner, barcode decoding happens on their device
+            and only the number is sent to this service for a private account
+            lookup. Barcode photographs and camera video are not uploaded by
+            that scanner.
+          </p>
+          <p>
+            Earlier card numbers remain references to your current account
+            after a number-format update. Deleting the account removes those
+            links. An unlinked reservation of issued numbers remains so your
+            former number cannot be assigned to another member.
+          </p>
         </section>
         <section className="legal-section">
           <h2>Private staff activity notifications</h2>

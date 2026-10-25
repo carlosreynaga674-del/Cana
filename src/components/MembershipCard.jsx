@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowDownToLine,
   Check,
@@ -8,9 +8,10 @@ import {
   Sparkles,
 } from "lucide-react";
 import "../membership-card.css";
-import { hasCompletedVerification } from "../lib/membership.js";
+import { hasCompletedVerification, MEMBERSHIP_NUMBER_PATTERN } from "../lib/membership.js";
+import { createMembershipBarcode } from "../lib/member-barcode.js";
 
-const CARD_NUMBER = /^LC-[0-9A-HJKMNP-TV-Z]{4}-[0-9A-HJKMNP-TV-Z]{4}-[0-9A-HJKMNP-TV-Z]{4}$/;
+const CARD_NUMBER = MEMBERSHIP_NUMBER_PATTERN;
 
 function memberStatus(member) {
   const age = member.ageVerification?.status;
@@ -34,11 +35,13 @@ function joinedDate(value) {
 }
 
 function cardSvg({ name, number, joined, status }) {
+  const barcode = createMembershipBarcode(number);
+  if (!barcode) throw new Error("A valid membership number is required.");
   const namespace = "http://www.w3.org/2000/svg";
   const svg = document.createElementNS(namespace, "svg");
-  svg.setAttribute("viewBox", "0 0 1080 680");
+  svg.setAttribute("viewBox", "0 0 1080 850");
   svg.setAttribute("width", "1080");
-  svg.setAttribute("height", "680");
+  svg.setAttribute("height", "850");
   svg.setAttribute("role", "img");
   svg.setAttribute("aria-label", "Loud + Cana digital membership card");
   const element = (tag, attributes, content) => {
@@ -51,8 +54,8 @@ function cardSvg({ name, number, joined, status }) {
     return node;
   };
   element("title", {}, "Loud + Cana digital membership card");
-  element("rect", { width: 1080, height: 680, rx: 36, fill: "#0b1209" });
-  element("rect", { x: 2, y: 2, width: 1076, height: 676, rx: 34, fill: "none", stroke: "#637d35", "stroke-width": 3 });
+  element("rect", { width: 1080, height: 850, rx: 36, fill: "#0b1209" });
+  element("rect", { x: 2, y: 2, width: 1076, height: 846, rx: 34, fill: "none", stroke: "#637d35", "stroke-width": 3 });
   element("circle", { cx: 1000, cy: 70, r: 250, fill: "none", stroke: "#26391c", "stroke-width": 50 });
   element("circle", { cx: 1000, cy: 70, r: 340, fill: "none", stroke: "#1a2914", "stroke-width": 2 });
   const text = (x, y, content, size, fill, extra = {}) => element("text", {
@@ -60,18 +63,26 @@ function cardSvg({ name, number, joined, status }) {
   }, content);
   text(65, 104, "LOUD + CANA", 45, "#d4ff00", { "font-weight": 800, "letter-spacing": 3 });
   text(65, 151, "DIGITAL MEMBERSHIP CARD", 19, "#adbf9c", { "letter-spacing": 4 });
-  text(65, 286, name, 48, "#f4f8ed", { "font-weight": 700, textLength: name.length > 29 ? 920 : undefined, lengthAdjust: "spacingAndGlyphs" });
-  text(65, 340, "MEMBERSHIP NUMBER", 17, "#9db18b", { "letter-spacing": 3 });
-  text(65, 391, number, 39, "#d4ff00", { "font-family": "monospace", "letter-spacing": 2 });
-  text(65, 485, `Member since ${joined}`, 23, "#d7e4cb");
-  text(65, 541, status, 24, "#f4f8ed", { "font-weight": 700 });
-  element("line", { x1: 65, x2: 1015, y1: 580, y2: 580, stroke: "#32462a" });
-  text(65, 625, "Account identifier only. Not proof of age or identity.", 19, "#a8b89a");
+  text(65, 255, name, 48, "#f4f8ed", { "font-weight": 700, textLength: name.length > 29 ? 920 : undefined, lengthAdjust: "spacingAndGlyphs" });
+  text(65, 309, "MEMBERSHIP NUMBER", 17, "#9db18b", { "letter-spacing": 3 });
+  text(65, 355, number, 39, "#d4ff00", { "font-family": "monospace", "letter-spacing": 2 });
+  element("rect", { x: 65, y: 390, width: 950, height: 180, rx: 8, fill: "#ffffff" });
+  const barcodeScale = 3;
+  const barcodeX = Math.floor((1080 - barcode.width * barcodeScale) / 2);
+  for (const bar of barcode.bars) element("rect", {
+    x: barcodeX + bar.x * barcodeScale, y: 410, width: bar.width * barcodeScale,
+    height: 130, fill: "#000000", "shape-rendering": "crispEdges",
+  });
+  text(65, 630, `Member since ${joined}`, 23, "#d7e4cb");
+  text(65, 686, status, 24, "#f4f8ed", { "font-weight": 700 });
+  element("line", { x1: 65, x2: 1015, y1: 730, y2: 730, stroke: "#32462a" });
+  text(65, 780, "Account identifier only. Not proof of age or identity.", 19, "#a8b89a");
   return new XMLSerializer().serializeToString(svg);
 }
 
 export default function MembershipCard({ member }) {
   const number = CARD_NUMBER.test(member.membershipNumber || "") ? member.membershipNumber : "";
+  const barcode = useMemo(() => createMembershipBarcode(number), [number]);
   const status = memberStatus(member);
   const joined = joinedDate(member.createdAt);
   const [notice, setNotice] = useState("");
@@ -133,13 +144,22 @@ export default function MembershipCard({ member }) {
         <div className="digital-card-top"><strong>LOUD<span>+CANA</span></strong><span>MEMBER<br />CARD</span></div>
         <div className="digital-card-person"><span>CARDHOLDER</span><h3>{member.name}</h3></div>
         <div className="digital-card-number"><span>MEMBERSHIP NUMBER</span><strong>{number || "Unavailable"}</strong></div>
+        {barcode && (
+          <div className="digital-card-barcode">
+            <svg viewBox={`0 0 ${barcode.width} ${barcode.height}`} role="img" aria-label="Membership barcode" shapeRendering="crispEdges">
+              <title>Membership barcode for {number}</title>
+              <rect width={barcode.width} height={barcode.height} fill="#ffffff" />
+              {barcode.bars.map((bar) => <rect key={bar.x} x={bar.x} y={barcode.barY} width={bar.width} height={barcode.barHeight} fill="#000000" />)}
+            </svg>
+          </div>
+        )}
         <div className="digital-card-bottom"><span>Member since <strong>{joined}</strong></span><span className="member-card-status" data-verification-status={status.code}><span />{status.label}</span></div>
       </article>
       <div className="member-card-actions">
         <button type="button" className="button lime" onClick={downloadCard} disabled={!number}><ArrowDownToLine size={16} />Download membership card</button>
         <button type="button" className="button outline" onClick={copyNumber} disabled={!number}><Copy size={16} />Copy membership number</button>
       </div>
-      <p className="member-card-fineprint">Your membership number identifies your account. This card is not proof of age or identity. A downloaded card is a snapshot; check this dashboard for the latest status.</p>
+      <p className="member-card-fineprint">Staff can scan your barcode to look up your member record. This card is not proof of age or identity. A downloaded card is a snapshot; check this dashboard for the latest status.</p>
       {!number && <p className="member-card-feedback" role="status">Your membership number is unavailable. Refresh your account or contact support.</p>}
       {notice && <p className="member-card-feedback" role="status"><Check size={15} aria-hidden="true" />{notice}</p>}
       {failure && <p className="member-card-feedback is-error" role="alert">{failure}</p>}
