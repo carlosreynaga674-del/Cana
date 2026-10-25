@@ -320,7 +320,9 @@ def run():
                 expect(page.get_by_text("ID check pending", exact=True)).to_be_visible()
                 approve_member_ui(browser, base, email, ADMIN_PASSWORD)
                 page.reload(wait_until="networkidle")
-                expect(page.get_by_text("18+ ID checked", exact=True)).to_be_visible()
+                expect(page.locator(".member-card-status")).to_have_text("Verified member")
+                expect(page.locator("#member-verification")).to_have_count(0)
+                expect(page.get_by_role("link", name="View verification details", exact=True)).to_have_count(0)
                 assert member_state(page, base)["ageVerification"]["status"] == "verified"
                 page.goto(base + "/shop", wait_until="networkidle")
                 expect(page.locator(".product-card")).to_have_count(28)

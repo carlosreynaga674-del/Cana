@@ -20,6 +20,8 @@ from browser_age_helpers import (
 from membership_browser_smoke import (
     ADMIN_PASSWORD,
     assert_no_overflow,
+    sign_in,
+    sign_out,
     start_fixture,
     stop_fixture,
     unused_port,
@@ -81,6 +83,24 @@ def assert_card(page, number, state, label):
     expect(card.locator(".member-card-status")).to_have_attribute("data-verification-status", state)
     expect(card.locator(".member-card-status")).to_have_text(label)
     return card
+
+
+def assert_approved_dashboard(page, number):
+    assert_card(page, number, "verified", "Verified member")
+    expect(page.locator("#member-verification")).to_have_count(0)
+    expect(page.get_by_role("heading", name="Your ID & selfie review", exact=True)).to_have_count(0)
+    expect(page.get_by_role("button", name="Refresh review status", exact=True)).to_have_count(0)
+    expect(page.get_by_role("link", name="View verification details", exact=True)).to_have_count(0)
+    expect(page.get_by_role("progressbar", name="Membership setup progress")).to_have_count(0)
+    expect(page.get_by_role("link", name="Manage your profile", exact=True)).to_be_visible()
+
+
+def refresh_review(page, base):
+    button = page.get_by_role("button", name="Refresh review status", exact=True)
+    expect(button).to_be_enabled()
+    with page.expect_response(lambda response: response.url == base + "/api/members/me" and response.request.method == "GET") as refreshed:
+        button.click()
+    assert refreshed.value.status == 200, refreshed.value.text()
 
 
 def run():
@@ -145,6 +165,7 @@ def run():
                 verification = upload_identity(context, base)
                 page.reload(wait_until="networkidle")
                 assert_card(page, number, "pending", "Verification pending")
+                expect(page.locator("#member-verification")).to_be_visible()
                 expect(page.get_by_role("progressbar", name="Membership setup progress")).to_have_attribute("aria-valuenow", "2")
                 admin = browser.new_context()
                 login = admin.request.post(base + "/api/auth/login", data={"identifier": "admin", "password": ADMIN_PASSWORD})
@@ -152,17 +173,24 @@ def run():
                 review(admin, base, member["id"], verification, "rejected")
                 page.reload(wait_until="networkidle")
                 assert_card(page, number, "rejected", "Review not approved")
+                expect(page.locator("#member-verification")).to_be_visible()
                 expect(page.get_by_role("progressbar", name="Membership setup progress")).to_have_attribute("aria-valuenow", "2")
                 resubmit(context, base)
                 verification = upload_identity(context, base)
+                page.reload(wait_until="networkidle")
+                assert_card(page, number, "pending", "Verification pending")
                 reviewed = review(admin, base, member["id"], verification, "verified")
                 assert reviewed["membershipNumber"] == number
+                refresh_review(page, base)
+                assert_approved_dashboard(page, number)
                 page.reload(wait_until="networkidle")
-                assert_card(page, number, "verified", "Verified member")
-                expect(page.get_by_role("progressbar", name="Membership setup progress")).to_have_attribute("aria-valuenow", "3")
+                assert_approved_dashboard(page, number)
+                sign_out(page, base)
+                sign_in(page, base, email, PASSWORD)
+                assert_approved_dashboard(page, number)
                 page.set_viewport_size({"width": 390, "height": 844})
                 assert_no_overflow(page)
-                assert_card(page, number, "verified", "Verified member")
+                assert_approved_dashboard(page, number)
                 page.screenshot(path="/tmp/cana-member-card-mobile.png", full_page=True)
                 with page.expect_response(lambda response: response.url == base + "/api/members/me" and response.request.method == "PATCH") as update:
                     page.get_by_label("Full name", exact=True).fill("Local Card Dashboard Member")
@@ -172,11 +200,43 @@ def run():
                 assert changed["membershipNumber"] == number
                 card = assert_card(page, number, "required", "Verification required")
                 expect(card.locator("h3")).to_have_text("Local Card Dashboard Member")
+                expect(page.locator("#member-verification")).to_be_visible()
+                expect(page.get_by_role("link", name="View verification details", exact=True)).to_be_visible()
                 expect(page.get_by_role("progressbar", name="Membership setup progress")).to_have_attribute("aria-valuenow", "1")
                 page.reload(wait_until="networkidle")
                 assert_card(page, number, "required", "Verification required")
                 assert_no_overflow(page)
-                print("PASS truthful pending/rejected/verified/required cards, mobile layout and permanent number after profile changes", flush=True)
+                print("PASS admin approval removes completed review, reload/login keeps it hidden, and a name change restores required steps", flush=True)
+
+                # A separately authenticated employee approval has the same
+                # member-facing result as an administrator approval.
+                employee_username = "card.reviewer." + uuid4().hex[:8]
+                employee_password = "Local card reviewer passphrase 42"
+                created = admin.request.post(base + "/api/admin/staff", data={
+                    "name": "Local Card Reviewer", "username": employee_username,
+                    "password": employee_password,
+                })
+                assert created.status == 201, created.text()
+                worker = browser.new_context()
+                login = worker.request.post(base + "/api/auth/login", data={
+                    "identifier": employee_username, "password": employee_password,
+                })
+                assert login.status == 200 and login.json()["role"] == "staff", login.text()
+                resubmit(context, base)
+                verification = upload_identity(context, base)
+                page.reload(wait_until="networkidle")
+                assert_card(page, number, "pending", "Verification pending")
+                review(worker, base, member["id"], verification, "verified")
+                refresh_review(page, base)
+                assert_approved_dashboard(page, number)
+                assert account(context, base)["membershipNumber"] == number
+                assert_no_overflow(page)
+                page.screenshot(path="/tmp/cana-approved-member-dashboard-mobile.png", full_page=True)
+                page.set_viewport_size({"width": 1440, "height": 1000})
+                assert_no_overflow(page)
+                page.screenshot(path="/tmp/cana-approved-member-dashboard-desktop.png", full_page=True)
+                print("PASS individual staff approval also hides completed review on mobile and desktop, with a stable membership number", flush=True)
+                worker.close()
                 admin.close()
                 context.close()
                 browser.close()

@@ -8,13 +8,14 @@ import {
   Sparkles,
 } from "lucide-react";
 import "../membership-card.css";
+import { hasCompletedVerification } from "../lib/membership.js";
 
 const CARD_NUMBER = /^LC-[0-9A-HJKMNP-TV-Z]{4}-[0-9A-HJKMNP-TV-Z]{4}-[0-9A-HJKMNP-TV-Z]{4}$/;
 
 function memberStatus(member) {
   const age = member.ageVerification?.status;
   const identity = member.identityVerification || {};
-  if (age === "verified" && (!identity.required || identity.status === "verified"))
+  if (hasCompletedVerification(member))
     return { code: "verified", label: "Verified member", detail: "Your required staff verification is complete." };
   if (age === "rejected" || identity.status === "rejected")
     return { code: "rejected", label: "Review not approved", detail: "Check the review details below for your next step." };
@@ -153,6 +154,22 @@ export function MemberSetupJourney({ member, savedCount }) {
     ? ["pending", "verified", "rejected"].includes(identity.status)
     : status.code === "verified";
   const complete = status.code === "verified";
+  if (complete) {
+    return (
+      <section className="member-journey-panel" aria-labelledby="member-journey-heading">
+        <div className="member-journey-copy">
+          <span className="member-welcome-sticker"><Sparkles size={14} aria-hidden="true" /> GOOD TO HAVE YOU HERE</span>
+          <h2 id="member-journey-heading">Your space.<br /><span>Your pace.</span></h2>
+          <p>Your account is approved. Keep your membership card handy and make this space your own.</p>
+        </div>
+        <div className="member-journey-stats">
+          <span><strong>All set</strong>your member account</span>
+          <span><strong>{savedCount}</strong>{savedCount === 1 ? "saved favourite" : "saved favourites"}</span>
+        </div>
+        <a className="member-verification-jump" href="#member-profile"><Fingerprint size={16} aria-hidden="true" />Manage your profile</a>
+      </section>
+    );
+  }
   const steps = [
     { title: "Your account", detail: "A space that belongs to you", done: true },
     { title: identity.required ? "Private ID + selfie" : "Original ID check", detail: documentsReceived ? "Submission received" : "Complete your verification step below", done: documentsReceived },

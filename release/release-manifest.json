@@ -1,7 +1,7 @@
 {
   "application": "Loud + Cana",
   "version": "1.0.0",
-  "createdAt": "2026-10-25T07:49:18.760Z",
+  "createdAt": "2026-10-25T08:15:43.814Z",
   "region": "Gauteng, South Africa",
   "currency": "ZAR",
   "runtime": "Node.js 24",
@@ -31,8 +31,8 @@
     },
     {
       "filename": "loud-cana-preview.html",
-      "bytes": 3811545,
-      "sha256": "d738f741601cedac6fe5bc3994107f4363c3f429e86192c9f52f8d133432ffd3"
+      "bytes": 3812719,
+      "sha256": "b479fb182bf1410ec4fc44f133c8300d1a3b766a3b7541c0abff3f64b5d3028d"
     },
     {
       "filename": "source/.env.example",
@@ -86,8 +86,8 @@
     },
     {
       "filename": "source/docs/STAFF_SETUP.md",
-      "bytes": 15540,
-      "sha256": "939bc8c1e2202c043f7b086802c0189a29ab125e83d9d913e5a38fe8e49f2e6d"
+      "bytes": 15891,
+      "sha256": "a3c7770649758d175279d9f39193ed566bdfe93de8a8b7bfb5e7eac9828a52cf"
     },
     {
       "filename": "source/index.html",
@@ -206,8 +206,8 @@
     },
     {
       "filename": "source/README.md",
-      "bytes": 16925,
-      "sha256": "4257369d72c3db235663a1349a1a3882ec032971e44a153d0ab97a4d8ffa8fca"
+      "bytes": 17221,
+      "sha256": "43dfd729a8a0f5b59833b46b5b3585ae6857f8af49b6bc4374282f031de7aae7"
     },
     {
       "filename": "source/render.yaml",
@@ -286,13 +286,13 @@
     },
     {
       "filename": "source/src/components/Membership.jsx",
-      "bytes": 85582,
-      "sha256": "13c7f172d166fdd8ff28b60edaa85943b67787b527faaabc4300896a845ff25a"
+      "bytes": 85786,
+      "sha256": "829b2be16c5956df60844515537ecc83186a32c967798360d4a4274e920bb545"
     },
     {
       "filename": "source/src/components/MembershipCard.jsx",
-      "bytes": 10366,
-      "sha256": "306db38cead9ee47665b36024db8366f5121c9404dada0ddb8e283ffd1959be2"
+      "bytes": 11292,
+      "sha256": "d74896e1e0bc75268e406262b1c3a1e914c9451b6e4996d0028adfc46db7c384"
     },
     {
       "filename": "source/src/components/OrderTracking.jsx",
@@ -340,6 +340,11 @@
       "sha256": "93d496a85989cb451dfe0f8d348b9daaf6ea122ba2efcbb7eb39445f4ffe56af"
     },
     {
+      "filename": "source/src/lib/membership.js",
+      "bytes": 211,
+      "sha256": "8d30f2bab199ab80ccfd036fe5e53b427037232f352598e76e7478a962111309"
+    },
+    {
       "filename": "source/src/lib/order.js",
       "bytes": 2003,
       "sha256": "30e4c34ba7d5b520e6f16918d6d66c610fe89bf82dd903092d85413fd718b7ad"
@@ -366,8 +371,8 @@
     },
     {
       "filename": "source/src/membership-card.css",
-      "bytes": 8208,
-      "sha256": "2e5903db4ec697899b296a14e70275563106e9738d873a7af620129603d99ed3"
+      "bytes": 8225,
+      "sha256": "0e133e4dbfe7a43ee55608f65b5ecd8dd90da3b30cde52335ae0b948ccfdd4f6"
     },
     {
       "filename": "source/src/notifications.css",
@@ -461,8 +466,8 @@
     },
     {
       "filename": "source/tests/member_card_browser_smoke.py",
-      "bytes": 10370,
-      "sha256": "b33322a3b498074880106ac6588301cf3957baad43cef79741ad8db2d1f3b902"
+      "bytes": 13925,
+      "sha256": "df2ccf403a58d29157191ffa5112e8bbfe9f17a35c7e16910fd3f760d5353dc6"
     },
     {
       "filename": "source/tests/member-numbers.test.js",
@@ -481,8 +486,8 @@
     },
     {
       "filename": "source/tests/membership_browser_smoke.py",
-      "bytes": 25577,
-      "sha256": "0a0d409f29e0b1ec4dca255c6b3c36e2c84753dcad8f3717c4b7316acf2febd9"
+      "bytes": 25772,
+      "sha256": "50f4dd7ff620e541885fe1e4edff29349f6650204e8768abca9f35df48a3fdbb"
     },
     {
       "filename": "source/tests/notifications_browser_smoke.py",
@@ -556,8 +561,8 @@
     },
     {
       "filename": "STAFF_SETUP.md",
-      "bytes": 15540,
-      "sha256": "939bc8c1e2202c043f7b086802c0189a29ab125e83d9d913e5a38fe8e49f2e6d"
+      "bytes": 15891,
+      "sha256": "a3c7770649758d175279d9f39193ed566bdfe93de8a8b7bfb5e7eac9828a52cf"
     },
     {
       "filename": "START-HERE.md",
@@ -575,14 +580,14 @@
       "sha256": "9fea608a947e67020c33cad9a6fe3d60c54119dfb8cff87768a8117a15ed7543"
     },
     {
-      "filename": "static-site/assets/index-BviQgYEg.css",
-      "bytes": 190420,
-      "sha256": "3c382c6c5b5dff5513cc7f54c66ebbc2f9e546ee19d1ee2c7b1b03fca716e1ad"
+      "filename": "static-site/assets/index-assR84Td.css",
+      "bytes": 190436,
+      "sha256": "ad8cffc663757ce66ccfc7965e4fd7a863a1c31b27bc877e908718b48bf37f1f"
     },
     {
-      "filename": "static-site/assets/index-wUfHGJoG.js",
-      "bytes": 544438,
-      "sha256": "d810615ab7026750cf4d2434a3a314858a1d3109080bca2a7a167ffee9ecdc3a"
+      "filename": "static-site/assets/index-Bj0zkIqJ.js",
+      "bytes": 545596,
+      "sha256": "9a7bf31cbbd726189b57fbb791704cba540bbe568915b8ea8bfbf06a3c1b6dc4"
     },
     {
       "filename": "static-site/assets/manrope-cyrillic-wght-normal-Dvxsihut.woff2",
@@ -716,8 +721,8 @@
     },
     {
       "filename": "static-site/index.html",
-      "bytes": 3811545,
-      "sha256": "d738f741601cedac6fe5bc3994107f4363c3f429e86192c9f52f8d133432ffd3"
+      "bytes": 3812719,
+      "sha256": "b479fb182bf1410ec4fc44f133c8300d1a3b766a3b7541c0abff3f64b5d3028d"
     },
     {
       "filename": "static-site/social-cover.webp",

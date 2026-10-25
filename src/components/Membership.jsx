@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { request, offlinePreview } from "../lib/api.js";
 import MembershipCard, { MemberSetupJourney } from "./MembershipCard.jsx";
+import { hasCompletedVerification } from "../lib/membership.js";
 
 const MEMBER_SITE = "https://loud-cana.onrender.com";
 const EMPTY_SIGNUP = {
@@ -2219,23 +2220,25 @@ function MemberAccount({
         <MembershipCard member={member} />
         <MemberSetupJourney member={member} savedCount={savedCount} />
       </div>
-      <div id="member-verification" className="member-verification-section">
-      {member.identityVerification?.required ? (
-        <IdentityVerificationCard
-          member={member}
-          store={store}
-          onSessionChange={onSessionChange}
-          onNavigate={onNavigate}
-        />
-      ) : (
-        <AgeVerificationCard
-          member={member}
-          store={store}
-          onSessionChange={onSessionChange}
-          onNavigate={onNavigate}
-        />
+      {!hasCompletedVerification(member) && (
+        <div id="member-verification" className="member-verification-section">
+          {member.identityVerification?.required ? (
+            <IdentityVerificationCard
+              member={member}
+              store={store}
+              onSessionChange={onSessionChange}
+              onNavigate={onNavigate}
+            />
+          ) : (
+            <AgeVerificationCard
+              member={member}
+              store={store}
+              onSessionChange={onSessionChange}
+              onNavigate={onNavigate}
+            />
+          )}
+        </div>
       )}
-      </div>
       <div className="account-grid">
         <section className="account-card account-favourites">
           <Heart size={27} />
@@ -2261,7 +2264,7 @@ function MemberAccount({
             Explore all products <ArrowUpRight size={15} />
           </MemberLink>
         </section>
-        <section className="account-card">
+        <section className="account-card" id="member-profile">
           <UserRound size={27} />
           <h2>Your profile</h2>
           <form className="auth-form" onSubmit={saveProfile} noValidate>

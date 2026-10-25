@@ -118,6 +118,8 @@ The feed retains events for up to 30 days and at most 10,000 shared activity rec
 
 ## 12. Find membership numbers and digital cards
 
+After the required staff or administrator review is approved, members see **Verified member** on their card and the completed review panel/checklist disappears from their dashboard, including after a new sign-in. Pending or unsuccessful reviews keep their next steps available. If changing the account name requires a new review, those steps return.
+
 Every member has a permanent, random **membership number** in the form `LC-XXXX-XXXX-XXXX`. Existing accounts receive one automatically during the database migration; new accounts receive one within signup. The number remains stable after a name change or restart. In **Members**, search using the member's name, email or membership number.
 
 Members see their digital card on **Your account** (`/account`). It shows their name, membership number, joining date and current verification status, including a pending or required review. **Download membership card** saves a private SVG copy of those details. A download is a snapshot and does not update when the review status changes; the signed-in dashboard shows the current status. The card is an account reference, not government ID, proof of age, a completed identity check or a payment card. It does not change account eligibility or business permissions. Downloaded cards contain no email address, date of birth, ID/selfie images or passwords.
