@@ -20,3 +20,5 @@ Approved members keep their Verified member card badge; completed ID/selfie revi
 The full application now uses LC- plus six-digit member IDs, with barcodes on digital cards. Both protected workspaces include member-ID search and local camera/image/USB barcode lookup. Earlier card numbers remain lookup aliases. Scan results show the current account status from the authenticated service.
 
 The full service now provides administrator-only processed merchandise reports with saved product selections, SAST dates and completing-staff attribution. Members can view merchandise reward tokens at R10 for every cumulative R1,000 of eligible externally paid merchandise. An administrator confirms actual payment before credit is issued; no payment processor or automatic historical credit is connected. These features require the full Node service and apply to eligible non-cannabis merchandise only.
+
+Administrators can now create an Accessories draft directly from Processed reports using Add product, then save the report selection. Photos and separate publication are managed from Products in the full service.
