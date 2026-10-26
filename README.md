@@ -24,3 +24,5 @@ The full service now provides administrator-only processed merchandise reports w
 Administrators can now create an Accessories draft directly from Processed reports using Add product, then save the report selection. Photos and separate publication are managed from Products in the full service.
 
 The full service now revalidates in-flight account security changes after logout and refuses a missing production database path. Private backup, verification and new-path recovery tools are documented at https://github.com/carlosreynaga674-del/Cana/blob/main/docs/BACKUPS.md. Dependencies were updated and the standalone export verified without network requests. No production backup, automated backup schedule or email sender was configured by this deployment.
+
+The full application now includes an administrator-only Payment details tab for private non-cannabis merchandise bank records. Saved details are not exposed to staff, members, the public catalog or checkout. This does not collect a payment or provide proof uploads.
