@@ -104,7 +104,10 @@ export function createProductMedia({
     return Boolean(id && byId.get(id));
   }
   cleanup();
-  const timer = setInterval(cleanup, 60 * 60 * 1000);
+  const timer = setInterval(() => {
+    try { cleanup(); }
+    catch { console.warn("Product photo maintenance failed; it will retry on the next scheduled run."); }
+  }, 60 * 60 * 1000);
   timer.unref();
   return { upload, get, exists, cleanup, close() { clearInterval(timer); } };
 }

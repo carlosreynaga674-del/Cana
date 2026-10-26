@@ -303,7 +303,10 @@ export function createIdentityService({
     return status(memberId);
   }
   cleanup();
-  const timer = setInterval(cleanup, 60 * 60 * 1000);
+  const timer = setInterval(() => {
+    try { cleanup(); }
+    catch { console.warn("Identity retention maintenance failed; it will retry on the next scheduled run."); }
+  }, 60 * 60 * 1000);
   timer.unref();
   return {
     configStatus, status, submit, image, review, cleanup,

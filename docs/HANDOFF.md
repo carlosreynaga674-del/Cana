@@ -95,6 +95,8 @@ Until those requirements are supplied, the application remains in **catalog mode
 
 ## Developer quick start
 
+Before relying on stored member and reward data, follow **[backup and recovery](BACKUPS.md)** (also in `source/docs/BACKUPS.md`). The private CLI can snapshot an active WAL database, verify integrity/checksums and restore to a new path. It never overwrites the live database, schedules backups or uploads private data. Production now requires an absolute `DATABASE_PATH`; preserve the existing disk and upload-encryption key. Member password changes and self-deletion also revalidate the session immediately before mutation, so logging out cancels an in-flight security action.
+
 Use **Node.js 24**, then from `source/`:
 
 ```sh

@@ -130,6 +130,7 @@ try {
   await addFile(path.join(root, "docs", "DEPLOYMENT.md"), "DEPLOYMENT.md");
   await addFile(path.join(root, "docs", "STAFF_SETUP.md"), "STAFF_SETUP.md");
   await addFile(path.join(root, "docs", "EMAIL_SETUP.md"), "EMAIL_SETUP.md");
+  await addFile(path.join(root, "docs", "BACKUPS.md"), "BACKUPS.md");
   await addFile(path.join(root, "docs", "IDENTITY_VERIFICATION.md"), "IDENTITY_VERIFICATION.md");
   await addFile(path.join(root, "docs", "SOUTH_AFRICAN_SIGNUP.md"), "SOUTH_AFRICAN_SIGNUP.md");
   const checksums = [...files.entries()]

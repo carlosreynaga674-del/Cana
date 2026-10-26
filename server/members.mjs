@@ -174,6 +174,12 @@ export function createMemberHandlers({
       throw new HttpError(401, "Please sign in to your membership account.");
     return session;
   }
+  function authenticateUnchanged(req, member) {
+    const current = authenticate(req).member;
+    if (current.id !== member.id || current.password_hash !== member.password_hash)
+      throw new HttpError(401, "Your security settings changed. Please sign in again.");
+    return current;
+  }
   function issueSession(res, memberId) {
     db.prepare("DELETE FROM member_sessions WHERE expires_at <= ?").run(
       Date.now(),
@@ -455,6 +461,7 @@ export function createMemberHandlers({
       const { member } = authenticate(req);
       rateLimit(req, `member-security:${member.id}`, 12, 15 * 60 * 1000);
       const body = await bodyObject(req);
+      authenticateUnchanged(req, member);
       if (!validPassword(body.newPassword))
         fieldsError({
           newPassword: "Use a password between 12 and 128 characters.",
@@ -467,6 +474,7 @@ export function createMemberHandlers({
       );
       db.exec("BEGIN IMMEDIATE");
       try {
+        authenticateUnchanged(req, member);
         const result = db
           .prepare(
             "UPDATE members SET password_salt = ?, password_hash = ?, updated_at = ? WHERE id = ? AND password_hash = ?",
@@ -497,8 +505,10 @@ export function createMemberHandlers({
       const { member } = authenticate(req);
       rateLimit(req, `member-security:${member.id}`, 12, 15 * 60 * 1000);
       const body = await bodyObject(req);
+      authenticateUnchanged(req, member);
       if (!(await passwordMatches(body.password, member)))
         throw new HttpError(401, "The password was not accepted.");
+      authenticateUnchanged(req, member);
       const result = db
         .prepare("DELETE FROM members WHERE id = ? AND password_hash = ?")
         .run(member.id, member.password_hash);

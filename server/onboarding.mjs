@@ -612,7 +612,10 @@ export function createOnboarding({ db, production, HttpError, onReviewed = () =>
     return publicAge(memberId);
   }
   cleanup();
-  const cleanupTimer = setInterval(cleanup, 60 * 60 * 1000);
+  const cleanupTimer = setInterval(() => {
+    try { cleanup(); }
+    catch { console.warn("Onboarding retention maintenance failed; it will retry on the next scheduled run."); }
+  }, 60 * 60 * 1000);
   cleanupTimer.unref();
   return {
     createChallenge,

@@ -3,14 +3,14 @@ import { fileURLToPath } from "node:url";
 import { createServer, configFromEnv } from "./app.mjs";
 import { identityConfigFromEnv } from "./identity.mjs";
 import { mailConfigFromEnv } from "./welcome-mail.mjs";
+import { databasePathFromEnv } from "./runtime-config.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const port = Number(process.env.PORT || 3000);
 if (!Number.isInteger(port) || port < 1 || port > 65535)
   throw new Error("PORT must be between 1 and 65535.");
 const server = createServer({
-  dbPath:
-    process.env.DATABASE_PATH || path.join(root, ".local", "orders.sqlite"),
+  dbPath: databasePathFromEnv(process.env, root),
   config: configFromEnv(),
   adminPassword: process.env.ADMIN_PASSWORD || "",
   staffPassword: process.env.STAFF_PASSWORD || "",

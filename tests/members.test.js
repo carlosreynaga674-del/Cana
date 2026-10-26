@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { once } from "node:events";
+import { pbkdf2 } from "node:crypto";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -63,7 +64,7 @@ async function start(t, options = {}) {
     }
     return rawRequest(path, options);
   };
-  return { base, request, stop };
+  return { base, request, stop, server };
 }
 
 async function register(request, body = signup()) {
@@ -77,6 +78,70 @@ async function register(request, body = signup()) {
     response,
     ...(await response.json()),
   };
+}
+
+for (const [action, path, method, body] of [
+  ["password change", "/api/members/password", "POST", {
+    currentPassword: password, newPassword: "A revoked request must not change this password",
+  }],
+  ["account deletion", "/api/members/me", "DELETE", { password }],
+]) {
+  test(`logout during the ${action} request body prevents the stale account mutation`, async (t) => {
+    const { base, request, server } = await start(t);
+    const registered = await register(request);
+    const encoded = JSON.stringify(body);
+    let finish;
+    const stream = new ReadableStream({ start(controller) {
+      controller.enqueue(new TextEncoder().encode(encoded.slice(0, 8)));
+      finish = () => {
+        controller.enqueue(new TextEncoder().encode(encoded.slice(8)));
+        controller.close();
+      };
+    } });
+    const arriving = once(server, "request");
+    const pending = fetch(base + path, {
+      method, duplex: "half", body: stream,
+      headers: { Cookie: registered.cookie, "Content-Type": "application/json" },
+    });
+    await arriving;
+    assert.equal((await request("/api/members/logout", {
+      method: "POST", cookie: registered.cookie,
+    })).status, 200);
+    finish();
+    const denied = await pending;
+    assert.equal(denied.status, 401, await denied.clone().text());
+    assert.equal(cookieValue(denied, "lc_member"), "", "A revoked request cannot issue a replacement session.");
+    const login = await request("/api/members/login", {
+      method: "POST", body: { email: registered.member.email, password },
+    });
+    assert.equal(login.status, 200, "The original account and password must remain intact.");
+  });
+
+  test(`logout while password work for ${action} is pending prevents the stale account mutation`, async (t) => {
+    const { base, request, server } = await start(t);
+    const registered = await register(request);
+    // Occupy the crypto worker queue so revocation deterministically happens
+    // after the body was read but before the password check can complete.
+    const workerCount = Number(process.env.UV_THREADPOOL_SIZE) || 4;
+    const workers = Array.from({ length: workerCount }, () => new Promise((resolve, reject) => {
+      pbkdf2("local revocation fixture", "local worker fixture", 600000, 32, "sha256", (error) => error ? reject(error) : resolve());
+    }));
+    const arriving = once(server, "request");
+    const pending = request(path, { method, cookie: registered.cookie, body });
+    const [incoming] = await arriving;
+    await once(incoming, "end");
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.equal((await request("/api/members/logout", {
+      method: "POST", cookie: registered.cookie,
+    })).status, 200);
+    await Promise.all(workers);
+    const denied = await pending;
+    assert.equal(denied.status, 401, await denied.clone().text());
+    assert.equal(cookieValue(denied, "lc_member"), "");
+    assert.equal((await request("/api/members/login", {
+      method: "POST", body: { email: registered.member.email, password },
+    })).status, 200);
+  });
 }
 
 test("membership creates real catalog-mode accounts and discloses only safe own-profile fields", async (t) => {

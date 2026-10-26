@@ -1,11 +1,13 @@
 #!/usr/bin/env node
-/** Build a truly offline, single-file client preview from the Vite output. */
-import { readFile, readdir, mkdir, writeFile } from "node:fs/promises";
+/** Build a truly offline catalog without changing the full-service Vite output. */
+import { readFile, readdir, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { dirname, extname, resolve, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
+import { tmpdir } from "node:os";
+import { build } from "vite";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const dist = resolve(root, "dist");
+const dist = await mkdtemp(resolve(tmpdir(), "loud-cana-standalone-"));
 const release = resolve(root, "release");
 const mime = {
   ".webp": "image/webp",
@@ -49,62 +51,67 @@ async function inlineStyles(css, path) {
   return css.replace(/<\/style/gi, "<\\/style");
 }
 
-let html = await readFile(resolve(dist, "index.html"), "utf8");
-const assets = {};
-for (const name of await readdir(resolve(dist, "images"))) {
-  if (mime[extname(name)])
-    assets[`/images/${name}`] = await dataURI(resolve(dist, "images", name));
-}
-const scriptMatches = [
-  ...html.matchAll(/<script\b[^>]*\bsrc=["']([^"']+)["'][^>]*>\s*<\/script>/g),
-];
-if (scriptMatches.length !== 1)
-  throw new Error("Expected one fully bundled Vite entry script.");
-for (const [tag, ref] of scriptMatches) {
-  let js = await readFile(localPath(ref), "utf8");
-  if (/\bimport\s*(?:\(|["'])/.test(js))
-    throw new Error(
-      "Split JavaScript chunks must be bundled before exporting.",
+try {
+  await build({ root, mode: "standalone", logLevel: "warn", build: { outDir: dist, emptyOutDir: true } });
+  let html = await readFile(resolve(dist, "index.html"), "utf8");
+  const assets = {};
+  for (const name of await readdir(resolve(dist, "images"))) {
+    if (mime[extname(name)])
+      assets[`/images/${name}`] = await dataURI(resolve(dist, "images", name));
+  }
+  const scriptMatches = [
+    ...html.matchAll(/<script\b[^>]*\bsrc=["']([^"']+)["'][^>]*>\s*<\/script>/g),
+  ];
+  if (scriptMatches.length !== 1)
+    throw new Error("Expected one fully bundled Vite entry script.");
+  for (const [tag, ref] of scriptMatches) {
+    let js = await readFile(localPath(ref), "utf8");
+    if (/\bimport\s*(?:\(|["'])/.test(js))
+      throw new Error(
+        "Split JavaScript chunks must be bundled before exporting.",
+      );
+    js = js.replace(
+      /(["'`])\/images\/[^"'`]+\1/g,
+      (expression) => `globalThis.__LOUD_CANA_ASSET__(${expression})`,
     );
-  js = js.replace(
-    /(["'`])\/images\/[^"'`]+\1/g,
-    (expression) => `globalThis.__LOUD_CANA_ASSET__(${expression})`,
+    const bootstrap = `globalThis.__LC_OFFLINE_PREVIEW__=true;\nglobalThis.__LOUD_CANA_ASSET__=(path)=>(${JSON.stringify(assets)})[path]||path;\n`;
+    const inline = (bootstrap + js).replace(/<\/script/gi, "<\\/script");
+    html = html.replace(tag, "");
+    html = html.replace(
+      "</body>",
+      () => `<script type="module">${inline}</script>\n</body>`,
+    );
+  }
+  for (const [tag, ref] of [
+    ...html.matchAll(
+      /<link\b[^>]*rel=["']stylesheet["'][^>]*href=["']([^"']+)["'][^>]*>/g,
+    ),
+  ]) {
+    const path = localPath(ref);
+    const css = await inlineStyles(await readFile(path, "utf8"), path);
+    html = html.replace(tag, () => `<style>${css}</style>`);
+  }
+  for (const [tag, ref] of [
+    ...html.matchAll(
+      /<link\b[^>]*rel=["']icon["'][^>]*href=["']([^"']+)["'][^>]*>/g,
+    ),
+  ]) {
+    const icon = await dataURI(localPath(ref));
+    html = html.replace(tag, () => `<link rel="icon" href="${icon}">`);
+  }
+  html = html.replace(/<link\b[^>]*rel=["']modulepreload["'][^>]*>/g, "");
+  if (
+    /<(?:script|link)\b[^>]*(?:src|href)=["']\/?(?:assets|images)\//.test(html)
+  ) {
+    throw new Error("The export still contains an external asset reference.");
+  }
+  await mkdir(release, { recursive: true });
+  const output = resolve(release, "loud-cana-preview.html");
+  html = html.replace(/^[\t ]+$/gm, "");
+  await writeFile(output, html);
+  console.log(
+    `Standalone client preview: ${relative(root, output)} (${Math.round(Buffer.byteLength(html) / 1024)} KB)`,
   );
-  const bootstrap = `globalThis.__LC_OFFLINE_PREVIEW__=true;\nglobalThis.__LOUD_CANA_ASSET__=(path)=>(${JSON.stringify(assets)})[path]||path;\n`;
-  const inline = (bootstrap + js).replace(/<\/script/gi, "<\\/script");
-  html = html.replace(tag, "");
-  html = html.replace(
-    "</body>",
-    () => `<script type="module">${inline}</script>\n</body>`,
-  );
+} finally {
+  await rm(dist, { recursive: true, force: true });
 }
-for (const [tag, ref] of [
-  ...html.matchAll(
-    /<link\b[^>]*rel=["']stylesheet["'][^>]*href=["']([^"']+)["'][^>]*>/g,
-  ),
-]) {
-  const path = localPath(ref);
-  const css = await inlineStyles(await readFile(path, "utf8"), path);
-  html = html.replace(tag, () => `<style>${css}</style>`);
-}
-for (const [tag, ref] of [
-  ...html.matchAll(
-    /<link\b[^>]*rel=["']icon["'][^>]*href=["']([^"']+)["'][^>]*>/g,
-  ),
-]) {
-  const icon = await dataURI(localPath(ref));
-  html = html.replace(tag, () => `<link rel="icon" href="${icon}">`);
-}
-html = html.replace(/<link\b[^>]*rel=["']modulepreload["'][^>]*>/g, "");
-if (
-  /<(?:script|link)\b[^>]*(?:src|href)=["']\/?(?:assets|images)\//.test(html)
-) {
-  throw new Error("The export still contains an external asset reference.");
-}
-await mkdir(release, { recursive: true });
-const output = resolve(release, "loud-cana-preview.html");
-html = html.replace(/^[\t ]+$/gm, "");
-await writeFile(output, html);
-console.log(
-  `Standalone client preview: ${relative(root, output)} (${Math.round(Buffer.byteLength(html) / 1024)} KB)`,
-);

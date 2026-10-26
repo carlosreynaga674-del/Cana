@@ -6,4 +6,8 @@ dist/
 release/
 __pycache__/
 *.log
+*.sqlite*
+*.db
+*.db-wal
+*.db-shm
 .DS_Store

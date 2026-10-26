@@ -12,7 +12,7 @@ Use the full Node service for persistent order requests and the protected `/admi
 
 **Staff operations:** https://loud-cana.onrender.com/staff
 
-The existing service deploys `main`. A public configuration check on 24 October 2026 reports a healthy service, `mode: "live"`, no missing order requirements and configured encrypted ID storage. Preserve the existing administrator password, upload key and mounted database when deploying this release. These are technical checks rather than independent verification of the business's facts or legal authority. Welcome emails are a new separately configured feature; no sending credentials have been supplied through the connected tools. Review private hosting settings below without exposing their values:
+The existing service deploys `main`. A public configuration check on 26 October 2026 reports a healthy service, `mode: "live"`, no missing order requirements and configured encrypted ID storage. Preserve the existing administrator password, upload key and mounted database when deploying this release. These are technical checks rather than independent verification of the business's facts or legal authority. Welcome emails remain unconfigured: the current service reports missing sender/SMTP settings. Review private hosting settings below without exposing their values:
 
 | Setting | Action in Render → Environment |
 | --- | --- |
@@ -26,6 +26,8 @@ The public configuration reports `CATALOG_APPROVED`, `LEGAL_SALES_AUTHORIZATION_
 Before taking registrations or orders, confirm a persistent disk is mounted at `/var/data` and set `DATABASE_PATH=/var/data/orders.sqlite`; the disk configuration cannot be verified from the public API. The connected repository tools cannot change the existing service's private Render settings. Save legitimate settings in the owner's Render dashboard, redeploy, and check `/api/config` for the intended mode and missing requirements. Payment collection and automatic driver dispatch remain unconnected.
 
 ## Membership deployment
+
+Production startup requires **`DATABASE_PATH` to be an absolute filesystem path**. Missing, blank, relative and in-memory paths are rejected before a server starts; development retains its `.local/orders.sqlite` default. This catches a configuration mistake but cannot establish that a host path is mounted on durable storage. Keep the owner's reported `/var/data/orders.sqlite` setting and existing disk. Use the private [backup and recovery commands](BACKUPS.md) for a consistent snapshot, integrity/checksum verification and an isolated restore. No automatic schedule or off-site storage is configured by these commands.
 
 Members, administrators and staff use the same **`/login`** page with its generic email-or-username field. Members enter their registered email, the administrator enters **`admin`**, and employees enter the individual usernames created through **Admin → Staff accounts**. Server-validated roles route to **`/account`**, **`/admin`** and **`/staff`** respectively. Public pages no longer advertise staff access. `ADMIN_PASSWORD` bootstraps administrator access; employees have separate salted, hashed credentials stored in SQLite. `STAFF_PASSWORD` is a legacy shared-login option and should remain blank when individual accounts are used. See [the exact Render and staff-account setup steps](STAFF_SETUP.md).
 
