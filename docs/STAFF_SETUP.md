@@ -161,6 +161,15 @@ Only an administrator can confirm payment or apply credit. Report product choice
 
 Deleting a member removes that member's reward balance and ledger. Receipt references, amounts and trusted administrator confirmation remain without a member link under the business's separate retention process, so the same receipt cannot be credited to a new account. Back up the entire persistent database with the existing backup procedure; do not reset member records or change the upload-encryption key for these features.
 
+## 16. Maintain private merchandise payment details
+
+1. Sign in as **admin** on the shared login page, then open **Payment details**. This tab is absent from employee dashboards, and employee/member sessions cannot read or change its API.
+2. Enter the genuine bank name, account holder, account number, six-digit branch code and account type. Account numbers remain strings so leading zeros are preserved. A payment reference and note are optional.
+3. Select **Save payment details**. The confirmation and saved time refer to a database update, not a bank transfer. Details persist in the existing mounted database.
+4. **Reset changes** restores the loaded form without changing the server record. If another admin session saved first, review the latest details before saving again; a stale form cannot overwrite them silently.
+
+This is a private administrator record for **non-cannabis merchandise only**. It is not published to members or checkout, does not process money, and does not provide a proof-of-payment upload. No bank information is prefilled or invented. The change audit stores revision, time and a hashed administrator reference without copying the account details. Private database backups include the saved details; protect them using [the backup guide](BACKUPS.md).
+
 ## Ordering is a separate launch step
 
 These settings enable management access and encrypted identity submissions. They do not authorise cannabis sales or enable payments or driver dispatch. Complete the genuine business-authorisation, catalog, contact and approved **`DELIVERY_ZIPS`** requirements in [DEPLOYMENT.md](DEPLOYMENT.md) before accepting real order requests. Account approval does not replace commercial sales/delivery authorisation.

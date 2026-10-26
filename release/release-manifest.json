@@ -1,7 +1,7 @@
 {
   "application": "Loud + Cana",
   "version": "1.0.0",
-  "createdAt": "2026-10-26T09:43:48.864Z",
+  "createdAt": "2026-10-26T10:26:04.256Z",
   "region": "Gauteng, South Africa",
   "currency": "ZAR",
   "runtime": "Node.js 24",
@@ -16,8 +16,8 @@
   "files": [
     {
       "filename": "BACKUPS.md",
-      "bytes": 7325,
-      "sha256": "fa4461bfc2da7150e75a9f93adf5598cbd920fba08da4dd37db693e5de601868"
+      "bytes": 7373,
+      "sha256": "6eb762ba1264ec96519f4c3de0145d6b78aa8ee0a651cbddc5a64ecf2643db45"
     },
     {
       "filename": "DEPLOYMENT.md",
@@ -36,8 +36,8 @@
     },
     {
       "filename": "loud-cana-preview.html",
-      "bytes": 4012252,
-      "sha256": "a78b5be4e27cd3abfa5defdfc88991b09ca75243ac505e1588c0085df4157583"
+      "bytes": 4027484,
+      "sha256": "bcb76c154e113048b9bb84afff4ce13292bfba7034783d5832a797e871681e89"
     },
     {
       "filename": "source/.env.example",
@@ -66,8 +66,8 @@
     },
     {
       "filename": "source/docs/BACKUPS.md",
-      "bytes": 7325,
-      "sha256": "fa4461bfc2da7150e75a9f93adf5598cbd920fba08da4dd37db693e5de601868"
+      "bytes": 7373,
+      "sha256": "6eb762ba1264ec96519f4c3de0145d6b78aa8ee0a651cbddc5a64ecf2643db45"
     },
     {
       "filename": "source/docs/DEPLOYMENT.md",
@@ -81,8 +81,8 @@
     },
     {
       "filename": "source/docs/HANDOFF.md",
-      "bytes": 20369,
-      "sha256": "8ac444daa572a9704066facd77126381e68f1cf0acc8bc1f71f0eac335e02079"
+      "bytes": 20927,
+      "sha256": "f3bcdefb01c8c6392a06281c66aadc73c791e3eac7b491c05332812443123318"
     },
     {
       "filename": "source/docs/IDENTITY_VERIFICATION.md",
@@ -96,8 +96,8 @@
     },
     {
       "filename": "source/docs/STAFF_SETUP.md",
-      "bytes": 21984,
-      "sha256": "f485f857f32f3b5d861ef97b2064405e0ad5e5eef0581a42117e74c51db83104"
+      "bytes": 23270,
+      "sha256": "c7b297ee813dc3283fec0fb26307a87c638c68f404edbd87dd9716b75a28dd2d"
     },
     {
       "filename": "source/index.html",
@@ -216,8 +216,8 @@
     },
     {
       "filename": "source/README.md",
-      "bytes": 21522,
-      "sha256": "2ffd34029810d173c3a741378b63bb1529de1323ffe077b3ab9ff3b05745a019"
+      "bytes": 22014,
+      "sha256": "1db072da25f96f0f1b6d5b6f395fddf36f1d371ac1813988d20b4830784cdbb9"
     },
     {
       "filename": "source/render.yaml",
@@ -241,8 +241,8 @@
     },
     {
       "filename": "source/server/app.mjs",
-      "bytes": 44494,
-      "sha256": "fc5b3b8ef025d96ec40b8ecb211519636c304084639f80efafa827307951425d"
+      "bytes": 45248,
+      "sha256": "b20c898b659993f467f38d350d1649a24300eebbf79e35ffd07fb391aadb8977"
     },
     {
       "filename": "source/server/catalog.mjs",
@@ -268,6 +268,11 @@
       "filename": "source/server/members.mjs",
       "bytes": 27941,
       "sha256": "1ebccd82c956559330ddb118fe597063d9d3239f48311eb894a996ea5259bc25"
+    },
+    {
+      "filename": "source/server/merchandise-payment-details.mjs",
+      "bytes": 5191,
+      "sha256": "2b38459dc1a7c2f37b9f0a020fc627080a9b7c248eb592dc5eb4ca261defc041"
     },
     {
       "filename": "source/server/merchandise-rewards.mjs",
@@ -330,6 +335,11 @@
       "sha256": "986742246700cd8a3975e61fc613ade9dcf3bb5956d30f036af572cb42a8f27b"
     },
     {
+      "filename": "source/src/components/MerchandisePaymentDetails.jsx",
+      "bytes": 12371,
+      "sha256": "21a8b869a837e2030cd9bc771966e5c18a504faae994b95c88a026aeefd11240"
+    },
+    {
       "filename": "source/src/components/MerchandiseRewards.jsx",
       "bytes": 20137,
       "sha256": "04b3dc8e93399c7f78ecb4fffa3542ce6a0b050b9351ab70724bcc41ccbb35c4"
@@ -356,8 +366,8 @@
     },
     {
       "filename": "source/src/components/StaffDashboard.jsx",
-      "bytes": 82651,
-      "sha256": "0b13734cf9e5912d35cb3bfaae451190ffb905f2419322799877327695b37a9d"
+      "bytes": 84368,
+      "sha256": "ae19079258e6adc73fe1cff86f9ebf6af468035e2fca0fed8e28f5630f100e9b"
     },
     {
       "filename": "source/src/components/StaffManagement.jsx",
@@ -428,6 +438,11 @@
       "filename": "source/src/membership-card.css",
       "bytes": 8423,
       "sha256": "11e16842aecbfb1949eb519762be3e619c9224b1d1ebc06ae98a2293d1fabb3b"
+    },
+    {
+      "filename": "source/src/merchandise-payment-details.css",
+      "bytes": 4222,
+      "sha256": "6255d294e12d4a3b96c688a0295ca56cf7ec5b857f555523b7befc4cd53fdb03"
     },
     {
       "filename": "source/src/merchandise-rewards.css",
@@ -605,6 +620,16 @@
       "sha256": "d97e42cd99348458024348a115d922275fd808bea918c09f368fa5eec3f0a73a"
     },
     {
+      "filename": "source/tests/payment_details_browser_smoke.py",
+      "bytes": 8174,
+      "sha256": "37d83a68f1e266cfc80b665300ebe9e9ebea6b9a36e59fe595044b4282f49406"
+    },
+    {
+      "filename": "source/tests/payment-details-http.test.js",
+      "bytes": 9723,
+      "sha256": "a54c3751c8b23edd1958144de99ed7866b69ceb1e1c2488cdfc911e2223d7c1a"
+    },
+    {
       "filename": "source/tests/processed_rewards_browser_smoke.py",
       "bytes": 15847,
       "sha256": "5f1aafd3187f3bb04dc8e93dd10a6baa5c2ec29a4e8b464a79d0e472efd5efc8"
@@ -676,13 +701,13 @@
     },
     {
       "filename": "STAFF_SETUP.md",
-      "bytes": 21984,
-      "sha256": "f485f857f32f3b5d861ef97b2064405e0ad5e5eef0581a42117e74c51db83104"
+      "bytes": 23270,
+      "sha256": "c7b297ee813dc3283fec0fb26307a87c638c68f404edbd87dd9716b75a28dd2d"
     },
     {
       "filename": "START-HERE.md",
-      "bytes": 20369,
-      "sha256": "8ac444daa572a9704066facd77126381e68f1cf0acc8bc1f71f0eac335e02079"
+      "bytes": 20927,
+      "sha256": "f3bcdefb01c8c6392a06281c66aadc73c791e3eac7b491c05332812443123318"
     },
     {
       "filename": "static-site/assets/dm-sans-latin-ext-wght-normal-BOFOeGcA.woff2",
@@ -695,14 +720,14 @@
       "sha256": "9fea608a947e67020c33cad9a6fe3d60c54119dfb8cff87768a8117a15ed7543"
     },
     {
-      "filename": "static-site/assets/index-BlF5cfUp.css",
-      "bytes": 209999,
-      "sha256": "240b4d55bf58cab7124a38c82083aa2a71ac4081cba244c97bdbf69f879b48fc"
+      "filename": "static-site/assets/index-B381fB2s.js",
+      "bytes": 742150,
+      "sha256": "58a7c69c056aa6cb97448564a6b6855f8b12c408afab94d38f82a112d83ce4b9"
     },
     {
-      "filename": "static-site/assets/index-yQrNOQQl.js",
-      "bytes": 730656,
-      "sha256": "106ee43139862ea26f9b04760528e09b9cc994db136eaafcb9f549d623f327be"
+      "filename": "static-site/assets/index-DgYqEcNL.css",
+      "bytes": 213737,
+      "sha256": "23d4432227505bbee5a905c008842d8f82e7708cd3af29dece885bf78580ab60"
     },
     {
       "filename": "static-site/assets/manrope-cyrillic-wght-normal-Dvxsihut.woff2",
@@ -836,8 +861,8 @@
     },
     {
       "filename": "static-site/index.html",
-      "bytes": 4012252,
-      "sha256": "a78b5be4e27cd3abfa5defdfc88991b09ca75243ac505e1588c0085df4157583"
+      "bytes": 4027484,
+      "sha256": "bcb76c154e113048b9bb84afff4ce13292bfba7034783d5832a797e871681e89"
     },
     {
       "filename": "static-site/social-cover.webp",

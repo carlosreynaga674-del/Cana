@@ -1,6 +1,6 @@
 # Private database backup and recovery
 
-The Node 24 recovery tool creates a consistent, standalone SQLite snapshot, including committed changes still in the running database's WAL. It copies the entire database: members, employee accounts, products and photographs, review records and encrypted pending evidence, sessions, notifications, membership-number reservations, merchandise receipts and token balances. It does not copy the separate identity-upload key or host environment settings.
+The Node 24 recovery tool creates a consistent, standalone SQLite snapshot, including committed changes still in the running database's WAL. It copies the entire database: members, employee accounts, products and photographs, review records and encrypted pending evidence, sessions, notifications, membership-number reservations, private administrator merchandise bank details, merchandise receipts and token balances. It does not copy the separate identity-upload key or host environment settings.
 
 These commands are for an authorised operator in the server shell. They are not website features and do not expose a database download endpoint. No production backup, recovery, schedule or offsite transfer has been performed merely by deploying this code.
 

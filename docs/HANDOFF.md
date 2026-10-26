@@ -75,6 +75,8 @@ Keep the already-configured **`IDENTITY_UPLOAD_KEY`** stable when redeploying th
 
 ## Processed merchandise reports and rewards
 
+The separate administrator-only **Payment details** tab stores private merchandise EFT details. The administrator can edit the bank name, account holder/number, branch code, account type, reference and note, then save. Revisions protect against stale edits. Employee and member accounts cannot read or update this record, and it is not displayed in checkout. No bank information is invented, no transfer is made and no proof upload is implemented by this tab. Follow [the staff instructions](STAFF_SETUP.md#16-maintain-private-merchandise-payment-details).
+
 Administrators can create their own merchandise from **Processed reports → Add product**. Supply a name, rand price, unit/size and description, then **Create draft product** and **Save report products**. The new Accessories draft is also available in **Products** for photo editing and separate publication; no processed record is invented.
 
 **Admin → Processed reports** saves an eligible product selection and groups completed/delivered merchandise records by SAST processing date. Both the current catalog category and the historical line must be **Accessories**. The report includes selected merchandise quantities and trustworthy completion-name snapshots, with **Not recorded** for older unattributed records and **Shared staff account** for a legacy shared login. It does not expose customer details, full-order totals or excluded product lines. Staff and member accounts cannot open this administrator report.

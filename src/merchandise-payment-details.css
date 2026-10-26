@@ -1,0 +1,41 @@
+.merchandise-details { margin-top: 27px; }
+.merchandise-details-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; }
+.merchandise-details-heading h2 { display: flex; align-items: center; gap: 11px; color: #344c28; font-size: 27px; letter-spacing: -.8px; margin: 9px 0; }
+.merchandise-details-heading h2 svg { flex-shrink: 0; }
+.merchandise-details-heading p, .merchandise-details-intro { color: #6c7e5d; font-size: 12px; line-height: 1.8; }
+.merchandise-details-heading > button { flex-shrink: 0; }
+.merchandise-details-private { display: flex; align-items: flex-start; gap: 9px; color: #688251; background: #f0f5e8; border: 1px solid #dce5d0; border-radius: 6px; padding: 15px 17px; margin: 24px 0; font-size: 11px; line-height: 1.8; }
+.merchandise-details-private svg { flex-shrink: 0; margin-top: 2px; }
+.merchandise-details-feedback { display: flex; align-items: center; gap: 10px; color: #6b8355; font-size: 12px; padding: 25px 0; }
+.merchandise-details-error { margin: 20px 0; }
+.merchandise-details-conflict { border: 1px solid #d9c7ad; border-radius: 6px; padding: 15px 17px; background: #faf4e9; color: #856943; margin: 15px 0; font-size: 12px; line-height: 1.8; }
+.merchandise-details-conflict p { margin: 0 0 13px; }
+.merchandise-details-form { padding: 27px; border: 1px solid #d9e2cd; border-radius: 9px; background: #fcfdf8; }
+.merchandise-details-form-heading { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
+.merchandise-details-form-heading h3 { color: #40572f; font-size: 18px; margin: 0; }
+.merchandise-details-form-heading > span { color: #8b7958; font-size: 10px; border: 1px solid #e5d9c0; background: #faf5e8; border-radius: 4px; padding: 6px 9px; }
+.merchandise-details-form-heading > span.is-configured { color: #5d773e; border-color: #d3dfc2; background: #f0f6e7; }
+.merchandise-details-intro { max-width: 720px; margin: 12px 0 25px; }
+.merchandise-details-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 21px 24px; }
+.merchandise-details-fields > label { display: grid; align-content: start; gap: 9px; color: #526b3f; font-size: 12px; min-width: 0; }
+.merchandise-details-fields > label > span { display: flex; align-items: baseline; gap: 8px; }
+.merchandise-details-fields > label > span > small { color: #8b9a7b; font-size: 10px; font-weight: 400; }
+.merchandise-details-fields input, .merchandise-details-fields select, .merchandise-details-fields textarea { width: 100%; min-width: 0; border: 1px solid #cad8bb; border-radius: 5px; padding: 12px; background: #fff; color: #405831; font: inherit; font-size: 13px; }
+.merchandise-details-fields textarea { resize: vertical; min-height: 112px; }
+.merchandise-details-fields [aria-invalid="true"] { border-color: #a46e54; }
+.merchandise-details-wide { grid-column: 1 / -1; }
+.merchandise-details-actions { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px; border-top: 1px solid #e5ebdc; margin-top: 28px; padding-top: 22px; }
+.merchandise-details-actions > span { color: #798b68; font-size: 11px; line-height: 1.8; }
+.merchandise-details-actions > div { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+.merchandise-details-notice { display: flex; align-items: center; gap: 8px; color: #4c6c30; font-size: 12px; line-height: 1.8; margin: 18px 0 0; }
+.merchandise-details button:focus-visible, .merchandise-details input:focus-visible, .merchandise-details select:focus-visible, .merchandise-details textarea:focus-visible { outline: 2px solid #6d8d49; outline-offset: 3px; }
+@media (max-width: 900px) { .merchandise-details-heading { flex-direction: column; gap: 14px; } }
+@media (max-width: 600px) {
+  .merchandise-details-heading h2 { font-size: 24px; align-items: flex-start; }
+  .merchandise-details-heading h2 svg { margin-top: 3px; }
+  .merchandise-details-form { padding: 21px 15px; }
+  .merchandise-details-fields { grid-template-columns: 1fr; gap: 19px; }
+  .merchandise-details-actions { gap: 15px; }
+  .merchandise-details-actions > div { width: 100%; }
+  .merchandise-details-actions > div > button { flex: 1 1 auto; justify-content: center; }
+}

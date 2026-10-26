@@ -38,6 +38,7 @@ import {
   Bell,
   ScanLine,
   BarChart3,
+  Landmark,
 } from "lucide-react";
 import { Navigate, Link } from "react-router-dom";
 import { formatMoney } from "../lib/order.js";
@@ -54,6 +55,7 @@ import StaffNotifications, {
 } from "./StaffNotifications.jsx";
 import MemberScanner from "./MemberScanner.jsx";
 import ProcessedReport from "./ProcessedReport.jsx";
+import MerchandisePaymentDetails from "./MerchandisePaymentDetails.jsx";
 
 const statusLabels = {
   pending: "New request",
@@ -117,9 +119,10 @@ function readableDate(value, detailed = false) {
 }
 
 class ApiError extends Error {
-  constructor(message, status) {
+  constructor(message, status, errors) {
     super(message);
     this.status = status;
+    this.errors = errors;
   }
 }
 
@@ -154,6 +157,7 @@ async function request(path, options = {}) {
     throw new ApiError(
       message || "The request could not be completed. Please try again.",
       response.status,
+      data.errors || data.error?.errors,
     );
   }
   return data;
@@ -1488,6 +1492,15 @@ export default function StaffDashboard({ workspace: dashboardRole = "staff" }) {
               Processed reports
             </button>
           )}
+          {adminDashboard && (
+            <button
+              className={workspace === "payment_details" ? "staff-nav-active" : ""}
+              onClick={() => setWorkspace("payment_details")}
+            >
+              <Landmark size={17} />
+              Payment details
+            </button>
+          )}
           <button
             className={workspace === "notifications" ? "staff-nav-active" : ""}
             onClick={openNotifications}
@@ -1622,6 +1635,8 @@ export default function StaffDashboard({ workspace: dashboardRole = "staff" }) {
                   ? "Members, products, requests and setup, brought together for the administrator."
                   : workspace === "processed_reports"
                     ? "Selected merchandise records, grouped by processing date and recorded staff member."
+                  : workspace === "payment_details"
+                    ? "Private business bank details for non-cannabis merchandise, managed by the administrator."
                   : workspace === "notifications"
                     ? "Stay up to date with member applications and private account activity."
                   : workspace === "scanner"
@@ -1674,7 +1689,7 @@ export default function StaffDashboard({ workspace: dashboardRole = "staff" }) {
                 return;
               event.preventDefault();
               const workspaces = [
-                ...(adminDashboard ? ["overview", "processed_reports"] : []),
+                ...(adminDashboard ? ["overview", "processed_reports", "payment_details"] : []),
                 "notifications",
                 "scanner",
                 "orders",
@@ -1727,6 +1742,19 @@ export default function StaffDashboard({ workspace: dashboardRole = "staff" }) {
               >
                 <BarChart3 size={17} />
                 Processed reports
+              </button>
+            )}
+            {adminDashboard && (
+              <button
+                id="staff-payment_details-tab"
+                role="tab"
+                aria-selected={workspace === "payment_details"}
+                tabIndex={workspace === "payment_details" ? 0 : -1}
+                aria-controls="staff-payment_details-panel"
+                onClick={() => setWorkspace("payment_details")}
+              >
+                <Landmark size={17} />
+                Payment details
               </button>
             )}
             <button
@@ -1822,6 +1850,22 @@ export default function StaffDashboard({ workspace: dashboardRole = "staff" }) {
             >
               {workspace === "processed_reports" && (
                 <ProcessedReport
+                  request={request}
+                  onSessionExpired={sessionExpired}
+                  onForbidden={accessDenied}
+                />
+              )}
+            </div>
+          )}
+          {adminDashboard && (
+            <div
+              id="staff-payment_details-panel"
+              role="tabpanel"
+              aria-labelledby="staff-payment_details-tab"
+              hidden={workspace !== "payment_details"}
+            >
+              {workspace === "payment_details" && (
+                <MerchandisePaymentDetails
                   request={request}
                   onSessionExpired={sessionExpired}
                   onForbidden={accessDenied}

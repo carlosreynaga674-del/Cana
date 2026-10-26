@@ -24,6 +24,7 @@ import { createMemberHandlers } from "./members.mjs";
 import { createCatalog } from "./catalog.mjs";
 import { createWorkforce } from "./workforce.mjs";
 import { createProcessedReports } from "./processed-reports.mjs";
+import { createMerchandisePaymentDetails } from "./merchandise-payment-details.mjs";
 import { createProductMedia } from "./product-media.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -363,6 +364,7 @@ export function createServer({
   const productMedia = createProductMedia({ db, HttpError });
   const workforce = createWorkforce({ db, HttpError });
   const processedReports = createProcessedReports({ db, HttpError });
+  const merchandisePaymentDetails = createMerchandisePaymentDetails({ db, HttpError });
   if (dbPath !== ":memory:")
     for (const file of [dbPath, `${dbPath}-wal`, `${dbPath}-shm`]) {
       if (existsSync(file)) chmodSync(file, 0o600);
@@ -753,6 +755,17 @@ export function createServer({
           setup: { staffConfigured: staffConfigured || workforce.countActive() > 0, identityStorageConfigured: handleMembers.identityConfiguration().configured, welcomeEmailConfigured: handleMembers.mailConfiguration().configured },
           welcomeEmail: handleMembers.mailConfiguration(),
         });
+      }
+      if (pathname === "/api/admin/merchandise-payment-details" && req.method === "GET") {
+        authenticate(req, "admin");
+        return send(res, 200, merchandisePaymentDetails.get());
+      }
+      if (pathname === "/api/admin/merchandise-payment-details" && req.method === "PUT") {
+        authenticate(req, "admin");
+        rateLimit(req, "merchandise-payment-details", 60, 15 * 60 * 1000);
+        const body = await readJson(req);
+        const actor = workforceActor(req, "admin");
+        return send(res, 200, merchandisePaymentDetails.update(body, actor));
       }
       if (pathname === "/api/admin/reports/products" && req.method === "POST") {
         authenticate(req, "admin");

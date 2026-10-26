@@ -54,6 +54,8 @@ Notifications are retained for up to 30 days, with a maximum of 10,000 shared ac
 
 ## Processed merchandise reports and rewards
 
+The administrator's **Payment details** tab stores private business EFT details for non-cannabis merchandise: bank, account holder, account number, branch code, account type, reference and note. Only an administrator can read or update this record. Saves recheck the role after reading the request and use revisions to prevent stale overwrites. Nothing is copied into the public catalog, member account, staff workspace or checkout; this does not collect payments or proof-of-payment files.
+
 Administrators can use **Processed reports → Add product** to create an Accessories draft with a name, rand price, unit and description. Save the report selection to include it; photos and publication remain available in **Products**.
 
 The administrator's **Processed reports** tab saves a selection of non-cannabis merchandise products and groups matching completed or delivered records by processing date in South African time. Report eligibility requires the **Accessories** category in both the current catalog and the historical item record. Other categories are excluded by the server. The report shows selected merchandise quantities and the staff name recorded when an eligible completion occurs. Earlier records without attribution show **Not recorded**; a legacy shared staff login shows **Shared staff account**. Date filters cover up to 366 days at a time. Staff and members cannot open the administrator report.
