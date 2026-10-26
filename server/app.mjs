@@ -23,6 +23,7 @@ import { resolveBusinessContactEmail } from "../src/lib/business.js";
 import { createMemberHandlers } from "./members.mjs";
 import { createCatalog } from "./catalog.mjs";
 import { createWorkforce } from "./workforce.mjs";
+import { createProcessedReports } from "./processed-reports.mjs";
 import { createProductMedia } from "./product-media.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -361,6 +362,7 @@ export function createServer({
   const catalog = createCatalog({ db, ErrorType: HttpError });
   const productMedia = createProductMedia({ db, HttpError });
   const workforce = createWorkforce({ db, HttpError });
+  const processedReports = createProcessedReports({ db, HttpError });
   if (dbPath !== ":memory:")
     for (const file of [dbPath, `${dbPath}-wal`, `${dbPath}-shm`]) {
       if (existsSync(file)) chmodSync(file, 0o600);
@@ -487,6 +489,10 @@ export function createServer({
     const hash = authenticate(req);
     const session = sessions.get(hash);
     return session.staffId ? `staff:${session.staffId}` : `${session.role}:${session.user?.id || hash}`;
+  }
+  function workforceActor(req, requiredRole = null) {
+    const session = sessions.get(authenticate(req, requiredRole));
+    return { id: session.user.id, name: session.user.name, username: session.user.username, role: session.role };
   }
   function serveFile(req, res, pathname) {
     if (!["GET", "HEAD"].includes(req.method))
@@ -748,6 +754,37 @@ export function createServer({
           welcomeEmail: handleMembers.mailConfiguration(),
         });
       }
+      if (pathname === "/api/admin/reports/processed-products" && req.method === "GET") {
+        authenticate(req, "admin");
+        return send(res, 200, processedReports.settings());
+      }
+      if (pathname === "/api/admin/reports/processed-products" && req.method === "PUT") {
+        authenticate(req, "admin");
+        rateLimit(req, "processed-report-settings", 60, 15 * 60 * 1000);
+        const body = await readJson(req);
+        authenticate(req, "admin");
+        return send(res, 200, processedReports.saveSettings(body));
+      }
+      if (pathname === "/api/admin/reports/processed" && req.method === "GET") {
+        authenticate(req, "admin");
+        return send(res, 200, processedReports.list(Object.fromEntries(url.searchParams)));
+      }
+      if (pathname === "/api/admin/rewards/quote" && req.method === "GET") {
+        authenticate(req, "admin");
+        return send(res, 200, { quote: handleMembers.merchandiseQuote(url.searchParams.get("orderId")) });
+      }
+      const rewardMemberMatch = pathname.match(/^\/api\/admin\/rewards\/members\/([a-f0-9-]+)$/);
+      if (rewardMemberMatch && req.method === "GET") {
+        authenticate(req, "admin");
+        return send(res, 200, { rewards: handleMembers.merchandiseRewards(rewardMemberMatch[1]) });
+      }
+      if (pathname === "/api/admin/rewards/payments" && req.method === "POST") {
+        authenticate(req, "admin");
+        rateLimit(req, "merchandise-payments", 120, 15 * 60 * 1000);
+        const body = await readJson(req);
+        const actor = workforceActor(req, "admin");
+        return send(res, 200, handleMembers.confirmMerchandisePayment(body, actor));
+      }
       if (pathname === "/api/admin/staff" && req.method === "GET") {
         authenticate(req, "admin");
         const page = Number(url.searchParams.get("page") || "1"), limit = Number(url.searchParams.get("limit") || "20");
@@ -920,10 +957,10 @@ export function createServer({
       );
       if (adminMatch && req.method === "PATCH") {
         authenticate(req);
+        const body = await readJson(req);
+        const actor = workforceActor(req);
         const row = findById.get(adminMatch[1]);
         if (!row) throw new HttpError(404, "Order not found.");
-        const body = await readJson(req);
-        authenticate(req);
         const status = isRecord(body) ? body.status : null;
         if (!STATUS_TRANSITIONS[row.status]?.includes(status))
           throw new HttpError(409, "That status change is not available.");
@@ -935,9 +972,17 @@ export function createServer({
             409,
             "That status does not match this order’s fulfillment method.",
           );
-        db.prepare(
-          "UPDATE orders SET status = ?, updated_at = ? WHERE id = ?",
-        ).run(status, new Date().toISOString(), row.id);
+        db.exec("BEGIN IMMEDIATE");
+        try {
+          db.prepare(
+            "UPDATE orders SET status = ?, updated_at = ? WHERE id = ?",
+          ).run(status, new Date().toISOString(), row.id);
+          processedReports.recordCompletion(findById.get(row.id), actor);
+          db.exec("COMMIT");
+        } catch (error) {
+          db.exec("ROLLBACK");
+          throw error;
+        }
         return send(res, 200, { order: parseOrder(findById.get(row.id)) });
       }
       if (pathname.startsWith("/api/"))

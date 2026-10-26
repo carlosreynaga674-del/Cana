@@ -37,6 +37,7 @@ import {
   UserPlus,
   Bell,
   ScanLine,
+  BarChart3,
 } from "lucide-react";
 import { Navigate, Link } from "react-router-dom";
 import { formatMoney } from "../lib/order.js";
@@ -52,6 +53,7 @@ import StaffNotifications, {
   useStaffNotifications,
 } from "./StaffNotifications.jsx";
 import MemberScanner from "./MemberScanner.jsx";
+import ProcessedReport from "./ProcessedReport.jsx";
 
 const statusLabels = {
   pending: "New request",
@@ -1477,6 +1479,15 @@ export default function StaffDashboard({ workspace: dashboardRole = "staff" }) {
               Overview
             </button>
           )}
+          {adminDashboard && (
+            <button
+              className={workspace === "processed_reports" ? "staff-nav-active" : ""}
+              onClick={() => setWorkspace("processed_reports")}
+            >
+              <BarChart3 size={17} />
+              Processed reports
+            </button>
+          )}
           <button
             className={workspace === "notifications" ? "staff-nav-active" : ""}
             onClick={openNotifications}
@@ -1609,6 +1620,8 @@ export default function StaffDashboard({ workspace: dashboardRole = "staff" }) {
               <p>
                 {workspace === "overview"
                   ? "Members, products, requests and setup, brought together for the administrator."
+                  : workspace === "processed_reports"
+                    ? "Selected merchandise records, grouped by processing date and recorded staff member."
                   : workspace === "notifications"
                     ? "Stay up to date with member applications and private account activity."
                   : workspace === "scanner"
@@ -1661,7 +1674,7 @@ export default function StaffDashboard({ workspace: dashboardRole = "staff" }) {
                 return;
               event.preventDefault();
               const workspaces = [
-                ...(adminDashboard ? ["overview"] : []),
+                ...(adminDashboard ? ["overview", "processed_reports"] : []),
                 "notifications",
                 "scanner",
                 "orders",
@@ -1701,6 +1714,19 @@ export default function StaffDashboard({ workspace: dashboardRole = "staff" }) {
               >
                 <LayoutDashboard size={17} />
                 Overview
+              </button>
+            )}
+            {adminDashboard && (
+              <button
+                id="staff-processed_reports-tab"
+                role="tab"
+                aria-selected={workspace === "processed_reports"}
+                tabIndex={workspace === "processed_reports" ? 0 : -1}
+                aria-controls="staff-processed_reports-panel"
+                onClick={() => setWorkspace("processed_reports")}
+              >
+                <BarChart3 size={17} />
+                Processed reports
               </button>
             )}
             <button
@@ -1787,6 +1813,22 @@ export default function StaffDashboard({ workspace: dashboardRole = "staff" }) {
               </button>
             )}
           </div>
+          {adminDashboard && (
+            <div
+              id="staff-processed_reports-panel"
+              role="tabpanel"
+              aria-labelledby="staff-processed_reports-tab"
+              hidden={workspace !== "processed_reports"}
+            >
+              {workspace === "processed_reports" && (
+                <ProcessedReport
+                  request={request}
+                  onSessionExpired={sessionExpired}
+                  onForbidden={accessDenied}
+                />
+              )}
+            </div>
+          )}
           <div
             id="staff-scanner-panel"
             role="tabpanel"

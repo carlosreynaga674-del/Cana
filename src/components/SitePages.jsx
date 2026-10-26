@@ -449,6 +449,32 @@ function PrivacyPage({ onNavigate, store = {} }) {
           </p>
         </section>
         <section className="legal-section">
+          <h2>Merchandise reports and rewards</h2>
+          <p>
+            The administrator can view processed non-cannabis merchandise
+            records grouped by date, with selected merchandise quantities and
+            the recorded staff name. Earlier records may have no staff
+            attribution. This report does not include identity images, dates
+            of birth, customer contact details, or excluded product lines.
+          </p>
+          <p>
+            If an administrator confirms eligible merchandise payment for your
+            account, the service stores your qualifying spend, store-credit
+            balance, earned and redeemed entries, receipt reference, and the
+            administrator&apos;s confirmation. You can view your own reward
+            balance and recent history; reward management is restricted to the
+            administrator. These records do not contain your ID photograph,
+            selfie, password, or payment-card details.
+          </p>
+          <p>
+            Account deletion removes the linked reward balance and ledger.
+            The receipt reference, amounts, and administrator confirmation
+            remain without your member link to prevent duplicate awards and
+            support separate business record retention. Backups have their
+            own retention process.
+          </p>
+        </section>
+        <section className="legal-section">
           <h2>Account welcome emails</h2>
           <p>
             Creating an account queues a transactional welcome email. When the
@@ -505,7 +531,7 @@ function PrivacyPage({ onNavigate, store = {} }) {
             You can edit your profile, change your password, and manage your
             member account from the account page. Account deletion removes the
             member profile, membership number, saved favourites, linked activity
-            notices, age-check information, and sign-in
+            notices, reward balance and ledger, age-check information, and sign-in
             sessions. An authorised administrator can also delete your member
             account. Deletion removes linked unsent welcome-email jobs; messages
             already in flight or accepted by the sending service cannot be

@@ -136,6 +136,29 @@ Decoding happens locally; this scanner does not upload photos, request microphon
 
 The **Search member ID** field at the top of both dashboards also opens this lookup. Enter LC- and six digits, or just the six digits. Earlier long card numbers remain aliases for the same member after the one-time format migration; the result shows the new number. New six-digit numbers stay stable and are never reissued after deletion. The database retains an unlinked reservation of previously issued numbers.
 
+## 14. Review processed merchandise by date and staff member
+
+1. Sign in as the administrator and open **Processed reports**. Individual staff and member sessions cannot open this report.
+2. Choose the non-cannabis merchandise products to include and select **Save report products**. The selection is stored on the server. If another admin session changed it, refresh and review the new selection before saving again.
+3. Apply a date range of up to 366 days. Dates and daily groups use **Africa/Johannesburg (SAST)**, including the start and end dates.
+4. Review the grouped records, selected products and quantities, and recorded staff name. Only eligible completed or delivered records appear. Older records without a saved completing employee show **Not recorded**; a shared legacy login shows **Shared staff account** rather than an invented person's name.
+
+The product picker is restricted to the current **Accessories** category, and each historical line must also have that category. Other categories, customer details and full-order totals are excluded. Changing the report selection does not change a historical record or award rewards. New eligible completion metadata preserves the authenticated employee's name at that time; it cannot reconstruct missing historical staff names.
+
+## 15. Confirm merchandise payment and manage member rewards
+
+1. From an eligible processed record, choose **Record merchandise payment**. Review the server-calculated eligible merchandise amount. An already recorded receipt cannot award credit again.
+2. Enter the correct member's membership number and look up the account. Confirm the member name and current number.
+3. If the member wants to apply existing merchandise credit, enter an amount within both the available balance and eligible merchandise amount. The dialog shows the remaining externally paid amount.
+4. Confirm that the correct member's eligible merchandise payment was actually received, then select **Record paid merchandise**. Keep any underlying receipt/payment evidence through the business's existing process; this action records an administrator's attestation, not a processor settlement.
+5. The member can open **Merchandise rewards** on their own dashboard and refresh their balance, progress and recent earned/redeemed entries.
+
+The rule is **R10 credit for each cumulative R1,000 of eligible external paid spend**. For example, R600 followed by R400 of eligible externally paid merchandise reaches the first R10 award. Discounts are allocated proportionally to eligible merchandise; delivery and other product categories do not count. Credit used on a purchase is excluded from new qualifying spend. A completed status alone creates no award, and no earlier purchases are credited automatically.
+
+Only an administrator can confirm payment or apply credit. Report product choices do not redefine reward eligibility: all qualifying current-and-historical Accessories lines are considered by the reward calculation. Tokens are nontransferable merchandise store credit; no cash-out, transfer, cryptocurrency, payment processing or automatic refund/reversal feature is provided. A confirmation retry is idempotent, and conflicting repeat details require review instead of a second award.
+
+Deleting a member removes that member's reward balance and ledger. Receipt references, amounts and trusted administrator confirmation remain without a member link under the business's separate retention process, so the same receipt cannot be credited to a new account. Back up the entire persistent database with the existing backup procedure; do not reset member records or change the upload-encryption key for these features.
+
 ## Ordering is a separate launch step
 
 These settings enable management access and encrypted identity submissions. They do not authorise cannabis sales or enable payments or driver dispatch. Complete the genuine business-authorisation, catalog, contact and approved **`DELIVERY_ZIPS`** requirements in [DEPLOYMENT.md](DEPLOYMENT.md) before accepting real order requests. Account approval does not replace commercial sales/delivery authorisation.

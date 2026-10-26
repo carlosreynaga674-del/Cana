@@ -11,6 +11,7 @@ import { createIdentityService } from "./identity.mjs";
 import { createWelcomeMailer } from "./welcome-mail.mjs";
 import { createStaffNotifications } from "./notifications.mjs";
 import { createMemberNumbers } from "./member-numbers.mjs";
+import { createMerchandiseRewards } from "./merchandise-rewards.mjs";
 import { hasCompletedVerification, MEMBERSHIP_NUMBER_PATTERN, LEGACY_MEMBERSHIP_NUMBER_PATTERN, normalizeMembershipNumber } from "../src/lib/membership.js";
 
 const deriveKey = promisify(scrypt);
@@ -71,6 +72,7 @@ export function createMemberHandlers({
   `);
   const notifications = createStaffNotifications({ db, HttpError });
   const memberNumbers = createMemberNumbers({ db, HttpError });
+  const merchandiseRewards = createMerchandiseRewards({ db, HttpError });
   const onReviewed = ({ memberId, sourceRef }) => notifications.publish({
     type: "verification_reviewed", memberId, sourceRef,
   });
@@ -248,6 +250,11 @@ export function createMemberHandlers({
 
   const handleMembers = async function handleMembers(req, res, pathname) {
     if (!pathname.startsWith("/api/members/")) return false;
+    if (pathname === "/api/members/rewards" && req.method === "GET") {
+      const { member } = authenticate(req);
+      send(res, 200, { rewards: merchandiseRewards.balance(member.id) });
+      return true;
+    }
     if (pathname === "/api/members/me" && req.method === "GET") {
       const session = sessionMember(req);
       if (session)
@@ -509,6 +516,7 @@ export function createMemberHandlers({
       "/api/members/login",
       "/api/members/logout",
       "/api/members/me",
+      "/api/members/rewards",
       "/api/members/password",
       "/api/members/signup-challenge",
       "/api/members/age-verification",
@@ -527,6 +535,12 @@ export function createMemberHandlers({
     return publicMember(member);
   };
   handleMembers.signIn = (req, res, body) => signIn(req, res, body, true);
+  handleMembers.merchandiseRewards = (id) => merchandiseRewards.balance(id);
+  handleMembers.merchandiseQuote = (orderId) => merchandiseRewards.quote(orderId);
+  handleMembers.confirmMerchandisePayment = (body, actor) => {
+    const { balance, ...result } = merchandiseRewards.confirmPayment(body, actor);
+    return { ...result, rewards: balance };
+  };
   handleMembers.clearSession = (req, res) => {
     const token = incomingToken(req);
     if (token) revokeSession.run(hashToken(token));

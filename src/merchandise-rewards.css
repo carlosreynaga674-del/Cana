@@ -1,0 +1,83 @@
+.member-rewards { border: 1px solid #35472a; border-radius: 18px; background: radial-gradient(ellipse at 100% 0, #9cc5000c, transparent 60%), #0c1409; padding: 27px; margin: 0 0 28px; min-width: 0; }
+.member-rewards-heading { display: flex; gap: 20px; justify-content: space-between; align-items: center; }
+.member-rewards-heading .eyebrow { color: #9eb88a; font-size: 8px; letter-spacing: 1.5px; }
+.member-rewards-heading h2 { display: flex; gap: 10px; align-items: center; color: #f1f6e9; font-size: 24px; letter-spacing: -.6px; margin-top: 8px; }
+.member-rewards-heading h2 svg { color: var(--lime); flex-shrink: 0; }
+.member-rewards-heading > button { flex-shrink: 0; min-height: 42px; padding: 11px 15px; font-size: 10px; border-radius: 7px; gap: 8px; }
+.member-rewards-rule { color: #b0c09f; font-size: 12px; line-height: 1.9; margin: 20px 0 0; max-width: 760px; }
+.member-rewards-summary { display: grid; grid-template-columns: .9fr 1.1fr; gap: 25px; padding: 24px 0; margin-top: 3px; }
+.member-rewards-balance { display: flex; gap: 14px; align-items: center; padding: 18px 23px; border: 1px solid #b5df0033; border-radius: 11px; background: #caff0008; }
+.member-rewards-balance > svg { color: var(--lime); flex: 0 0 auto; }
+.member-rewards-balance span { color: #a5b991; font-size: 10px; }
+.member-rewards-balance strong { display: block; color: var(--lime); font-size: clamp(27px, 3vw, 38px); line-height: 1.3; letter-spacing: -1px; font-weight: 650; margin-top: 6px; overflow-wrap: anywhere; }
+.member-rewards-progress { display: flex; flex-direction: column; justify-content: center; min-width: 0; }
+.member-rewards-progress > span { color: #a7bb94; font-size: 10px; }
+.member-rewards-progress > strong { color: #e8f0dc; font-size: 18px; font-weight: 600; margin: 8px 0 12px; }
+.member-rewards-progress > strong > small { color: #8fa87c; font-size: 11px; font-weight: 400; }
+.member-rewards-progress > div { height: 5px; background: #2c3a23; border-radius: 20px; overflow: hidden; }
+.member-rewards-progress > div > span { display: block; height: 100%; background: var(--lime); border-radius: inherit; }
+.member-rewards-progress > small { color: #8da27c; font-size: 9px; line-height: 1.7; margin-top: 9px; }
+.member-rewards-history { padding-top: 4px; }
+.member-rewards-history h3 { color: #dce9ce; font-size: 13px; font-weight: 600; margin-bottom: 12px; }
+.member-rewards-history ol { list-style: none; padding: 0; margin: 0; border-top: 1px solid #2f4025; }
+.member-rewards-history li { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 13px 0; border-bottom: 1px solid #26351e; }
+.member-rewards-history li > span > strong { display: block; color: #c6d6b5; font-size: 11px; font-weight: 500; }
+.member-rewards-history li small { display: block; color: #89a075; font-size: 9px; margin-top: 5px; }
+.member-rewards-history li > strong { flex-shrink: 0; font-size: 12px; color: #c7d7b8; font-weight: 600; }
+.member-rewards-history li > strong.is-earned { color: var(--lime); }
+.member-rewards-history > p { color: #91a87f; font-size: 11px; line-height: 1.8; }
+.member-rewards-note { display: flex; align-items: flex-start; gap: 7px; color: #8fa57d; font-size: 10px; line-height: 1.8; margin-top: 20px; }
+.member-rewards-note > svg { flex: 0 0 auto; margin-top: 2px; }
+.member-rewards-updated { display: block; margin-top: 9px; color: #7d946b; font-size: 9px; }
+.member-rewards-feedback { display: flex; align-items: center; gap: 9px; color: #b3ca99; font-size: 12px; margin-top: 21px; }
+.member-rewards-error { color: #edb7a3; border: 1px solid #b6775d55; background: #9c402110; border-radius: 7px; padding: 13px 16px; font-size: 12px; line-height: 1.8; margin-top: 20px; }
+.member-rewards button:focus-visible { outline: 2px solid var(--lime); outline-offset: 4px; }
+.merchandise-payment-backdrop { position: fixed; z-index: 150; inset: 0; background: #0e180bd1; padding: 24px; display: flex; align-items: center; justify-content: center; overflow-y: auto; }
+.merchandise-payment-dialog { width: min(640px, 100%); max-height: calc(100dvh - 48px); overflow-y: auto; border: 1px solid #cbd7ba; border-radius: 12px; padding: 26px; background: #fcfdf8; color: #3b542c; box-shadow: 0 25px 100px #0004; }
+.merchandise-payment-dialog > header { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; }
+.merchandise-payment-dialog h2 { color: #344c27; font-size: 24px; letter-spacing: -.65px; line-height: 1.3; margin-top: 8px; }
+.merchandise-payment-dialog h2:focus { outline: none; }
+.merchandise-payment-intro { color: #70815f; font-size: 12px; line-height: 1.9; margin-top: 18px; overflow-wrap: anywhere; }
+.merchandise-payment-amount { display: grid; gap: 6px; padding: 19px; border: 1px solid #c9d8b5; border-radius: 8px; background: #f0f6e5; margin: 20px 0; }
+.merchandise-payment-amount > span { font-size: 11px; color: #657e50; }
+.merchandise-payment-amount > strong { font-size: 29px; line-height: 1.4; font-weight: 600; letter-spacing: -.5px; color: #38562a; }
+.merchandise-payment-amount > small { color: #738764; font-size: 10px; line-height: 1.7; }
+.merchandise-member-search > label, .merchandise-payment-form > label:not(.merchandise-payment-attestation) { display: block; color: #405a30; font-size: 12px; font-weight: 600; margin-bottom: 9px; }
+.merchandise-member-search > div { display: flex; align-items: center; gap: 9px; }
+.merchandise-member-search input, .merchandise-payment-form > input { width: 100%; min-width: 0; padding: 12px; border: 1px solid #c9d6b9; background: white; border-radius: 6px; color: #38502a; font-size: 13px; }
+.merchandise-member-search input { font-family: ui-monospace, monospace; }
+.merchandise-member-search button { flex-shrink: 0; }
+.merchandise-payment-form { margin-top: 20px; }
+.merchandise-payment-member { display: grid; gap: 5px; border: 1px solid #d6dfcb; border-radius: 8px; padding: 15px; background: #f5f8ef; margin-bottom: 20px; }
+.merchandise-payment-member strong { font-size: 15px; color: #38522a; overflow-wrap: anywhere; }
+.merchandise-payment-member > span { color: #5d7849; font-family: ui-monospace, monospace; font-size: 12px; }
+.merchandise-payment-member small { color: #788b67; font-size: 11px; line-height: 1.7; }
+.merchandise-payment-form > small { display: block; color: #788b67; font-size: 10px; line-height: 1.7; margin-top: 8px; }
+.merchandise-payment-cash { display: flex; align-items: center; justify-content: space-between; gap: 16px; border-block: 1px solid #dce4d1; padding: 14px 0; margin: 20px 0; font-size: 12px; color: #617b4d; }
+.merchandise-payment-cash > strong { color: #38552a; font-size: 19px; font-weight: 600; }
+.merchandise-payment-attestation { display: flex; gap: 10px; align-items: flex-start; color: #677e54; font-size: 11px; line-height: 1.85; }
+.merchandise-payment-attestation > input { flex-shrink: 0; accent-color: #547632; margin-top: 4px; width: 15px; height: 15px; }
+.merchandise-payment-attestation strong { display: block; color: #3d592d; font-weight: 600; }
+.merchandise-payment-note { color: #7e8e6d; font-size: 10px; line-height: 1.8; margin: 15px 0 20px; }
+.merchandise-payment-error { border: 1px solid #e0c0ac; background: #fbf1ea; padding: 13px; border-radius: 6px; color: #956244; font-size: 12px; line-height: 1.8; margin-top: 18px; }
+.merchandise-payment-error button { margin-top: 9px; }
+.merchandise-payment-feedback, .merchandise-payment-recorded { display: flex; align-items: flex-start; gap: 9px; padding: 13px 0; color: #617c4c; font-size: 12px; line-height: 1.8; }
+.merchandise-payment-feedback > svg, .merchandise-payment-recorded > svg { flex-shrink: 0; margin-top: 3px; }
+.merchandise-payment-dialog footer { display: flex; justify-content: flex-end; margin-top: 22px; padding-top: 18px; border-top: 1px solid #d9e2cd; }
+.merchandise-payment-dialog input:focus-visible, .merchandise-payment-dialog button:focus-visible { outline: 2px solid #6c8b43; outline-offset: 3px; }
+@media (max-width: 760px) {
+  .member-rewards-heading { align-items: flex-start; flex-direction: column; gap: 17px; }
+  .member-rewards-summary { grid-template-columns: 1fr; gap: 22px; }
+  .member-rewards { padding: 22px; }
+}
+@media (max-width: 480px) {
+  .member-rewards { padding: 20px 18px; }
+  .member-rewards-heading h2 { font-size: 21px; }
+  .merchandise-payment-backdrop { padding: 12px; align-items: flex-start; }
+  .merchandise-payment-dialog { max-height: calc(100dvh - 24px); padding: 21px 17px; margin: auto; }
+  .merchandise-payment-dialog h2 { font-size: 21px; }
+  .merchandise-member-search > div { flex-wrap: wrap; }
+  .merchandise-member-search button { width: 100%; justify-content: center; }
+  .merchandise-payment-form > button { width: 100%; justify-content: center; }
+  .merchandise-payment-cash { align-items: flex-start; flex-direction: column; gap: 7px; }
+}
