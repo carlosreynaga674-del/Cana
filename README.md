@@ -54,6 +54,8 @@ Notifications are retained for up to 30 days, with a maximum of 10,000 shared ac
 
 ## Processed merchandise reports and rewards
 
+Administrators can use **Processed reports → Add product** to create an Accessories draft with a name, rand price, unit and description. Save the report selection to include it; photos and publication remain available in **Products**.
+
 The administrator's **Processed reports** tab saves a selection of non-cannabis merchandise products and groups matching completed or delivered records by processing date in South African time. Report eligibility requires the **Accessories** category in both the current catalog and the historical item record. Other categories are excluded by the server. The report shows selected merchandise quantities and the staff name recorded when an eligible completion occurs. Earlier records without attribution show **Not recorded**; a legacy shared staff login shows **Shared staff account**. Date filters cover up to 366 days at a time. Staff and members cannot open the administrator report.
 
 **Merchandise rewards** are nontransferable store credit: each cumulative **R1,000 of eligible externally paid merchandise spend earns R10**. Completing a record does not prove payment or automatically award credit. An administrator must identify the correct member and confirm the actual paid merchandise through **Record merchandise payment**. The server calculates the discounted eligible merchandise amount, excludes delivery and other product categories, and records that receipt once. Credit already applied to a receipt does not earn more credit. Report product selections control reporting; reward eligibility covers all qualifying merchandise lines independently of that selection.

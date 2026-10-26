@@ -108,6 +108,33 @@ def run():
                 expect(admin.get_by_role("heading", name="Processed reports", exact=True)).to_be_visible()
                 products = admin.get_by_role("group", name="Report products", exact=True)
                 products.get_by_role("checkbox", name="Glass Storage Jar", exact=True).check()
+                # Creating a merchandise draft must preserve the administrator's
+                # other unsaved choices and require an explicit report save.
+                admin.get_by_label("Search report products", exact=True).fill("no existing match")
+                admin.get_by_role("button", name="Add product", exact=True).click()
+                product_form = admin.get_by_role("region", name="Add merchandise product", exact=True)
+                expect(product_form).to_be_visible()
+                product_form.get_by_label("Product name", exact=True).fill("Local Linen Tote")
+                product_form.get_by_label("Price (R)", exact=True).fill("125.50")
+                product_form.get_by_label("Unit or size", exact=True).fill("One bag")
+                product_form.get_by_label("Product description", exact=True).fill("Reusable linen merchandise carry bag.")
+                admin.set_viewport_size({"width": 390, "height": 844})
+                assert_no_overflow(admin)
+                product_form.screenshot(path="/tmp/cana-add-report-product-mobile.png")
+                with admin.expect_response(lambda response: response.url.endswith("/api/admin/reports/products") and response.request.method == "POST") as created:
+                    product_form.get_by_role("button", name="Create draft product", exact=True).click()
+                new_product = check(created.value, 201)["product"]
+                assert new_product["name"] == "Local Linen Tote" and new_product["price"] == 12550
+                assert new_product["category"] == "Accessories" and new_product["status"] == "draft"
+                expect(product_form).not_to_be_visible()
+                expect(admin.get_by_label("Search report products", exact=True)).to_have_value("")
+                expect(products.get_by_role("checkbox", name="Glass Storage Jar", exact=True)).to_be_checked()
+                expect(products.get_by_role("checkbox", name="Local Linen Tote", exact=True)).to_be_checked()
+                unchanged_settings = check(admin_context.request.get(base + "/api/admin/reports/processed-products"))
+                assert unchanged_settings["selectedProductIds"] == [], "Creation must not overwrite the saved report selection."
+                assert not any(item["id"] == new_product["id"] for item in check(member_context.request.get(base + "/api/products"))["products"])
+                assert_no_overflow(admin)
+                admin.set_viewport_size({"width": 1440, "height": 1000})
                 admin.get_by_role("button", name="Save report products", exact=True).click()
                 expect(admin.get_by_text("Report products saved.", exact=True)).to_be_visible()
                 expect(admin.locator(".processed-record")).to_have_count(3)
@@ -125,7 +152,10 @@ def run():
                 admin.reload(wait_until="networkidle")
                 admin.get_by_role("tab", name="Processed reports", exact=True).click()
                 expect(products.get_by_role("checkbox", name="Glass Storage Jar", exact=True)).to_be_checked()
-                print("PASS saved product selection, SAST date groups/filtering, trusted staff attribution and historical unknown names", flush=True)
+                expect(products.get_by_role("checkbox", name="Local Linen Tote", exact=True)).to_be_checked()
+                saved_settings = check(admin_context.request.get(base + "/api/admin/reports/processed-products"))
+                assert set(saved_settings["selectedProductIds"]) == {JAR, new_product["id"]}
+                print("PASS own merchandise draft creation, preserved unsaved choices, explicit saved selection, SAST dates and staff attribution", flush=True)
 
                 dialog, submit = open_payment(admin, "LC-BROWSERPAID1", member["membershipNumber"])
                 expect(dialog.locator(".merchandise-payment-amount strong")).to_have_text(re.compile(r"R\s*1[\s,]?000[.,]00"))

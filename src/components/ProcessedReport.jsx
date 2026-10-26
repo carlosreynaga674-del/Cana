@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { CalendarDays, Check, ChevronLeft, ChevronRight, ClipboardCheck, LoaderCircle, RefreshCw, Search, Settings2 } from "lucide-react";
+import { CalendarDays, Check, ChevronLeft, ChevronRight, ClipboardCheck, LoaderCircle, Plus, RefreshCw, Search, Settings2, X } from "lucide-react";
 import { MerchandisePaymentDialog } from "./MerchandiseRewards.jsx";
 import "../processed-report.css";
 
@@ -7,6 +7,14 @@ const DAY = 24 * 60 * 60 * 1000;
 const SETTINGS_PATH = "/api/admin/reports/processed-products";
 const REPORT_PATH = "/api/admin/reports/processed";
 const LIMIT = 50;
+const emptyProduct = () => ({ name: "", price: "", size: "Standard", description: "" });
+
+function priceInCents(value) {
+  const match = /^(\d{1,7})(?:[.,](\d{1,2}))?$/.exec(value.trim());
+  if (!match) return null;
+  const amount = Number(match[1]) * 100 + Number((match[2] || "").padEnd(2, "0"));
+  return Number.isSafeInteger(amount) && amount > 0 && amount <= 100000000 ? amount : null;
+}
 
 function sastDay(date) {
   const parts = new Intl.DateTimeFormat("en-CA", {
@@ -74,12 +82,22 @@ export default function ProcessedReport({ request, onSessionExpired, onForbidden
   const [reportError, setReportError] = useState("");
   const [refreshKey, setRefreshKey] = useState(0);
   const [paymentOrder, setPaymentOrder] = useState(null);
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [productDraft, setProductDraft] = useState(emptyProduct);
+  const [productErrors, setProductErrors] = useState({});
+  const [createError, setCreateError] = useState("");
+  const [creating, setCreating] = useState(false);
   const mounted = useRef(true);
   const settingsSequence = useRef(0);
   const reportSequence = useRef(0);
   const settingsController = useRef(null);
   const reportController = useRef(null);
   const saveController = useRef(null);
+  const createController = useRef(null);
+  const addButton = useRef(null);
+  const productNameInput = useRef(null);
+
+  useEffect(() => { if (editorOpen) productNameInput.current?.focus(); }, [editorOpen]);
 
   const handleAccess = useCallback((problem) => {
     if (problem.status === 401) { onSessionExpired(); return true; }
@@ -96,10 +114,12 @@ export default function ProcessedReport({ request, onSessionExpired, onForbidden
       settingsController.current?.abort();
       reportController.current?.abort();
       saveController.current?.abort();
+      createController.current?.abort();
     };
   }, []);
 
   const loadSettings = useCallback(async () => {
+    if (createController.current) return;
     const sequence = ++settingsSequence.current;
     settingsController.current?.abort();
     const controller = new AbortController();
@@ -149,7 +169,7 @@ export default function ProcessedReport({ request, onSessionExpired, onForbidden
   }, [settings, range, page, refreshKey, handleAccess, request]);
 
   async function saveProducts() {
-    if (!settings || saving || settingsLoading) return;
+    if (!settings || saving || settingsLoading || createController.current) return;
     const controller = new AbortController();
     saveController.current?.abort();
     saveController.current = controller;
@@ -183,6 +203,7 @@ export default function ProcessedReport({ request, onSessionExpired, onForbidden
   }
 
   function toggle(id) {
+    if (creating) return;
     setNotice("");
     setSettingsError("");
     setSelection((current) => {
@@ -193,6 +214,62 @@ export default function ProcessedReport({ request, onSessionExpired, onForbidden
       }
       return [...current, id];
     });
+  }
+
+  function changeProduct(field, value) {
+    setProductDraft((current) => ({ ...current, [field]: value }));
+    setProductErrors((current) => ({ ...current, [field]: "" }));
+    setCreateError("");
+  }
+
+  function closeProductEditor() {
+    if (createController.current) return;
+    setEditorOpen(false);
+    setProductDraft(emptyProduct());
+    setProductErrors({});
+    setCreateError("");
+    addButton.current?.focus();
+  }
+
+  async function createProduct(event) {
+    event.preventDefault();
+    if (createController.current || saving || settingsLoading || !settings) return;
+    const price = priceInCents(productDraft.price);
+    const errors = {};
+    if (productDraft.name.trim().length < 2 || productDraft.name.trim().length > 120) errors.name = "Enter a product name using 2–120 characters.";
+    if (price === null) errors.price = "Enter a price from R0.01 to R1,000,000 with up to two decimal places.";
+    if (!productDraft.size.trim() || productDraft.size.trim().length > 80) errors.size = "Enter a unit or size using 1–80 characters.";
+    if (productDraft.description.trim().length < 10 || productDraft.description.trim().length > 4000) errors.description = "Describe the merchandise using 10–4,000 characters.";
+    setProductErrors(errors);
+    if (Object.keys(errors).length) {
+      document.getElementById("report-product-" + Object.keys(errors)[0])?.focus();
+      return;
+    }
+    const controller = new AbortController();
+    createController.current = controller;
+    setCreating(true); setCreateError(""); setNotice("");
+    try {
+      const data = await request("/api/admin/reports/products", {
+        method: "POST", signal: controller.signal,
+        body: JSON.stringify({ name: productDraft.name.trim(), price, size: productDraft.size.trim(), description: productDraft.description.trim() }),
+      });
+      const product = data?.product;
+      if (!product || typeof product.id !== "string" || typeof product.name !== "string" || product.category !== "Accessories" || product.status !== "draft")
+        throw new Error("The new product was not confirmed. Check Products before trying again.");
+      if (!mounted.current || controller.signal.aborted) return;
+      const canSelect = selection.includes(product.id) || selection.length < 100;
+      setSettings((current) => ({ ...current, products: [...current.products.filter((item) => item.id !== product.id), { id: product.id, name: product.name, status: product.status }].sort((left, right) => left.name.localeCompare(right.name, "en-ZA") || left.id.localeCompare(right.id)) }));
+      if (canSelect) setSelection((current) => current.includes(product.id) ? current : [...current, product.id]);
+      setProductSearch(""); setEditorOpen(false); setProductDraft(emptyProduct()); setProductErrors({});
+      setNotice(canSelect ? "Product created as a draft and selected. Save report products to include it." : "Product created as a draft. Your 100-product selection is full; deselect a product, choose the new one and save report products.");
+      requestAnimationFrame(() => addButton.current?.focus());
+    } catch (problem) {
+      if (!mounted.current || controller.signal.aborted) return;
+      if (!handleAccess(problem)) setCreateError(problem.message || "The product could not be created. Please try again.");
+    } finally {
+      if (createController.current === controller) createController.current = null;
+      if (mounted.current) setCreating(false);
+    }
   }
 
   function applyDates(event) {
@@ -220,33 +297,47 @@ export default function ProcessedReport({ request, onSessionExpired, onForbidden
     <section className="processed-report" aria-labelledby="processed-report-heading">
       <div className="processed-report-heading">
         <div><span className="staff-eyebrow">MERCHANDISE RECORDS</span><h2 id="processed-report-heading">Processed reports</h2><p>Completed merchandise records, grouped by date with the staff member recorded at completion.</p></div>
-        <button className="staff-secondary-button" onClick={() => setRefreshKey((value) => value + 1)} disabled={loading || !settings}>
+        <button className="staff-secondary-button" onClick={() => setRefreshKey((value) => value + 1)} disabled={loading || !settings || creating}>
           <RefreshCw size={16} className={loading ? "staff-spin" : ""} />Refresh report
         </button>
       </div>
       <section className="processed-product-settings" aria-labelledby="processed-products-heading">
-        <div className="processed-settings-heading"><div><h3 id="processed-products-heading"><Settings2 size={18} />Choose report products</h3><p>Choose the eligible merchandise you want included, then save your selection.</p></div><button className="processed-text-button" onClick={() => void loadSettings()} disabled={saving || settingsLoading}>Refresh products</button></div>
-        <label className="processed-product-search"><Search size={16} /><input aria-label="Search report products" value={productSearch} onChange={(event) => setProductSearch(event.target.value)} placeholder="Find a merchandise product" /></label>
+        <div className="processed-settings-heading"><div><h3 id="processed-products-heading"><Settings2 size={18} />Choose report products</h3><p>Choose the eligible merchandise you want included, then save your selection.</p></div><div className="processed-settings-actions"><button className="staff-secondary-button" ref={addButton} aria-expanded={editorOpen} aria-controls="processed-add-product" onClick={() => { setEditorOpen(true); setCreateError(""); }} disabled={saving || settingsLoading || creating || !settings}><Plus size={16} />Add product</button><button className="processed-text-button" onClick={() => void loadSettings()} disabled={saving || settingsLoading || creating}>Refresh products</button></div></div>
+        {editorOpen && <section id="processed-add-product" className="processed-add-product" aria-labelledby="processed-add-product-heading">
+          <div className="processed-add-product-heading"><h4 id="processed-add-product-heading">Add merchandise product</h4><button type="button" className="staff-icon-button" aria-label="Close add product form" disabled={creating} onClick={closeProductEditor}><X size={18} /></button></div>
+          <p>Create a non-cannabis merchandise product as a draft, then save your report selection. You can add a photo and publish it from Products.</p>
+          <form onSubmit={createProduct} noValidate>
+            <div className="processed-add-product-fields">
+              <label htmlFor="report-product-name"><span>Product name</span><input id="report-product-name" ref={productNameInput} value={productDraft.name} required minLength={2} maxLength={120} autoComplete="off" disabled={creating} aria-invalid={Boolean(productErrors.name)} aria-describedby={productErrors.name ? "report-product-name-error" : undefined} onChange={(event) => changeProduct("name", event.target.value)} />{productErrors.name && <small id="report-product-name-error" className="staff-field-error">{productErrors.name}</small>}</label>
+              <label htmlFor="report-product-price"><span>Price (R)</span><input id="report-product-price" value={productDraft.price} required maxLength={12} inputMode="decimal" autoComplete="off" placeholder="250.00" disabled={creating} aria-invalid={Boolean(productErrors.price)} aria-describedby={productErrors.price ? "report-product-price-error" : undefined} onChange={(event) => changeProduct("price", event.target.value)} />{productErrors.price && <small id="report-product-price-error" className="staff-field-error">{productErrors.price}</small>}</label>
+              <label htmlFor="report-product-size"><span>Unit or size</span><input id="report-product-size" value={productDraft.size} required maxLength={80} autoComplete="off" disabled={creating} aria-invalid={Boolean(productErrors.size)} aria-describedby={productErrors.size ? "report-product-size-error" : undefined} onChange={(event) => changeProduct("size", event.target.value)} />{productErrors.size && <small id="report-product-size-error" className="staff-field-error">{productErrors.size}</small>}</label>
+              <label htmlFor="report-product-description" className="processed-add-product-description"><span>Product description</span><textarea id="report-product-description" value={productDraft.description} required minLength={10} maxLength={4000} rows={3} disabled={creating} aria-invalid={Boolean(productErrors.description)} aria-describedby={productErrors.description ? "report-product-description-error" : undefined} onChange={(event) => changeProduct("description", event.target.value)} />{productErrors.description && <small id="report-product-description-error" className="staff-field-error">{productErrors.description}</small>}</label>
+            </div>
+            {createError && <p className="staff-error-message" role="alert">{createError}</p>}
+            <div className="processed-add-product-actions"><button type="button" className="staff-secondary-button" disabled={creating} onClick={closeProductEditor}>Cancel</button><button type="submit" className="staff-action-button" disabled={creating || saving || settingsLoading}>{creating ? <LoaderCircle size={16} className="staff-spin" /> : <Plus size={16} />}{creating ? "Creating…" : "Create draft product"}</button></div>
+          </form>
+        </section>}
+        <label className="processed-product-search"><Search size={16} /><input aria-label="Search report products" value={productSearch} disabled={creating} onChange={(event) => setProductSearch(event.target.value)} placeholder="Find a merchandise product" /></label>
         {settingsLoading ? <p className="processed-loading" role="status"><LoaderCircle size={17} className="staff-spin" />Loading report products…</p> : (
           settings?.products.length ? (
             <div className="processed-product-list" role="group" aria-label="Report products">
               {filteredProducts.length ? filteredProducts.map((product) => (
                 <label key={product.id}>
-                  <input type="checkbox" checked={selection.includes(product.id)} disabled={saving} onChange={() => toggle(product.id)} />
+                  <input type="checkbox" checked={selection.includes(product.id)} disabled={saving || creating} onChange={() => toggle(product.id)} />
                   <span>{product.name}{product.status === "archived" && <small>Archived</small>}</span>
                 </label>
               )) : <p>No products match your search.</p>}
             </div>
           ) : <p className="processed-quiet">No eligible merchandise products are available for reporting yet.</p>
         )}
-        <div className="processed-selection-actions"><span>{selection.length} selected{dirty ? " · unsaved changes" : ""}</span><div><button className="staff-secondary-button" disabled={saving || !selection.length} onClick={() => { setSelection([]); setNotice(""); }}>Clear selection</button><button className="staff-action-button" onClick={saveProducts} disabled={saving || settingsLoading || !dirty}>{saving ? <LoaderCircle size={16} className="staff-spin" /> : <Check size={16} />}{saving ? "Saving…" : "Save report products"}</button></div></div>
+        <div className="processed-selection-actions"><span>{selection.length} selected{dirty ? " · unsaved changes" : ""}</span><div><button className="staff-secondary-button" disabled={saving || creating || !selection.length} onClick={() => { setSelection([]); setNotice(""); }}>Clear selection</button><button className="staff-action-button" onClick={saveProducts} disabled={saving || settingsLoading || creating || !dirty}>{saving ? <LoaderCircle size={16} className="staff-spin" /> : <Check size={16} />}{saving ? "Saving…" : "Save report products"}</button></div></div>
         {settingsError && <p className="staff-error-message" role="alert">{settingsError}</p>}
         {notice && <p className="processed-notice" role="status"><Check size={15} />{notice}</p>}
       </section>
       <form className="processed-date-filter" onSubmit={applyDates}>
         <label><span>From date</span><input type="date" aria-label="Report from date" required value={dates.from} onChange={(event) => setDates((current) => ({ ...current, from: event.target.value }))} /></label>
         <label><span>To date</span><input type="date" aria-label="Report to date" required value={dates.to} onChange={(event) => setDates((current) => ({ ...current, to: event.target.value }))} /></label>
-        <button className="staff-secondary-button" disabled={!settings || loading}><CalendarDays size={16} />Apply dates</button>
+        <button className="staff-secondary-button" disabled={!settings || loading || creating}><CalendarDays size={16} />Apply dates</button>
         <small>South African time (SAST) · up to 366 days</small>
       </form>
       {dateError && <p className="staff-error-message" role="alert">{dateError}</p>}

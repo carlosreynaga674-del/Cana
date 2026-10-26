@@ -16,6 +16,7 @@ const STAFF = "Local merchandise report shared staff password 84";
 const MEMBER = "Local merchandise rewards member password 96";
 const EMPLOYEE = "Local merchandise report employee password 28";
 const SETTINGS = "/api/admin/reports/processed-products";
+const CREATE_REPORT_PRODUCT = "/api/admin/reports/products";
 const REPORT = "/api/admin/reports/processed";
 const PAYMENTS = "/api/admin/rewards/payments";
 const OWN_REWARDS = "/api/members/rewards";
@@ -147,6 +148,83 @@ test("processed report settings and financial administration require the admin r
     })).status, 403);
   }
   assert.equal((await f.own(member)).balanceCents, 0);
+});
+
+test("report product creation requires administrator access and same-origin requests", async (t) => {
+  const f = await fixture(t);
+  const member = await f.signup();
+  const body = { name: "Local Linen Tote", price: 12550, size: "One bag", description: "Reusable linen merchandise carry bag." };
+  const initialCount = f.db.prepare("SELECT count(*) AS total FROM catalog_products").get().total;
+  for (const [cookie, expected] of [[undefined, 401], [member.cookie, 401], [f.staffCookie, 403]]) {
+    assert.equal((await f.request(CREATE_REPORT_PRODUCT, { cookie, method: "POST", body })).status, expected);
+  }
+  assert.equal((await f.request(CREATE_REPORT_PRODUCT, {
+    cookie: f.adminCookie, method: "POST", body,
+    headers: { Origin: "https://unrelated.example.test" },
+  })).status, 403);
+  assert.equal(f.db.prepare("SELECT count(*) AS total FROM catalog_products").get().total, initialCount);
+});
+
+test("report product creation stores a validated private merchandise draft without replacing saved selections", async (t) => {
+  const f = await fixture(t);
+  const settings = await f.choose([JAR]);
+  const body = { name: "Local Linen Tote", price: 12550, size: "One bag", description: "Reusable linen merchandise carry bag." };
+  const initialCount = f.db.prepare("SELECT count(*) AS total FROM catalog_products").get().total;
+  for (const invalid of [
+    { ...body, name: "x" }, { ...body, price: 0 }, { ...body, price: 125.5 },
+    { ...body, price: 100000001 }, { ...body, size: "" }, { ...body, description: "short" },
+    { ...body, category: "Flower" }, { ...body, status: "published" }, { ...body, id: "caller-chosen-id" },
+  ]) {
+    const response = await f.request(CREATE_REPORT_PRODUCT, { cookie: f.adminCookie, method: "POST", body: invalid });
+    assert.equal(response.status, 422, await response.clone().text());
+  }
+  assert.equal(f.db.prepare("SELECT count(*) AS total FROM catalog_products").get().total, initialCount);
+  const response = await f.request(CREATE_REPORT_PRODUCT, { cookie: f.adminCookie, method: "POST", body });
+  assert.equal(response.status, 201, await response.clone().text());
+  assert.match(response.headers.get("cache-control"), /no-store/);
+  const { product } = await response.json();
+  assert.equal(product.name, body.name);
+  assert.equal(product.price, body.price);
+  assert.equal(product.size, body.size);
+  assert.equal(product.description, body.description);
+  assert.equal(product.category, "Accessories");
+  assert.equal(product.status, "draft");
+  assert.equal(f.db.prepare("SELECT status FROM catalog_products WHERE id=?").get(product.id).status, "draft");
+  const updatedSettings = await f.json(SETTINGS);
+  assert.equal(updatedSettings.revision, settings.revision);
+  assert.deepEqual(updatedSettings.selectedProductIds, [JAR]);
+  assert.ok(updatedSettings.products.some((p) => p.id === product.id && p.status === "draft"));
+  const publicCatalog = await f.json("/api/products", { cookie: undefined });
+  assert.equal(publicCatalog.products.some((p) => p.id === product.id), false);
+  await f.choose([JAR, product.id]);
+  assert.deepEqual((await f.json(SETTINGS)).selectedProductIds, [JAR, product.id]);
+  const published = await f.request("/api/admin/products/" + product.id, {
+    cookie: f.adminCookie, method: "PATCH", body: { revision: product.revision, status: "published" },
+  });
+  assert.equal(published.status, 200, await published.clone().text());
+  assert.ok((await f.json("/api/products", { cookie: undefined })).products.some((p) => p.id === product.id));
+});
+
+test("logout during a report product body prevents creation", async (t) => {
+  const f = await fixture(t);
+  const before = f.db.prepare("SELECT count(*) AS total FROM catalog_products").get().total;
+  const bytes = JSON.stringify({ name: "Local Linen Tote", price: 12550, size: "One bag", description: "Reusable linen merchandise carry bag." });
+  let finish;
+  const body = new ReadableStream({
+    start(controller) {
+      controller.enqueue(new TextEncoder().encode(bytes.slice(0, 15)));
+      finish = () => { controller.enqueue(new TextEncoder().encode(bytes.slice(15))); controller.close(); };
+    },
+  });
+  const pending = fetch(f.base + CREATE_REPORT_PRODUCT, {
+    method: "POST", duplex: "half", body,
+    headers: { Cookie: f.adminCookie, "Content-Type": "application/json" },
+  });
+  await new Promise((resolve) => setTimeout(resolve, 40));
+  assert.equal((await f.request("/api/admin/logout", { cookie: f.adminCookie, method: "POST", body: {} })).status, 200);
+  finish();
+  assert.equal((await pending).status, 401);
+  assert.equal(f.db.prepare("SELECT count(*) AS total FROM catalog_products").get().total, before);
 });
 
 test("report product selections reject excluded items and preserve revision conflicts", async (t) => {

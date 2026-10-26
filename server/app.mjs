@@ -754,6 +754,16 @@ export function createServer({
           welcomeEmail: handleMembers.mailConfiguration(),
         });
       }
+      if (pathname === "/api/admin/reports/products" && req.method === "POST") {
+        authenticate(req, "admin");
+        rateLimit(req, "processed-report-create-product", 60, 15 * 60 * 1000);
+        const body = await readJson(req);
+        const actor = authenticate(req, "admin");
+        if (!isRecord(body) || Object.keys(body).some((key) => !["name", "price", "size", "description"].includes(key)))
+          throw new HttpError(422, "Enter the merchandise name, price, unit and description.");
+        const product = catalog.create({ ...body, category: "Accessories", status: "draft" }, actor);
+        return send(res, 201, { product });
+      }
       if (pathname === "/api/admin/reports/processed-products" && req.method === "GET") {
         authenticate(req, "admin");
         return send(res, 200, processedReports.settings());

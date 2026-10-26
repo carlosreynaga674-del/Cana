@@ -75,6 +75,8 @@ Keep the already-configured **`IDENTITY_UPLOAD_KEY`** stable when redeploying th
 
 ## Processed merchandise reports and rewards
 
+Administrators can create their own merchandise from **Processed reports → Add product**. Supply a name, rand price, unit/size and description, then **Create draft product** and **Save report products**. The new Accessories draft is also available in **Products** for photo editing and separate publication; no processed record is invented.
+
 **Admin → Processed reports** saves an eligible product selection and groups completed/delivered merchandise records by SAST processing date. Both the current catalog category and the historical line must be **Accessories**. The report includes selected merchandise quantities and trustworthy completion-name snapshots, with **Not recorded** for older unattributed records and **Shared staff account** for a legacy shared login. It does not expose customer details, full-order totals or excluded product lines. Staff and member accounts cannot open this administrator report.
 
 The member dashboard's **Merchandise rewards** panel shows nontransferable store credit, progress and recent earned/redeemed history. Each cumulative **R1,000 of eligible external paid merchandise spend earns R10**. An administrator uses **Record merchandise payment** on a processed record, checks the actual member and payment, optionally applies available merchandise credit, and confirms **Record paid merchandise**. Completing a record alone does not award credit. The calculation excludes delivery and other categories, allocates discounts proportionally, and does not earn credit on credit already redeemed. Each receipt can be confirmed once; historical purchases are not backfilled.

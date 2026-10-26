@@ -143,6 +143,8 @@ The **Search member ID** field at the top of both dashboards also opens this loo
 3. Apply a date range of up to 366 days. Dates and daily groups use **Africa/Johannesburg (SAST)**, including the start and end dates.
 4. Review the grouped records, selected products and quantities, and recorded staff name. Only eligible completed or delivered records appear. Older records without a saved completing employee show **Not recorded**; a shared legacy login shows **Shared staff account** rather than an invented person's name.
 
+To create a product yourself from this tab, select **Add product** under **Choose report products**. Enter its name, price in rand, unit/size and description, then select **Create draft product**. It is saved in the catalog as an Accessories draft and checked in your current report selection when space is available. Select **Save report products** to persist that selection. Creating a product preserves your other unsaved choices and does not publish it or create processed records. You can edit its photograph and publish it separately from **Products**. Up to 100 products can be selected for a report.
+
 The product picker is restricted to the current **Accessories** category, and each historical line must also have that category. Other categories, customer details and full-order totals are excluded. Changing the report selection does not change a historical record or award rewards. New eligible completion metadata preserves the authenticated employee's name at that time; it cannot reconstruct missing historical staff names.
 
 ## 15. Confirm merchandise payment and manage member rewards
