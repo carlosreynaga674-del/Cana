@@ -29,7 +29,7 @@ export function createIdempotencyKey() {
 
 export async function request(
   path,
-  { method = "GET", body, token, idempotencyKey, signal } = {},
+  { method = "GET", body, token, idempotencyKey, signal, memberId } = {},
 ) {
   const response = await fetch(path, {
     method,
@@ -39,6 +39,7 @@ export async function request(
       ...(body ? { "Content-Type": "application/json" } : {}),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}),
+      ...(memberId ? { "X-Member-ID": memberId } : {}),
     },
     ...(body ? { body: JSON.stringify(body) } : {}),
   });
@@ -50,14 +51,18 @@ export async function request(
       "The service is unavailable. Please try again shortly.",
     );
   }
-  if (!response.ok)
-    throw new Error(
+  if (!response.ok) {
+    const error = new Error(
       typeof payload.error === "string"
         ? payload.error
         : payload.error?.message ||
           payload.message ||
           "Your request could not be completed. Please try again.",
     );
+    error.status = response.status;
+    error.errors = payload.errors || payload.error?.errors;
+    throw error;
+  }
   return payload;
 }
 

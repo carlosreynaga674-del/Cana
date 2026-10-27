@@ -151,14 +151,14 @@ export default function MerchandisePaymentDetails({ request, onSessionExpired, o
       <div><span className="staff-eyebrow">PRIVATE ADMINISTRATION</span><h2 id="merchandise-details-heading"><Landmark size={24} />Merchandise payment details</h2><p>Keep the business EFT details up to date for non-cannabis merchandise.</p></div>
       <button className="staff-secondary-button" type="button" onClick={() => void load()} disabled={busy || Boolean(dirty)}><RefreshCw size={16} className={loading ? "staff-spin" : ""} />Refresh details</button>
     </div>
-    <p className="merchandise-details-private"><ShieldCheck size={17} />Saved privately for administrator use. Only administrators can open or edit this page.</p>
+    <p className="merchandise-details-private"><ShieldCheck size={17} />Only administrators can edit these details. Verified members can view the bank details and reference at eligible merchandise checkout.</p>
     {loading && !saved && <p className="merchandise-details-feedback" role="status"><LoaderCircle size={18} className="staff-spin" />Loading payment details…</p>}
     {error && <p className="staff-error-message merchandise-details-error" role="alert">{error}</p>}
     {!saved && !loading && error && <button className="staff-secondary-button" onClick={() => void load()}>Try again</button>}
     {conflict && <div className="merchandise-details-conflict"><p>Loading the latest saved details replaces your unsaved edits.</p><button className="staff-secondary-button" type="button" disabled={busy} onClick={() => void load()}>Load latest details</button></div>}
     {saved && <form className="merchandise-details-form" onSubmit={save} noValidate>
       <div className="merchandise-details-form-heading"><h3>South African bank account</h3><span className={saved.configured ? "is-configured" : ""}>{saved.configured ? "Details saved" : "Not configured"}</span></div>
-      <p className="merchandise-details-intro">Enter the actual business bank details. Saving this private record does not collect a payment or publish it to checkout.</p>
+      <p className="merchandise-details-intro">Enter the actual business bank details for non-cannabis merchandise. The payment note stays private to administrators. Bank transfers are reviewed manually by the store.</p>
       <div className="merchandise-details-fields">
         {textField("bankName", "Bank name", 80)}
         {textField("accountHolder", "Account holder", 120)}

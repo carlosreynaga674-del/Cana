@@ -432,6 +432,22 @@ function PrivacyPage({ onNavigate, store = {} }) {
           </p>
         </section>
         <section className="legal-section">
+          <h2>Saved delivery addresses</h2>
+          <p>
+            You can keep up to three labelled street addresses, cities and
+            postal codes in your private member account, and edit or remove
+            them from Saved addresses. Accepted eligible non-cannabis
+            merchandise delivery requests save or reuse the submitted address.
+            Address-book access is limited to your signed-in account.
+          </p>
+          <p>
+            Removing an address or deleting your account removes saved addresses
+            from the active address book. Editing them does not rewrite earlier
+            request snapshots. Those business records and backups have their
+            own retention process.
+          </p>
+        </section>
+        <section className="legal-section">
           <h2>Private staff activity notifications</h2>
           <p>
             Authorised staff receive private in-app notices when an account is

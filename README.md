@@ -54,7 +54,9 @@ Notifications are retained for up to 30 days, with a maximum of 10,000 shared ac
 
 ## Processed merchandise reports and rewards
 
-The administrator's **Payment details** tab stores private business EFT details for non-cannabis merchandise: bank, account holder, account number, branch code, account type, reference and note. Only an administrator can read or update this record. Saves recheck the role after reading the request and use revisions to prevent stale overwrites. Nothing is copied into the public catalog, member account, staff workspace or checkout; this does not collect payments or proof-of-payment files.
+The administrator's **Payment details** tab manages business EFT details for non-cannabis merchandise. Only administrators can edit the record. Verified members see the bank, account holder, account number, branch code, account type and reference at checkout when every product is eligible merchandise. Eligibility is checked against the published server catalog. The administrator's payment note remains private. If no reference is configured, the member's own membership number is used. This displays transfer instructions; it does not process payments or collect proof-of-payment files.
+
+Members have a private **Saved addresses** panel with up to three labelled addresses, including edit and removal controls. Accepted delivery requests containing only eligible non-cannabis merchandise save or reuse the submitted address atomically with the request. The latest used address can prefill an otherwise blank eligible checkout, and members can choose another saved address or edit the fields. A full book requires an edit or removal before a fourth address is used; existing records are never evicted. Address edits do not rewrite earlier request snapshots. Addresses are stored on the server, bound to the signed-in member, and deleted with the account.
 
 Administrators can use **Processed reports → Add product** to create an Accessories draft with a name, rand price, unit and description. Save the report selection to include it; photos and publication remain available in **Products**.
 

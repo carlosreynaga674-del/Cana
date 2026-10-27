@@ -26,6 +26,7 @@ import { request, offlinePreview } from "../lib/api.js";
 import MembershipCard, { MemberSetupJourney } from "./MembershipCard.jsx";
 import { hasCompletedVerification } from "../lib/membership.js";
 import MemberMerchandiseRewards from "./MerchandiseRewards.jsx";
+import MemberAddressBook from "./MemberAddressBook.jsx";
 
 const MEMBER_SITE = "https://loud-cana.onrender.com";
 const EMPTY_SIGNUP = {
@@ -2222,6 +2223,7 @@ function MemberAccount({
         <MemberSetupJourney member={member} savedCount={savedCount} />
       </div>
       <MemberMerchandiseRewards member={member} />
+      <MemberAddressBook member={member} />
       {!hasCompletedVerification(member) && (
         <div id="member-verification" className="member-verification-section">
           {member.identityVerification?.required ? (

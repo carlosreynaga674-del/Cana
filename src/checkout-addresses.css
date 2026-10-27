@@ -1,0 +1,15 @@
+.checkout-saved-addresses { margin: 0 0 22px; padding: 19px; border: 1px solid #d4ddc6; border-radius: 8px; background: #f4f7ed; color: #3f542f; }
+.checkout-saved-addresses-heading { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+.checkout-saved-addresses h4 { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 14px; }
+.checkout-saved-addresses > p { font-size: 12px; line-height: 1.75; margin: 12px 0; }
+.checkout-saved-addresses > label { display: grid; gap: 8px; font-size: 12px; }
+.checkout-saved-addresses select { width: 100%; min-width: 0; border: 1px solid #cbd6bb; border-radius: 5px; padding: 12px; background: #fff; color: #394e2c; font: inherit; font-size: 13px; text-overflow: ellipsis; }
+.checkout-address-refresh { display: inline-flex; align-items: center; justify-content: center; width: 35px; height: 35px; color: #57723d; background: #e9efdf; border: 1px solid #d5dfc8; border-radius: 5px; flex-shrink: 0; }
+.checkout-address-status { display: flex; align-items: center; gap: 8px; }
+.checkout-address-actions { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-top: 13px; }
+.checkout-address-actions small { color: #748166; font-size: 11px; }
+.checkout-address-actions button { padding: 3px 0; border-bottom: 1px solid #8c9e78; color: #4c6637; background: transparent; font-size: 11px; }
+.checkout-saved-addresses .checkout-address-note { margin-bottom: 0; color: #6d7e5d; font-size: 11px; }
+.checkout-saved-addresses .checkout-address-error { color: #96563c; font-size: 12px; line-height: 1.75; overflow-wrap: anywhere; }
+.checkout-saved-addresses button:focus-visible, .checkout-saved-addresses select:focus-visible { outline: 2px solid #5e7c3f; outline-offset: 3px; }
+@media (max-width: 500px) { .checkout-saved-addresses { padding: 16px 13px; } .checkout-address-actions { align-items: flex-start; } }

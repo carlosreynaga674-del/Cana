@@ -548,6 +548,21 @@ export function createServer({
     rateLimit,
     HttpError,
     productIds: () => catalog.productIds(),
+    getMerchandiseCheckoutPayment(productIds) {
+      if (!Array.isArray(productIds) || productIds.length < 1 || productIds.length > 20 ||
+          new Set(productIds).size !== productIds.length || productIds.some((id) => typeof id !== "string" || id.length > 96))
+        throw new HttpError(422, "Choose valid merchandise products before viewing bank details.");
+      if (productIds.some((id) => catalog.findPublished(id)?.category !== "Accessories"))
+        throw new HttpError(409, "Bank details are available only for eligible non-cannabis merchandise.");
+      const payment = merchandisePaymentDetails.get();
+      return {
+        scope: payment.scope, configured: payment.configured, revision: payment.revision, updatedAt: payment.updatedAt,
+        details: payment.configured ? Object.fromEntries(
+          ["bankName", "accountHolder", "accountNumber", "branchCode", "accountType", "reference"]
+            .map((key) => [key, payment.details[key]]),
+        ) : null,
+      };
+    },
     identityConfig: { ...identityConfig, publicOrigin: identityConfig.publicOrigin || settings.publicOrigin },
     onMemberAuthenticated: clearWorkforceSession,
     mailConfig: { ...mailConfig, publicOrigin: mailConfig.publicOrigin || settings.publicOrigin },
@@ -630,8 +645,11 @@ export function createServer({
         handleMembers.requireVerifiedMember(req);
         const body = await readJson(req);
         // Body reads yield: a session may be revoked or identity details changed in the meantime.
-        handleMembers.requireVerifiedMember(req);
+        const authenticatedOrderingMember = handleMembers.requireVerifiedMember(req);
         const canonical = validateOrder(body, settings, catalog);
+        if (canonical.items.every((item) => item.category === "Accessories") &&
+            req.headers["x-member-id"] !== undefined && req.headers["x-member-id"] !== authenticatedOrderingMember.id)
+          throw new HttpError(401, "Your signed-in account changed. Refresh and sign in again before submitting.");
         const rawKey = clean(req.headers["idempotency-key"]);
         if (
           rawKey &&
@@ -668,7 +686,8 @@ export function createServer({
         );
         db.exec("BEGIN IMMEDIATE");
         try {
-          handleMembers.requireVerifiedMember(req);
+          const orderingMember = handleMembers.requireVerifiedMember(req);
+          handleMembers.rememberDeliveryAddress(orderingMember.id, canonical);
           insert.run(
             id,
             now,

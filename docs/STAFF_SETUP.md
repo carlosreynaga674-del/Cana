@@ -161,14 +161,23 @@ Only an administrator can confirm payment or apply credit. Report product choice
 
 Deleting a member removes that member's reward balance and ledger. Receipt references, amounts and trusted administrator confirmation remain without a member link under the business's separate retention process, so the same receipt cannot be credited to a new account. Back up the entire persistent database with the existing backup procedure; do not reset member records or change the upload-encryption key for these features.
 
-## 16. Maintain private merchandise payment details
+## 16. Maintain merchandise payment details
 
 1. Sign in as **admin** on the shared login page, then open **Payment details**. This tab is absent from employee dashboards, and employee/member sessions cannot read or change its API.
 2. Enter the genuine bank name, account holder, account number, six-digit branch code and account type. Account numbers remain strings so leading zeros are preserved. A payment reference and note are optional.
 3. Select **Save payment details**. The confirmation and saved time refer to a database update, not a bank transfer. Details persist in the existing mounted database.
 4. **Reset changes** restores the loaded form without changing the server record. If another admin session saved first, review the latest details before saving again; a stale form cannot overwrite them silently.
 
-This is a private administrator record for **non-cannabis merchandise only**. It is not published to members or checkout, does not process money, and does not provide a proof-of-payment upload. No bank information is prefilled or invented. The change audit stores revision, time and a hashed administrator reference without copying the account details. Private database backups include the saved details; protect them using [the backup guide](BACKUPS.md).
+Verified members checking out **only eligible non-cannabis merchandise** can view the bank details and payment reference. If the reference is blank, their membership number is used. The payment note remains private to administrators. Other products and mixed selections do not display these instructions. Saving details does not process money or provide a proof-of-payment upload. No bank information is prefilled or invented. The change audit stores revision, time and a hashed administrator reference without copying the account details. Private database backups include the saved details; protect them using [the backup guide](BACKUPS.md).
+
+## 17. Use the member address book
+
+1. Sign in as a member and open **Account → Saved addresses**. Choose **Add address**, enter a label, street address, city and four-digit postal code, then **Save address**.
+2. Keep up to three addresses. Use **Edit address → Save changes** when an address changes. **Remove address** opens an explicit removal confirmation. A stale edit must be reviewed against the latest record before it can be saved.
+3. Eligible non-cannabis merchandise delivery checkout can use the most recently used address when the form is blank. Choose another from **Saved delivery address**, or enter a new one when a slot is available. Pickup and other product categories do not use this checkout feature.
+4. A successful eligible delivery request saves the address or marks a matching one as recently used. Failed requests do not add addresses. If all three slots are occupied, edit or remove one before using a fourth address; no saved record is silently replaced.
+
+Addresses are private to the signed-in account and are not stored as an address book in browser local storage. Editing or removing a saved address does not change an already submitted request. Account deletion removes the saved address book; separately retained request snapshots and backups follow their existing retention procedures.
 
 ## Ordering is a separate launch step
 

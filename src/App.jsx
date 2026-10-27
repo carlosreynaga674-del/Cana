@@ -46,6 +46,8 @@ import { calculateTotals, formatMoney, validateCheckout } from "./lib/order.js";
 import ProductArt from "./components/ProductArt.jsx";
 import StaffDashboard from "./components/StaffDashboard.jsx";
 import OrderTracking from "./components/OrderTracking.jsx";
+import CheckoutSavedAddresses from "./components/CheckoutSavedAddresses.jsx";
+import CheckoutPaymentDetails from "./components/CheckoutPaymentDetails.jsx";
 import {
   cleanCart,
   cleanFavorites,
@@ -61,6 +63,14 @@ import {
   normalizeServerOrder,
   createIdempotencyKey,
 } from "./lib/api.js";
+
+function eligibleAddressCart(items, catalog) {
+  if (!items.length) return false;
+  const byId = new Map(catalog.map((item) => [item.id, item]));
+  return items.every((item) => item.category === "Accessories" && byId.get(item.id)?.category === "Accessories");
+}
+
+const emptyCheckout = () => ({ name: "", email: "", phone: "", address: "", city: "", postcode: "", notes: "", confirmed: false });
 
 function useSavedState(key, fallback, sanitize = (value) => value, persist = true) {
   const [value, setValue] = useState(() =>
@@ -480,16 +490,8 @@ function Storefront() {
   const [promo, setPromo] = useState("");
   const [promoInput, setPromoInput] = useState("");
   const [promoMessage, setPromoMessage] = useState("");
-  const [checkout, setCheckout] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    address: "",
-    city: "",
-    postcode: "",
-    notes: "",
-    confirmed: false,
-  });
+  const [checkout, setCheckout] = useState(emptyCheckout);
+  const [addressBookBlocked, setAddressBookBlocked] = useState(false);
   const [errors, setErrors] = useState({});
   const [trackInput, setTrackInput] = useState("");
   const [trackError, setTrackError] = useState("");
@@ -498,6 +500,23 @@ function Storefront() {
   const [locationError, setLocationError] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
   const [galleryIndex, setGalleryIndex] = useState(0);
+  useEffect(() => {
+    setCheckout(emptyCheckout());
+    setErrors({});
+    setCheckoutError("");
+    setAddressBookBlocked(false);
+    requestKey.current = null;
+  }, [member?.id]);
+
+  const useSavedDeliveryAddress = useCallback((address, ownerId, onlyIfEmpty = false) => {
+    if (memberRef.current?.id !== ownerId) return;
+    setCheckout((values) => {
+      if (onlyIfEmpty && [values.address, values.city, values.postcode].some((value) => value.trim())) return values;
+      return { ...values, address: address?.address || "", city: address?.city || "", postcode: address?.postcode || "" };
+    });
+    setErrors((values) => ({ ...values, address: "", city: "", postcode: "" }));
+    setCheckoutError("");
+  }, []);
   const gallery = [
     {
       src: "/images/reference-space-1.webp",
@@ -616,6 +635,7 @@ function Storefront() {
   };
   const toastTimer = useRef(null);
   const mode = location.mode;
+  const merchandiseAddressEligible = catalogReady && !catalogError && eligibleAddressCart(cart, products);
   const totals = calculateTotals(cart, mode, promo);
   useEffect(() => () => clearTimeout(toastTimer.current), []);
   const notify = useCallback((message) => {
@@ -817,20 +837,22 @@ function Storefront() {
       notify("Complete your ID age check before submitting an order.");
       return;
     }
+    let useAddressBook = false;
     try {
       const latest = await refreshCatalog();
       if (!latest.cart.length || latest.changed) {
         setModal("cart");
         return;
       }
+      useAddressBook = eligibleAddressCart(latest.cart, latest.products);
     } catch {
       notify("The current collection could not be checked. Please try again before ordering.");
       return;
     }
     setCheckout((values) => ({
       ...values,
-      address: values.address || location.address,
-      postcode: values.postcode || location.postcode,
+      address: useAddressBook ? values.address : values.address || location.address,
+      postcode: useAddressBook ? values.postcode : values.postcode || location.postcode,
     }));
     setErrors({});
     setCheckoutError("");
@@ -849,6 +871,10 @@ function Storefront() {
   async function placeOrder(event) {
     event.preventDefault();
     if (submitting || !live) return;
+    if (merchandiseAddressEligible && mode === "delivery" && addressBookBlocked) {
+      setCheckoutError("Load your saved addresses, or choose or edit a saved address before continuing.");
+      return;
+    }
     if (!member || member.ageVerification?.status !== "verified") {
       setCheckoutError(
         "An ID age check is required before an order can be submitted. Visit your account to complete it.",
@@ -909,8 +935,11 @@ function Storefront() {
         method: "POST",
         body: payload,
         idempotencyKey: requestKey.current.key,
+        ...(eligibleAddressCart(latest.cart, latest.products) ? { memberId: member.id } : {}),
       });
       const order = normalizeServerOrder(result.order, result.trackingToken);
+      if (eligibleAddressCart(latest.cart, latest.products))
+        setCheckout((values) => ({ ...values, address: "", city: "", postcode: "", notes: "", confirmed: false }));
       setOrders((prev) => [order, ...prev].slice(0, 10));
       setActiveOrder(order);
       setCart([]);
@@ -2203,6 +2232,17 @@ function Storefront() {
               <h3>
                 {mode === "delivery" ? "Where are we headed?" : "Your pickup"}
               </h3>
+              {mode === "delivery" && merchandiseAddressEligible && member && (
+                <CheckoutSavedAddresses
+                  key={member.id}
+                  memberId={member.id}
+                  customer={checkout}
+                  busy={submitting}
+                  onUseAddress={useSavedDeliveryAddress}
+                  onManage={() => goToPage("/account")}
+                  onBlocked={setAddressBookBlocked}
+                />
+              )}
               {mode === "delivery" ? (
                 <div className="form-grid">
                   {[
@@ -2273,6 +2313,14 @@ function Storefront() {
                   }
                 />
               </label>
+              {merchandiseAddressEligible && member?.ageVerification?.status === "verified" && (
+                <CheckoutPaymentDetails
+                  key={member.id}
+                  memberId={member.id}
+                  productIds={[...new Set(cart.map((item) => item.id))]}
+                  busy={submitting}
+                />
+              )}
               <label className="checkbox-label">
                 <input
                   type="checkbox"
@@ -2303,7 +2351,7 @@ function Storefront() {
               <button
                 type="submit"
                 onClick={placeOrder}
-                disabled={submitting}
+                disabled={submitting || (mode === "delivery" && merchandiseAddressEligible && addressBookBlocked)}
                 className="button dark checkout-button"
               >
                 {submitting

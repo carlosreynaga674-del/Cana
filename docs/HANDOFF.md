@@ -75,7 +75,9 @@ Keep the already-configured **`IDENTITY_UPLOAD_KEY`** stable when redeploying th
 
 ## Processed merchandise reports and rewards
 
-The separate administrator-only **Payment details** tab stores private merchandise EFT details. The administrator can edit the bank name, account holder/number, branch code, account type, reference and note, then save. Revisions protect against stale edits. Employee and member accounts cannot read or update this record, and it is not displayed in checkout. No bank information is invented, no transfer is made and no proof upload is implemented by this tab. Follow [the staff instructions](STAFF_SETUP.md#16-maintain-private-merchandise-payment-details).
+The administrator-only **Payment details** tab edits merchandise EFT details with revision protection. Verified members see six bank/reference fields at eligible non-cannabis merchandise checkout; the administrator's note is excluded. The server validates the published product categories before disclosing instructions. No bank information is invented, no transfer is made and no proof upload is implemented. Follow [the staff instructions](STAFF_SETUP.md#16-maintain-merchandise-payment-details).
+
+The member dashboard's **Saved addresses** panel supports three private labelled addresses, editing and confirmed removal. Eligible merchandise delivery requests remember the submitted address after successful submission. A fourth new address requires editing or removing a saved one, without changing historical request addresses. Saved records persist across logins and are removed with the member account. Read [the address instructions](STAFF_SETUP.md#17-use-the-member-address-book).
 
 Administrators can create their own merchandise from **Processed reports → Add product**. Supply a name, rand price, unit/size and description, then **Create draft product** and **Save report products**. The new Accessories draft is also available in **Products** for photo editing and separate publication; no processed record is invented.
 

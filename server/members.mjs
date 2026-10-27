@@ -12,6 +12,7 @@ import { createWelcomeMailer } from "./welcome-mail.mjs";
 import { createStaffNotifications } from "./notifications.mjs";
 import { createMemberNumbers } from "./member-numbers.mjs";
 import { createMerchandiseRewards } from "./merchandise-rewards.mjs";
+import { createMemberAddresses } from "./member-addresses.mjs";
 import { hasCompletedVerification, MEMBERSHIP_NUMBER_PATTERN, LEGACY_MEMBERSHIP_NUMBER_PATTERN, normalizeMembershipNumber } from "../src/lib/membership.js";
 
 const deriveKey = promisify(scrypt);
@@ -39,6 +40,7 @@ export function createMemberHandlers({
   mailConfig = {},
   mailTransport,
   mailFetch,
+  getMerchandiseCheckoutPayment,
 }) {
   const knownProducts = () => new Set(typeof productIds === "function" ? productIds() : productIds);
   let activeDerivations = 0;
@@ -73,6 +75,7 @@ export function createMemberHandlers({
   const notifications = createStaffNotifications({ db, HttpError });
   const memberNumbers = createMemberNumbers({ db, HttpError });
   const merchandiseRewards = createMerchandiseRewards({ db, HttpError });
+  const memberAddresses = createMemberAddresses({ db, HttpError });
   const onReviewed = ({ memberId, sourceRef }) => notifications.publish({
     type: "verification_reviewed", memberId, sourceRef,
   });
@@ -180,6 +183,13 @@ export function createMemberHandlers({
       throw new HttpError(401, "Your security settings changed. Please sign in again.");
     return current;
   }
+  function authenticateAddressOwner(req) {
+    const session = authenticate(req);
+    const expected = req.headers["x-member-id"];
+    if (expected !== undefined && expected !== session.member.id)
+      throw new HttpError(401, "Your signed-in account changed. Refresh and sign in again before continuing.");
+    return session;
+  }
   function issueSession(res, memberId) {
     db.prepare("DELETE FROM member_sessions WHERE expires_at <= ?").run(
       Date.now(),
@@ -256,6 +266,48 @@ export function createMemberHandlers({
 
   const handleMembers = async function handleMembers(req, res, pathname) {
     if (!pathname.startsWith("/api/members/")) return false;
+    if (pathname === "/api/members/addresses" && req.method === "GET") {
+      const { member } = authenticateAddressOwner(req);
+      send(res, 200, { ...memberAddresses.list(member.id), memberId: member.id });
+      return true;
+    }
+    if (pathname === "/api/members/addresses" && req.method === "POST") {
+      const { member } = authenticateAddressOwner(req);
+      rateLimit(req, "member-addresses:" + member.id, 90, 15 * 60 * 1000);
+      const body = await bodyObject(req);
+      authenticateAddressOwner(req);
+      send(res, 201, { address: memberAddresses.create(member.id, body) });
+      return true;
+    }
+    const addressMatch = pathname.match(/^\/api\/members\/addresses\/([a-f0-9-]{36})$/);
+    if (addressMatch && ["PATCH", "DELETE"].includes(req.method)) {
+      const { member } = authenticateAddressOwner(req);
+      rateLimit(req, "member-addresses:" + member.id, 90, 15 * 60 * 1000);
+      const body = await bodyObject(req);
+      authenticateAddressOwner(req);
+      send(res, 200, req.method === "PATCH"
+        ? { address: memberAddresses.update(member.id, addressMatch[1], body) }
+        : memberAddresses.remove(member.id, addressMatch[1], body));
+      return true;
+    }
+    if (addressMatch) throw new HttpError(405, "Method not allowed.");
+    if (pathname === "/api/members/merchandise-payment-details" && req.method === "POST") {
+      const { member } = authenticateAddressOwner(req);
+      onboarding.requireVerified(member.id);
+      rateLimit(req, "member-merchandise-bank:" + member.id, 90, 15 * 60 * 1000);
+      const body = await bodyObject(req);
+      authenticateAddressOwner(req);
+      onboarding.requireVerified(member.id);
+      if (Object.keys(body).some((key) => key !== "productIds"))
+        throw new HttpError(422, "Choose eligible merchandise products to view the bank details.");
+      if (typeof getMerchandiseCheckoutPayment !== "function")
+        throw new HttpError(503, "Merchandise bank details are unavailable.");
+      const payment = getMerchandiseCheckoutPayment(body.productIds);
+      if (payment.details && !payment.details.reference)
+        payment.details.reference = memberNumbers.get(member.id);
+      send(res, 200, { ...payment, memberId: member.id });
+      return true;
+    }
     if (pathname === "/api/members/rewards" && req.method === "GET") {
       const { member } = authenticate(req);
       send(res, 200, { rewards: merchandiseRewards.balance(member.id) });
@@ -527,6 +579,8 @@ export function createMemberHandlers({
       "/api/members/logout",
       "/api/members/me",
       "/api/members/rewards",
+      "/api/members/addresses",
+      "/api/members/merchandise-payment-details",
       "/api/members/password",
       "/api/members/signup-challenge",
       "/api/members/age-verification",
@@ -546,6 +600,7 @@ export function createMemberHandlers({
   };
   handleMembers.signIn = (req, res, body) => signIn(req, res, body, true);
   handleMembers.merchandiseRewards = (id) => merchandiseRewards.balance(id);
+  handleMembers.rememberDeliveryAddress = (id, canonical) => memberAddresses.rememberDelivery(id, canonical);
   handleMembers.merchandiseQuote = (orderId) => merchandiseRewards.quote(orderId);
   handleMembers.confirmMerchandisePayment = (body, actor) => {
     const { balance, ...result } = merchandiseRewards.confirmPayment(body, actor);
